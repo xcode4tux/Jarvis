@@ -7,7 +7,7 @@ export interface SetupStep {
 export interface ConnectorMeta {
   connector_id: string;
   display_name: string;
-  auth_type: 'oauth' | 'local' | 'bridge' | 'filesystem';
+  auth_type: 'oauth' | 'local' | 'bridge' | 'filesystem' | 'token';
   category: 'communication' | 'documents' | 'pim' | 'other';
   icon: string;
   color: string;
@@ -25,7 +25,7 @@ export interface ConnectorMeta {
 export interface ConnectorInfo {
   connector_id: string;
   display_name: string;
-  auth_type: "oauth" | "local" | "bridge" | "filesystem";
+  auth_type: "oauth" | "local" | "bridge" | "filesystem" | "token";
   connected: boolean;
   auth_url?: string;
   mcp_tools?: string[];
@@ -142,6 +142,29 @@ export const SOURCE_CATALOG: ConnectorMeta[] = [
     ],
     inputFields: [
       { name: 'token', placeholder: 'xoxp-...', type: 'password' },
+    ],
+  },
+  {
+    connector_id: 'github_notifications',
+    display_name: 'GitHub Notifications',
+    auth_type: 'token',
+    category: 'communication',
+    icon: 'Github',
+    color: 'text-blue-400',
+    description: 'Sync unread notifications from GitHub',
+    unitLabel: 'notifications',
+    steps: [
+      {
+        label: 'Go to github.com/settings/tokens and generate a Personal Access Token (classic) with the "notifications" scope enabled.',
+        url: 'https://github.com/settings/tokens',
+        urlLabel: 'Generate GitHub PAT \u2192',
+      },
+      {
+        label: 'Paste your Personal Access Token below to connect.',
+      },
+    ],
+    inputFields: [
+      { name: 'token', placeholder: 'ghp_...', type: 'password' },
     ],
   },
   {

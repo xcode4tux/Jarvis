@@ -19,7 +19,7 @@ import { getBase, isTauri } from '../lib/api';
 import {
   Database, MessageSquare, Loader2, Brain, Search, FolderOpen, FileText,
   Mail, Hash, MessageCircle, CalendarDays, Contact, StickyNote, BookText,
-  Package, Upload, Link2, PhoneCall,
+  Package, Upload, Link2, PhoneCall, Github,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { SOURCE_CATALOG } from '../types/connectors';
@@ -293,6 +293,7 @@ const iconMap: Record<string, LucideIcon> = {
   gmail_api: Mail,
   outlook: Mail,
   slack: Hash,
+  github_notifications: Github,
   imessage: MessageCircle,
   whatsapp: PhoneCall,
   gdrive: FolderOpen,

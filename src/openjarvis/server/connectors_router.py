@@ -316,7 +316,7 @@ def create_connectors_router():
 
                     instance._connected = Path(req.path).is_dir()
 
-            elif auth_type == "oauth":
+            elif auth_type in ("oauth", "token"):
                 if req.code:
                     instance.handle_callback(req.code)
                 elif req.token:

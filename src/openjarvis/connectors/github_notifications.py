@@ -61,6 +61,23 @@ class GitHubNotificationsConnector(BaseConnector):
         if self._token_path.exists():
             self._token_path.unlink()
 
+    def handle_callback(self, code: str) -> None:
+        """Validate and persist the GitHub PAT."""
+        if not code:
+            raise ValueError("GitHub token is empty.")
+
+        try:
+            _github_api_get(code, params={"per_page": "1"})
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (401, 403):
+                raise ValueError("Invalid GitHub token. Check token scopes.")
+            raise ValueError(f"GitHub API error: {exc}")
+        except Exception as exc:
+            raise ValueError(f"Failed to connect to GitHub: {exc}")
+
+        self._token_path.parent.mkdir(parents=True, exist_ok=True)
+        self._token_path.write_text(json.dumps({"token": code}, indent=2), encoding="utf-8")
+
     def sync(
         self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
     ) -> Iterator[Document]:
