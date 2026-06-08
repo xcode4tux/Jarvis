@@ -56,6 +56,13 @@ export default function App() {
     else if (settings.theme === 'light') root.classList.add('light');
   }, [settings.theme]);
 
+  // Apply font size class to <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('font-size-small', 'font-size-default', 'font-size-large');
+    root.classList.add(`font-size-${settings.fontSize || 'default'}`);
+  }, [settings.fontSize]);
+
   // Sync overlay conversations into the main app
   const importOverlay = useAppStore((s) => s.importOverlayConversation);
   useEffect(() => {
@@ -159,21 +166,23 @@ export default function App() {
 
   const toggleSystemPanel = useAppStore((s) => s.toggleSystemPanel);
 
-  // Global keyboard shortcuts
+  // Global keyboard shortcuts — uses store.getState() to avoid re-attaching
+  // the listener every time commandPaletteOpen changes.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
+        const open = useAppStore.getState().commandPaletteOpen;
+        useAppStore.getState().setCommandPaletteOpen(!open);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
         e.preventDefault();
-        toggleSystemPanel();
+        useAppStore.getState().toggleSystemPanel();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [commandPaletteOpen, setCommandPaletteOpen, toggleSystemPanel]);
+  }, []);
 
 
   if (!setupDone) {

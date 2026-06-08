@@ -1,5 +1,5 @@
 import type { ResearchEvent, SSEEvent } from '../types';
-import { getBase } from './api';
+import { apiFetch, authHeaders, getBase } from './api';
 
 export interface ChatRequest {
   model: string;
@@ -13,8 +13,7 @@ export async function* streamChat(
   request: ChatRequest,
   signal?: AbortSignal,
 ): AsyncGenerator<SSEEvent> {
-  const base = getBase();
-  const response = await fetch(`${base}/v1/chat/completions`, {
+  const response = await apiFetch(`/v1/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -64,10 +63,12 @@ export async function* streamResearch(
 ): AsyncGenerator<ResearchEvent> {
   // /api/research is mounted at the server root — strip any trailing /v1
   // from the base so configurations like "http://host:8000/v1" still resolve.
+  // We use authHeaders() directly instead of apiFetch() because apiFetch
+  // would prepend a base that might include /v1.
   const base = getBase().replace(/\/v1\/?$/, '');
   const response = await fetch(`${base}/api/research`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ query }),
     signal,
   });

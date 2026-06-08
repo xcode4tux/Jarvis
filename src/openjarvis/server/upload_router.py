@@ -22,6 +22,7 @@ router = APIRouter(prefix="/v1/connectors/upload", tags=["upload"])
 # ---------------------------------------------------------------------------
 
 _ALLOWED_EXTENSIONS = {".txt", ".md", ".csv", ".pdf", ".docx"}
+_MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 def _chunk_text(text: str, max_chars: int = 1000) -> List[str]:
@@ -175,6 +176,15 @@ async def ingest_files(
             )
 
         data = await upload.read()
+
+        if len(data) > _MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"File {filename} exceeds the {_MAX_FILE_SIZE // (1024 * 1024)} MB "
+                    f"size limit ({len(data) // (1024 * 1024)} MB)"
+                ),
+            )
 
         # Parse content based on extension
         if ext in (".txt", ".md", ".csv"):

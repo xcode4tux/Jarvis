@@ -12,12 +12,15 @@ function applyTheme() {
     const raw = localStorage.getItem('openjarvis-settings');
     const settings = raw ? JSON.parse(raw) : {};
     const theme = settings.theme || 'system';
+    document.documentElement.classList.remove('dark', 'light');
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
     } else if (theme === 'light') {
       document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
+    } else {
+      // 'system' — apply based on OS preference to prevent theme flash
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
     }
   } catch { /* use system default */ }
 }

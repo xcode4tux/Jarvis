@@ -170,6 +170,19 @@
     box-sizing: border-box;
   }
 
+  html {
+    transition: font-size 0.15s ease;
+  }
+  html.font-size-small {
+    font-size: 87.5%;
+  }
+  html.font-size-default {
+    font-size: 100%;
+  }
+  html.font-size-large {
+    font-size: 112.5%;
+  }
+
   html, body, #root {
     height: 100%;
     width: 100%;

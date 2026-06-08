@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getBase } from './api';
+import { getApiKey, getBase } from './api';
 
 export interface AgentEvent {
   type: string;
@@ -17,9 +17,12 @@ function buildWsUrl(agentId?: string): string {
     origin = `${loc.protocol === 'https:' ? 'wss:' : 'ws:'}//${loc.host}`;
   }
   const path = '/v1/agents/events';
-  return agentId
-    ? `${origin}${path}?agent_id=${encodeURIComponent(agentId)}`
-    : `${origin}${path}`;
+  const params = new URLSearchParams();
+  if (agentId) params.set('agent_id', agentId);
+  const key = getApiKey();
+  if (key) params.set('token', key);
+  const qs = params.toString();
+  return `${origin}${path}${qs ? '?' + qs : ''}`;
 }
 
 /**
