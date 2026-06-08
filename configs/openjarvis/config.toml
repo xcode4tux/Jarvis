@@ -4,9 +4,9 @@
 # PILLAR 1: Intelligence — The Model
 # ═══════════════════════════════════════════════════════════════
 [intelligence]
-default_model = "zai-org/GLM-4.7-Flash"   # HuggingFace model ID
-fallback_model = "glm-4.7-flash"          # Catalog alias fallback
-preferred_engine = "vllm"                 # MoE model, vLLM is best for A100s
+default_model = "qwen3.5:4b"               # Local consumer-hardware model
+fallback_model = "qwen3.5:4b"              # Fallback to local model
+preferred_engine = "ollama"                # Ollama is best for local AMD GPU (Vulkan)
 provider = "local"                        # Running locally on this machine
 quantization = "none"                     # Full precision, we have 640GB VRAM
 # Generation defaults for eval
@@ -40,7 +40,7 @@ enabled = true
 # PILLAR 4: Engine — The Inference Runtime
 # ═══════════════════════════════════════════════════════════════
 [engine]
-default = "vllm"
+default = "ollama"
 
 [engine.vllm]
 host = "http://localhost:8001"            # vLLM serving port
@@ -109,3 +109,7 @@ db_path = "~/.openjarvis/traces.db"
 host = "0.0.0.0"
 port = 8000
 agent = "native_openhands"
+
+[updates]
+auto_update = true
+

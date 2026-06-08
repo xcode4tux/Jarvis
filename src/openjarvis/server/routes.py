@@ -48,7 +48,7 @@ async def chat_completions(request_body: ChatCompletionRequest, request: Request
     """Handle chat completion requests (streaming and non-streaming)."""
     engine = request.app.state.engine
     agent = getattr(request.app.state, "agent", None)
-    model = request_body.model
+    model = request_body.model or getattr(request.app.state, "model", "")
 
     # Inject memory context into messages before dispatching
     config = getattr(request.app.state, "config", None)

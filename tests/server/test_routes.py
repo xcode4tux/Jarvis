@@ -88,6 +88,18 @@ class TestChatCompletions:
         assert data["object"] == "chat.completion"
         assert data["choices"][0]["message"]["content"] == "Hello from server"
 
+    def test_empty_model_fallback(self, client):
+        resp = client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "",
+                "messages": [{"role": "user", "content": "Hello"}],
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["model"] == "test-model"
+
     def test_completion_has_usage(self, client):
         resp = client.post(
             "/v1/chat/completions",
