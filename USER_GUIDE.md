@@ -135,7 +135,7 @@ To launch the full desktop-grade browser app containing a modern chat UI, tool t
 ```bash
 ./scripts/quickstart.sh
 ```
-This runs the API server on port `8000` and starts the React frontend at [http://localhost:5173](http://localhost:5173).
+This runs the API server on port `8000` and starts the React frontend at [http://localhost:5174](http://localhost:5174).
 
 ---
 

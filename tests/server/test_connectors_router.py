@@ -159,3 +159,72 @@ def test_connect_granola_invalid_key_returns_400_keeps_existing(
         assert json.loads(creds.read_text())["token"] == "grl_real_existing_key"
     finally:
         _instances.pop("granola", None)
+
+
+class TestCustomConnectorsEndpoints:
+    def test_custom_connector_lifecycle(self, app, tmp_path: Path) -> None:
+        from unittest.mock import patch
+        from openjarvis.core.registry import ConnectorRegistry
+
+        # Patch DEFAULT_CONFIG_DIR to isolated test temp path
+        with patch("openjarvis.core.config.DEFAULT_CONFIG_DIR", tmp_path):
+            
+            # 1. Add custom filesystem connector
+            add_resp = app.post(
+                "/v1/connectors/custom",
+                json={
+                    "connector_id": "test_custom_fs",
+                    "display_name": "Test Custom Folder",
+                    "auth_type": "filesystem",
+                    "description": "My custom folder",
+                }
+            )
+            assert add_resp.status_code == 200
+            assert add_resp.json()["status"] == "success"
+            assert add_resp.json()["connector_id"] == "test_custom_fs"
+
+            # Verify it is registered in Registry
+            assert ConnectorRegistry.contains("test_custom_fs")
+
+            # 2. List connectors and verify custom is listed
+            list_resp = app.get("/v1/connectors")
+            assert list_resp.status_code == 200
+            connectors = list_resp.json()["connectors"]
+            custom_entry = next((c for c in connectors if c["connector_id"] == "test_custom_fs"), None)
+            assert custom_entry is not None
+            assert custom_entry["display_name"] == "Test Custom Folder"
+            assert custom_entry["auth_type"] == "filesystem"
+            assert custom_entry["is_custom"] is True
+            assert custom_entry["description"] == "My custom folder"
+            assert custom_entry["connected"] is False
+
+            # 3. Connect the custom connector (create a path to vault)
+            vault_dir = tmp_path / "custom_vault"
+            vault_dir.mkdir()
+            (vault_dir / "note.txt").write_text("Hello Custom Source!")
+
+            conn_resp = app.post(
+                "/v1/connectors/test_custom_fs/connect",
+                json={"path": str(vault_dir)}
+            )
+            assert conn_resp.status_code == 200
+            assert conn_resp.json()["connected"] is True
+
+            # Verify it is connected in detail route
+            detail_resp = app.get("/v1/connectors/test_custom_fs")
+            assert detail_resp.status_code == 200
+            assert detail_resp.json()["connected"] is True
+
+            # 4. Trigger sync (creates background thread)
+            sync_resp = app.post("/v1/connectors/test_custom_fs/sync")
+            assert sync_resp.status_code == 200
+            assert sync_resp.json()["status"] in {"started", "already_syncing"}
+
+            # 5. Delete custom connector
+            del_resp = app.delete("/v1/connectors/custom/test_custom_fs")
+            assert del_resp.status_code == 200
+            assert del_resp.json()["status"] == "success"
+
+            # Verify deleted from registry
+            assert not ConnectorRegistry.contains("test_custom_fs")
+

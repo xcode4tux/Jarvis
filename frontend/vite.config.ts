@@ -49,11 +49,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
     proxy: {
-      '/v1': process.env.VITE_API_URL || 'http://localhost:8000',
-      '/health': process.env.VITE_API_URL || 'http://localhost:8000',
-      '/api': process.env.VITE_API_URL || 'http://localhost:8000',
+      '/v1': process.env.VITE_API_URL || 'http://localhost:8008',
+      '/health': process.env.VITE_API_URL || 'http://localhost:8008',
+      '/api': process.env.VITE_API_URL || 'http://localhost:8008',
     },
   },
 });

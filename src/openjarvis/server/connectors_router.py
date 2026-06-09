@@ -11,6 +11,217 @@ logger = logging.getLogger(__name__)
 _instances: Dict[str, Any] = {}
 
 
+def load_custom_connectors() -> dict[str, dict]:
+    import json
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {}
+
+
+def save_custom_connector(connector_id: str, connector_data: dict) -> None:
+    import json
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        connectors = load_custom_connectors()
+        connectors[connector_id] = connector_data
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(connectors, f, indent=2)
+    except Exception:
+        pass
+
+
+def delete_custom_connector_def(connector_id: str) -> None:
+    import json
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
+    try:
+        connectors = load_custom_connectors()
+        if connector_id in connectors:
+            del connectors[connector_id]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(connectors, f, indent=2)
+    except Exception:
+        pass
+
+
+def make_custom_connector_class(
+    connector_id: str, display_name: str, auth_type: str, description: str = ""
+) -> type:
+    from openjarvis.connectors._stubs import BaseConnector, SyncStatus, Document
+    from openjarvis.connectors.oauth import load_tokens, save_tokens, delete_tokens
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+    from pathlib import Path
+    from datetime import datetime, timezone
+    import os
+    from typing import Iterator
+
+    class DynamicCustomConnector(BaseConnector):
+        @property
+        def connector_id(self) -> str:
+            return self._connector_id
+
+        @property
+        def display_name(self) -> str:
+            return self._display_name
+
+        @property
+        def auth_type(self) -> str:
+            return self._auth_type
+
+        @property
+        def description(self) -> str:
+            return self._description
+
+        def __init__(self) -> None:
+            self._credentials_path = str(
+                DEFAULT_CONFIG_DIR / "connectors" / f"{self.connector_id}.json"
+            )
+            self._items_synced = 0
+            self._items_total = 0
+            self._status = SyncStatus()
+
+        def _resolve_config(self) -> dict:
+            tokens = load_tokens(self._credentials_path)
+            return tokens or {}
+
+        def is_connected(self) -> bool:
+            config = self._resolve_config()
+            if self.auth_type == "filesystem":
+                path = config.get("path", "")
+                return bool(path) and Path(path).is_dir()
+            elif self.auth_type == "token":
+                return bool(config.get("token", ""))
+            return True
+
+        def disconnect(self) -> None:
+            delete_tokens(self._credentials_path)
+
+        @property
+        def _vault_path(self) -> str:
+            return self._resolve_config().get("path", "")
+
+        @_vault_path.setter
+        def _vault_path(self, val: str) -> None:
+            cfg = self._resolve_config()
+            cfg["path"] = val
+            save_tokens(self._credentials_path, cfg)
+
+        @property
+        def _token(self) -> str:
+            return self._resolve_config().get("token", "")
+
+        @_token.setter
+        def _token(self, val: str) -> None:
+            cfg = self._resolve_config()
+            cfg["token"] = val
+            save_tokens(self._credentials_path, cfg)
+
+        @property
+        def _email(self) -> str:
+            return self._resolve_config().get("email", "")
+
+        @_email.setter
+        def _email(self, val: str) -> None:
+            cfg = self._resolve_config()
+            cfg["email"] = val
+            save_tokens(self._credentials_path, cfg)
+
+        @property
+        def _password(self) -> str:
+            return self._resolve_config().get("password", "")
+
+        @_password.setter
+        def _password(self, val: str) -> None:
+            cfg = self._resolve_config()
+            cfg["password"] = val
+            save_tokens(self._credentials_path, cfg)
+
+        def handle_callback(self, code: str) -> None:
+            cfg = self._resolve_config()
+            cfg["token"] = code
+            save_tokens(self._credentials_path, cfg)
+
+        def sync(
+            self,
+            *,
+            since: Optional[datetime] = None,
+            cursor: Optional[str] = None,
+        ) -> Iterator[Document]:
+            config = self._resolve_config()
+            if self.auth_type == "filesystem":
+                path = config.get("path", "")
+                if not path or not Path(path).is_dir():
+                    return
+                root_path = Path(path)
+                collected = []
+                skip = {".git", "__pycache__", "node_modules", ".venv"}
+                allowed_exts = {".txt", ".md", ".markdown", ".csv"}
+                for r, dirs, files in os.walk(root_path):
+                    dirs[:] = [d for d in dirs if d not in skip and not d.startswith(".")]
+                    for fname in files:
+                        fp = Path(r) / fname
+                        if fp.suffix.lower() in allowed_exts:
+                            collected.append(fp)
+
+                self._items_total = len(collected)
+                synced = 0
+                for fp in collected:
+                    mtime = datetime.fromtimestamp(fp.stat().st_mtime, tz=timezone.utc)
+                    if since is not None and mtime < since:
+                        continue
+                    try:
+                        text = fp.read_text(encoding="utf-8", errors="replace")
+                        rel = fp.relative_to(root_path)
+                        doc = Document(
+                            doc_id=f"{self.connector_id}:{rel}",
+                            source=self.connector_id,
+                            doc_type="custom_file",
+                            content=text,
+                            title=fp.name,
+                            timestamp=mtime,
+                        )
+                        synced += 1
+                        yield doc
+                    except Exception:
+                        continue
+                self._items_synced = synced
+            else:
+                self._items_total = 0
+                self._items_synced = 0
+                yield from []
+
+            self._status.state = "idle"
+            self._status.last_sync = datetime.now()
+
+        def sync_status(self) -> SyncStatus:
+            return SyncStatus(
+                state="idle",
+                items_synced=self._items_synced,
+                items_total=self._items_total,
+            )
+
+    DynamicCustomConnector._connector_id = connector_id
+    DynamicCustomConnector._display_name = display_name
+    DynamicCustomConnector._auth_type = auth_type
+    DynamicCustomConnector._description = description
+
+    return DynamicCustomConnector
+
+
 def _ensure_connectors_registered() -> None:
     """Ensure ConnectorRegistry is populated.
 
@@ -48,6 +259,18 @@ def _ensure_connectors_registered() -> None:
                 except Exception:
                     pass
 
+    # Load custom connectors and register them in ConnectorRegistry
+    customs = load_custom_connectors()
+    for cid, data in customs.items():
+        if not ConnectorRegistry.contains(cid):
+            cls = make_custom_connector_class(
+                connector_id=cid,
+                display_name=data.get("display_name", cid),
+                auth_type=data.get("auth_type", "filesystem"),
+                description=data.get("description", ""),
+            )
+            ConnectorRegistry.register_value(cid, cls)
+
 
 # ---------------------------------------------------------------------------
 # Pydantic request model — defined at module level so FastAPI can resolve
@@ -66,8 +289,17 @@ try:
         email: Optional[str] = None
         password: Optional[str] = None
 
+    class CustomConnectorRequest(_BaseModel):
+        """Request model for creating a custom data source connector."""
+
+        connector_id: str
+        display_name: str
+        auth_type: str
+        description: str = ""
+
 except ImportError:
     ConnectRequest = None  # type: ignore[assignment,misc]
+    CustomConnectorRequest = None  # type: ignore[assignment,misc]
 
 
 def create_connectors_router():
@@ -117,12 +349,15 @@ def create_connectors_router():
         except Exception:
             pass
 
+        customs = load_custom_connectors()
         return {
             "connector_id": connector_id,
             "display_name": getattr(instance, "display_name", connector_id),
             "auth_type": getattr(instance, "auth_type", "unknown"),
             "connected": instance.is_connected(),
             "chunks": chunks,
+            "description": getattr(instance, "description", ""),
+            "is_custom": connector_id in customs,
         }
 
     # ------------------------------------------------------------------
@@ -228,12 +463,15 @@ def create_connectors_router():
                 instance = _get_or_create(key)
                 results.append(_connector_summary(key, instance))
             except Exception:
+                customs = load_custom_connectors()
                 results.append(
                     {
                         "connector_id": key,
                         "display_name": key,
                         "auth_type": "unknown",
                         "connected": False,
+                        "description": customs.get(key, {}).get("description", ""),
+                        "is_custom": key in customs,
                     }
                 )
         return {"connectors": results}
@@ -654,6 +892,67 @@ def create_connectors_router():
             "oldest_item_date": oldest_item_date,
             "error": effective_error,
         }
+
+
+    @router.post("/custom")
+    async def add_custom_connector(req: CustomConnectorRequest):
+        """Add a new custom data source connector."""
+        cid = req.connector_id.strip()
+        if not cid:
+            raise HTTPException(status_code=400, detail="connector_id cannot be empty")
+        import re
+        if not re.match(r"^[a-zA-Z0-9_]+$", cid):
+            raise HTTPException(status_code=400, detail="connector_id must be alphanumeric or underscore only")
+
+        from openjarvis.core.registry import ConnectorRegistry
+        customs = load_custom_connectors()
+        if ConnectorRegistry.contains(cid) and cid not in customs:
+            raise HTTPException(status_code=400, detail=f"'{cid}' is a reserved system connector ID")
+
+        save_custom_connector(
+            cid,
+            {
+                "display_name": req.display_name.strip(),
+                "auth_type": req.auth_type.strip(),
+                "description": req.description.strip(),
+            }
+        )
+
+        _instances.pop(cid, None)
+
+        if cid in ConnectorRegistry._entries():
+            del ConnectorRegistry._entries()[cid]
+        cls = make_custom_connector_class(
+            connector_id=cid,
+            display_name=req.display_name.strip(),
+            auth_type=req.auth_type.strip(),
+            description=req.description.strip(),
+        )
+        ConnectorRegistry.register_value(cid, cls)
+
+        return {"status": "success", "connector_id": cid}
+
+    @router.delete("/custom/{connector_id}")
+    async def delete_custom_connector(connector_id: str):
+        """Remove a custom data source connector."""
+        customs = load_custom_connectors()
+        if connector_id not in customs:
+            raise HTTPException(status_code=404, detail=f"Custom connector '{connector_id}' not found")
+
+        try:
+            instance = _get_or_create(connector_id)
+            instance.disconnect()
+        except Exception:
+            pass
+
+        delete_custom_connector_def(connector_id)
+        _instances.pop(connector_id, None)
+
+        from openjarvis.core.registry import ConnectorRegistry
+        if connector_id in ConnectorRegistry._entries():
+            del ConnectorRegistry._entries()[connector_id]
+
+        return {"status": "success", "connector_id": connector_id}
 
     return router
 

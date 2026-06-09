@@ -100,7 +100,7 @@ Start the backend server and the React frontend with one command:
 ./scripts/quickstart.sh
 ```
 
-This opens [http://localhost:5173](http://localhost:5173) in your browser with a full chat interface, streaming responses, and an energy monitoring dashboard.
+This opens [http://localhost:5174](http://localhost:5174) in your browser with a full chat interface, streaming responses, and an energy monitoring dashboard.
 
 To run just the API server (for use with the desktop app or external clients):
 

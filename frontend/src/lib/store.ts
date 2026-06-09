@@ -21,6 +21,9 @@ export interface CachedConnector {
   display_name: string;
   connected: boolean;
   chunks: number;
+  auth_type?: string;
+  description?: string;
+  is_custom?: boolean;
 }
 
 export interface AgentEvent {

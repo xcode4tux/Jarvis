@@ -1071,3 +1071,71 @@ export async function setInferenceSource(
     throw new Error(e?.message ?? e ?? 'Failed to save inference source');
   }
 }
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+export interface SkillStepInfo {
+  tool_name?: string;
+  skill_name?: string;
+  arguments_template?: string;
+  output_key?: string;
+}
+
+export interface SkillInfo {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  tags: string[];
+  required_capabilities: string[];
+  user_invocable: boolean;
+  disable_model_invocation: boolean;
+  steps: SkillStepInfo[];
+  has_instructions: boolean;
+  enabled: boolean;
+}
+
+export async function fetchSkills(): Promise<SkillInfo[]> {
+  const res = await apiFetch(`/v1/skills`);
+  if (!res.ok) throw new Error(`Failed to fetch skills: ${res.status}`);
+  const data = await res.json();
+  return data.skills || [];
+}
+
+export async function syncSkills(body: {
+  source: string;
+  category?: string;
+  search?: string;
+  force?: boolean;
+}): Promise<{ status: string; imported: number; total_available: number }> {
+  const res = await apiFetch(`/v1/skills/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Failed to sync skills: ${res.status}`);
+  return res.json();
+}
+
+export async function removeSkill(skillName: string): Promise<void> {
+  const res = await apiFetch(`/v1/skills/${encodeURIComponent(skillName)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(`Failed to remove skill: ${res.status}`);
+}
+
+export async function enableSkill(skillName: string): Promise<void> {
+  const res = await apiFetch(`/v1/skills/${encodeURIComponent(skillName)}/enable`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to enable skill: ${res.status}`);
+}
+
+export async function disableSkill(skillName: string): Promise<void> {
+  const res = await apiFetch(`/v1/skills/${encodeURIComponent(skillName)}/disable`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to disable skill: ${res.status}`);
+}

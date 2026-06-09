@@ -163,26 +163,26 @@ info "Installing frontend dependencies..."
 ok "Frontend dependencies installed"
 
 # ── 9. Start backend ────────────────────────────────────────────────
-info "Starting backend API server on port 8000..."
-uv run jarvis serve --port 8000 &>/dev/null &
+info "Starting backend API server on port 8008..."
+uv run jarvis serve --port 8008 &>/dev/null &
 CLEANUP_PIDS+=($!)
 sleep 3
 
-if curl -sf http://localhost:8000/health &>/dev/null; then
-  ok "Backend running at http://localhost:8000"
+if curl -sf http://localhost:8008/health &>/dev/null; then
+  ok "Backend running at http://localhost:8008"
 else
   warn "Backend may still be starting..."
 fi
 
 # ── 10. Start frontend ──────────────────────────────────────────────
-info "Starting frontend dev server on port 5173..."
+info "Starting frontend dev server on port 5174..."
 (cd frontend && npm run dev) &>/dev/null &
 CLEANUP_PIDS+=($!)
 sleep 3
-ok "Frontend running at http://localhost:5173"
+ok "Frontend running at http://localhost:5174"
 
 # ── 11. Open browser ────────────────────────────────────────────────
-URL="http://localhost:5173"
+URL="http://localhost:5174"
 info "Opening $URL ..."
 case "$(uname -s)" in
   Darwin) open "$URL" ;;
@@ -194,8 +194,8 @@ esac
 echo ""
 echo -e "${GREEN}${BOLD}  OpenJarvis is running!${NC}"
 echo ""
-echo "  Chat UI:  http://localhost:5173"
-echo "  API:      http://localhost:8000"
+echo "  Chat UI:  http://localhost:5174"
+echo "  API:      http://localhost:8008"
 echo "  Model:    $MODEL"
 echo ""
 echo "  Press Ctrl+C to stop all services."

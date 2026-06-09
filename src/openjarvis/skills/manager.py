@@ -159,8 +159,11 @@ class SkillManager:
         """
         executor = tool_executor or self._tool_executor
         tools: List[BaseTool] = []
+        disabled = load_disabled_skills()
 
         for manifest in self._skills.values():
+            if manifest.name in disabled:
+                continue
             real_executor = executor or _NullToolExecutor()
             skill_exec = SkillExecutor(real_executor, bus=self._bus)
 
@@ -197,9 +200,10 @@ class SkillManager:
         internal or automation-only skills are not surfaced to the model.
         """
         lines: List[str] = ["<available_skills>"]
+        disabled = load_disabled_skills()
 
         for manifest in self._skills.values():
-            if manifest.disable_model_invocation:
+            if manifest.disable_model_invocation or manifest.name in disabled:
                 continue
             escaped_name = html.escape(manifest.name)
             escaped_desc = html.escape(manifest.description or manifest.name)
@@ -217,7 +221,10 @@ class SkillManager:
         registered skill.  Returns one formatted string per example.
         """
         examples: List[str] = []
+        disabled = load_disabled_skills()
         for name, manifest in self._skills.items():
+            if name in disabled:
+                continue
             oj = manifest.metadata.get("openjarvis", {}) if manifest.metadata else {}
             few_shot = oj.get("few_shot", []) or []
             for ex in few_shot:
@@ -437,4 +444,36 @@ class _NullToolExecutor(ToolExecutor):
         super().__init__(tools=[], bus=None)
 
 
-__all__ = ["SkillManager"]
+def load_disabled_skills() -> set[str]:
+    """Load the set of disabled skill names from the config directory."""
+    import json
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    path = DEFAULT_CONFIG_DIR / "disabled_skills.json"
+    if not path.exists():
+        return set()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return set(data)
+    except Exception:
+        pass
+    return set()
+
+
+def save_disabled_skills(disabled: set[str]) -> None:
+    """Save the set of disabled skill names to the config directory."""
+    import json
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    path = DEFAULT_CONFIG_DIR / "disabled_skills.json"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(list(disabled), f, indent=2)
+    except Exception:
+        pass
+
+
+__all__ = ["SkillManager", "load_disabled_skills", "save_disabled_skills"]

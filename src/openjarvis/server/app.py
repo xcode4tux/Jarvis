@@ -348,6 +348,13 @@ def create_app(
                 name="static-assets",
             )
 
+        from fastapi.responses import RedirectResponse
+
+        @app.get("/web")
+        @app.get("/web/")
+        async def redirect_web():
+            return RedirectResponse(url="/")
+
         @app.get("/{full_path:path}")
         async def spa_catch_all(full_path: str):
             """Serve static files directly, fall back to index.html for SPA routes."""

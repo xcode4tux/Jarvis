@@ -405,6 +405,13 @@ async def telemetry_energy(request: Request):
 
 # ---- Skills routes ----
 
+class SkillSyncRequest(BaseModel):
+    source: str = "hermes"
+    category: Optional[str] = None
+    search: Optional[str] = None
+    force: bool = False
+
+
 skills_router = APIRouter(prefix="/v1/skills", tags=["skills"])
 
 
@@ -412,33 +419,143 @@ skills_router = APIRouter(prefix="/v1/skills", tags=["skills"])
 async def list_skills(request: Request):
     """List installed skills."""
     try:
-        from openjarvis.core.registry import SkillRegistry
+        from pathlib import Path
+        from openjarvis.skills.manager import SkillManager, load_disabled_skills
+        from openjarvis.core.events import EventBus
+
+        paths = []
+        workspace = Path("./skills")
+        if workspace.exists():
+            paths.append(workspace)
+        user_dir = Path("~/.openjarvis/skills/").expanduser()
+        paths.append(user_dir)
+
+        mgr = SkillManager(bus=EventBus())
+        mgr.discover(paths=paths)
+
+        disabled = load_disabled_skills()
 
         skills = []
-        for key in sorted(SkillRegistry.keys()):
-            skills.append({"name": key})
+        for name in sorted(mgr.skill_names()):
+            m = mgr.resolve(name)
+            skills.append({
+                "name": m.name,
+                "version": m.version,
+                "description": m.description,
+                "author": m.author,
+                "tags": m.tags,
+                "required_capabilities": m.required_capabilities,
+                "user_invocable": m.user_invocable,
+                "disable_model_invocation": m.disable_model_invocation,
+                "enabled": name not in disabled,
+                "steps": [
+                    {
+                        "tool_name": step.tool_name,
+                        "skill_name": step.skill_name,
+                        "arguments_template": step.arguments_template,
+                        "output_key": step.output_key,
+                    }
+                    for step in m.steps
+                ] if m.steps else [],
+                "has_instructions": bool(m.markdown_content),
+            })
         return {"skills": skills}
     except Exception as exc:
         logger.warning("Failed to list skills: %s", exc)
         return {"skills": []}
 
 
-@skills_router.post("")
-async def install_skill(request: Request):
-    """Install a skill (placeholder)."""
-    return {
-        "status": "not_implemented",
-        "message": "Use TOML files in ~/.openjarvis/skills/",
-    }
+@skills_router.post("/sync")
+async def sync_skills(req: SkillSyncRequest, request: Request):
+    """Sync/install skills from a source."""
+    try:
+        from openjarvis.skills.importer import SkillImporter
+        from openjarvis.skills.parser import SkillParser
+        from openjarvis.skills.tool_translator import ToolTranslator
+        from openjarvis.cli.skill_cmd import _get_resolver
+
+        resolver = _get_resolver(req.source)
+        resolver.sync()
+
+        skills_to_import = resolver.list_skills()
+        if req.category:
+            skills_to_import = [s for s in skills_to_import if s.category == req.category]
+        if req.search:
+            sl = req.search.lower()
+            skills_to_import = [
+                s for s in skills_to_import
+                if sl in s.name.lower() or sl in s.description.lower()
+            ]
+
+        importer = SkillImporter(parser=SkillParser(), tool_translator=ToolTranslator())
+        installed_count = 0
+        for resolved in skills_to_import:
+            r = importer.import_skill(resolved, with_scripts=True, force=req.force)
+            if r.success and not r.skipped:
+                installed_count += 1
+
+        return {
+            "status": "success",
+            "imported": installed_count,
+            "total_available": len(skills_to_import)
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @skills_router.delete("/{skill_name}")
 async def remove_skill(skill_name: str, request: Request):
-    """Remove a skill (placeholder)."""
-    return {
-        "status": "not_implemented",
-        "message": "Skill removal not yet supported via API",
-    }
+    """Remove a skill."""
+    try:
+        from pathlib import Path
+        from openjarvis.skills.manager import SkillManager
+        from openjarvis.core.events import EventBus
+
+        paths = []
+        workspace = Path("./skills")
+        if workspace.exists():
+            paths.append(workspace)
+        user_dir = Path("~/.openjarvis/skills/").expanduser()
+        paths.append(user_dir)
+
+        mgr = SkillManager(bus=EventBus())
+        try:
+            removed = mgr.remove(skill_name, roots=paths)
+            return {"status": "success", "removed_paths": [str(p) for p in removed]}
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@skills_router.post("/{skill_name}/enable")
+async def enable_skill(skill_name: str, request: Request):
+    """Enable a skill."""
+    try:
+        from openjarvis.skills.manager import load_disabled_skills, save_disabled_skills
+        disabled = load_disabled_skills()
+        if skill_name in disabled:
+            disabled.remove(skill_name)
+            save_disabled_skills(disabled)
+        return {"status": "success", "skill_name": skill_name, "enabled": True}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@skills_router.post("/{skill_name}/disable")
+async def disable_skill(skill_name: str, request: Request):
+    """Disable a skill."""
+    try:
+        from openjarvis.skills.manager import load_disabled_skills, save_disabled_skills
+        disabled = load_disabled_skills()
+        if skill_name not in disabled:
+            disabled.add(skill_name)
+            save_disabled_skills(disabled)
+        return {"status": "success", "skill_name": skill_name, "enabled": False}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ---- Sessions routes ----

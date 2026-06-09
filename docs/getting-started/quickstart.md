@@ -132,7 +132,7 @@ cd OpenJarvis
 ./scripts/quickstart.sh
 ```
 
-This launches the backend API server and a React frontend at [http://localhost:5173](http://localhost:5173).
+This launches the backend API server and a React frontend at [http://localhost:5174](http://localhost:5174).
 You get a ChatGPT-like interface with streaming responses, tool use, energy monitoring, and a telemetry dashboard — all running locally on your hardware.
 
 To stop all services, press ++ctrl+c++ in the terminal.

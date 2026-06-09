@@ -23,9 +23,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { SOURCE_CATALOG } from '../types/connectors';
-import type { ConnectRequest } from '../types/connectors';
-import { listConnectors, connectSource, disconnectSource, getSyncStatus, triggerSync } from '../lib/connectors-api';
-import type { SyncStatus } from '../types/connectors';
+import type { ConnectRequest, SyncStatus, ConnectorMeta, SetupStep } from '../types/connectors';
+import { listConnectors, connectSource, disconnectSource, getSyncStatus, triggerSync, addCustomConnector, deleteCustomConnector } from '../lib/connectors-api';
+import type { CachedConnector } from '../lib/store';
+import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
 // Inline connect form (reused from AgentsPage pattern)
@@ -604,6 +605,101 @@ function DataSourcesSection() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Custom Data Source state
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customId, setCustomId] = useState('');
+  const [customDesc, setCustomDesc] = useState('');
+  const [customAuthType, setCustomAuthType] = useState('filesystem');
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [addCustomError, setAddCustomError] = useState('');
+
+  const handleAddCustomConnector = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customName.trim() || !customId.trim()) {
+      setAddCustomError('Name and Identifier are required.');
+      return;
+    }
+    const id = customId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    if (!id) {
+      setAddCustomError('Invalid Identifier.');
+      return;
+    }
+    setAddingCustom(true);
+    setAddCustomError('');
+    try {
+      await addCustomConnector({
+        connector_id: id,
+        display_name: customName.trim(),
+        auth_type: customAuthType,
+        description: customDesc.trim(),
+      });
+      toast.success(`Custom source "${customName}" added successfully.`);
+      setShowAddCustom(false);
+      setCustomName('');
+      setCustomId('');
+      setCustomDesc('');
+      setCustomAuthType('filesystem');
+      loadConnectors();
+    } catch (err: any) {
+      setAddCustomError(err.message || 'Failed to add custom source');
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
+  const handleDeleteCustomConnector = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the custom source "${name}"?`)) return;
+    try {
+      await deleteCustomConnector(id);
+      toast.success(`Custom source "${name}" deleted successfully.`);
+      loadConnectors();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete custom source');
+    }
+  };
+
+  const metaFor = (connectorId: string) => {
+    const id = connectorId === 'gmail' ? 'gmail_imap' : connectorId;
+    const builtin = SOURCE_CATALOG.find((s) => s.connector_id === id);
+    if (builtin) return builtin;
+
+    const c = connectors.find((x) => x.connector_id === connectorId);
+    if (c && c.is_custom) {
+      let inputFields: any[] = [];
+      let steps: any[] = [];
+      if (c.auth_type === 'filesystem') {
+        inputFields = [
+          { name: 'path', placeholder: 'Absolute directory path (e.g. /home/user/data)', type: 'text' }
+        ];
+        steps = [
+          { label: 'Specify the folder path containing the files you want to index. Supported extensions: .txt, .md, .markdown, .csv' }
+        ];
+      } else if (c.auth_type === 'token') {
+        inputFields = [
+          { name: 'token', placeholder: 'API token or credentials key', type: 'password' }
+        ];
+        steps = [
+          { label: 'Enter the API token/key to connect to this data source.' }
+        ];
+      }
+
+      return {
+        connector_id: c.connector_id,
+        display_name: c.display_name,
+        auth_type: c.auth_type as any,
+        category: 'other',
+        icon: c.auth_type === 'filesystem' ? 'FolderOpen' : 'Link2',
+        color: 'text-indigo-400',
+        description: c.description || 'Custom data source',
+        unitLabel: 'items',
+        steps,
+        inputFields,
+      } as ConnectorMeta;
+    }
+    return undefined;
+  };
+
   const loadConnectors = useCallback(() => {
     listConnectors()
       .then((list) =>
@@ -613,6 +709,9 @@ function DataSourcesSection() {
             display_name: c.display_name,
             connected: c.connected,
             chunks: (c as any).chunks || 0,
+            description: c.description,
+            is_custom: c.is_custom,
+            auth_type: c.auth_type,
           })),
         ),
       )
@@ -688,6 +787,9 @@ function DataSourcesSection() {
             display_name: c.display_name,
             connected: c.connected,
             chunks: (c as any).chunks || 0,
+            description: c.description,
+            is_custom: c.is_custom,
+            auth_type: c.auth_type,
           })));
           break;
         }
@@ -746,7 +848,7 @@ function DataSourcesSection() {
   const connected = unifiedConnectors.filter((c) => c.connected);
   const notConnectedBase = unifiedConnectors.filter((c) => !c.connected);
   // Always show the upload card in the not-connected list (it has no backend connector)
-  const uploadEntry = { connector_id: 'upload', display_name: 'Upload / Paste', connected: false, chunks: 0 };
+  const uploadEntry: CachedConnector = { connector_id: 'upload', display_name: 'Upload / Paste', connected: false, chunks: 0 };
   const notConnected = notConnectedBase.some((c) => c.connector_id === 'upload')
     ? notConnectedBase
     : [...notConnectedBase, uploadEntry];
@@ -778,6 +880,156 @@ function DataSourcesSection() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Custom Data Source Form / Trigger */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+        <button
+          onClick={() => setShowAddCustom(!showAddCustom)}
+          className="hud-label"
+          style={{
+            padding: '6px 12px',
+            background: 'var(--color-bg-secondary)',
+            color: 'var(--color-accent-purple)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          {showAddCustom ? '× Cancel Custom Source' : '+ Custom Data Source'}
+        </button>
+      </div>
+
+      {showAddCustom && (
+        <form
+          onSubmit={handleAddCustomConnector}
+          className="hud-panel"
+          style={{
+            padding: 16,
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>
+            Create Custom Data Source
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: 0 }}>
+            Add a new data source connector that isn't built into OpenJarvis. You can specify a local folder or an API key.
+          </p>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 4, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Source Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. My Projects"
+                value={customName}
+                onChange={(e) => {
+                  setCustomName(e.target.value);
+                  if (!customId || customId === customName.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, -1)) {
+                    setCustomId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '7px 10px',
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 4, color: 'var(--color-text)',
+                  fontSize: 12, boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 4, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Identifier (lowercase & underscore)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. my_projects"
+                value={customId}
+                onChange={(e) => setCustomId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                style={{
+                  width: '100%', padding: '7px 10px',
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 4, color: 'var(--color-text)',
+                  fontSize: 12, boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 4, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              Source Type (Auth Type)
+            </label>
+            <select
+              value={customAuthType}
+              onChange={(e) => setCustomAuthType(e.target.value)}
+              style={{
+                width: '100%', padding: '7px 10px',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 4, color: 'var(--color-text)',
+                fontSize: 12, boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="filesystem">Filesystem Folder (Index text/md files from local path)</option>
+              <option value="token">API Token / Key (Simple placeholder connector)</option>
+              <option value="local">Other / Local (Dummy connector)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 4, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              Description
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Documents and notes from my project folder"
+              value={customDesc}
+              onChange={(e) => setCustomDesc(e.target.value)}
+              style={{
+                width: '100%', padding: '7px 10px',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 4, color: 'var(--color-text)',
+                fontSize: 12, boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {addCustomError && (
+            <div style={{ fontSize: 11, color: 'var(--color-error)' }}>
+              {addCustomError}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={addingCustom || !customName.trim() || !customId.trim()}
+            style={{
+              padding: 8,
+              background: addingCustom || !customName.trim() || !customId.trim() ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
+              color: 'var(--color-on-accent)', border: 'none',
+              borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {addingCustom ? 'Adding Source...' : 'Add Source'}
+          </button>
+        </form>
+      )}
+
       {/* Connected sources */}
       {connected.length > 0 && (
         <section>
@@ -896,7 +1148,7 @@ function DataSourcesSection() {
 
                 {isExpanded && c.connector_id !== 'upload' && meta?.steps && (
                   <div style={{ borderTop: '1px solid var(--color-border)', padding: 12 }}>
-                    {meta.steps.map((step, i) => (
+                    {meta.steps.map((step: SetupStep, i: number) => (
                       <div
                         key={i}
                         style={{
@@ -980,6 +1232,28 @@ function DataSourcesSection() {
                     {connectError && connectingId === null && expandedId === c.connector_id && (
                       <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>
                         {connectError}
+                      </div>
+                    )}
+                    {c.is_custom && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCustomConnector(c.connector_id, c.display_name);
+                          }}
+                          style={{
+                            fontSize: 10,
+                            padding: '4px 10px',
+                            background: 'transparent',
+                            color: 'var(--color-error)',
+                            border: '1px solid var(--color-error)',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Delete Custom Source
+                        </button>
                       </div>
                     )}
                   </div>

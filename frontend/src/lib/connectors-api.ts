@@ -51,3 +51,30 @@ export async function triggerSync(id: string): Promise<{ connector_id: string; c
   }
   return res.json();
 }
+
+export async function addCustomConnector(req: {
+  connector_id: string;
+  display_name: string;
+  auth_type: string;
+  description: string;
+}): Promise<void> {
+  const res = await apiFetch(`/v1/connectors/custom`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `Failed to add custom connector: ${res.status}`);
+  }
+}
+
+export async function deleteCustomConnector(id: string): Promise<void> {
+  const res = await apiFetch(`/v1/connectors/custom/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `Failed to delete custom connector: ${res.status}`);
+  }
+}
