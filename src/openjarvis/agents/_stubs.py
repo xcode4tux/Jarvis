@@ -254,8 +254,6 @@ class BaseAgent(ABC):
             if finish_reason != "length":
                 break
             # Append what we have so far and ask the model to continue
-            from openjarvis.core.types import Message, Role
-
             messages.append(Message(role=Role.ASSISTANT, content=content))
             messages.append(
                 Message(

@@ -388,7 +388,7 @@ def run_swe_agent_loop(
     own_workdir = workdir is None
     if own_workdir:
         workdir = Path(tempfile.mkdtemp(
-            prefix=f"mini-swe-{task.get('task_id','x')}-"
+            prefix=f"mini-swe-{task.get('task_id', 'x')}-"
         ))
         try:
             _clone_repo(repo, base_commit, workdir)

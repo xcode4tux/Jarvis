@@ -643,10 +643,10 @@ class MinionsAgent(LocalCloudAgent):
         # 1. Cloud supervisor writes a high-level plan (no tools).
         plan_text, p_in, p_out = self._call_cloud(
             user=(
-                f"Issue:\n{task.get('problem_statement','')}\n\n"
-                f"Repo: {task.get('repo','')}\n"
-                f"Base commit: {task.get('base_commit','')}\n\n"
-                f"{task.get('hints_text','')}"
+                f"Issue:\n{task.get('problem_statement', '')}\n\n"
+                f"Repo: {task.get('repo', '')}\n"
+                f"Base commit: {task.get('base_commit', '')}\n\n"
+                f"{task.get('hints_text', '')}"
             ),
             system=MINIONS_SWE_PLANNER_SYS,
             max_tokens=int(cfg.get("supervisor_max_tokens", 1024)),

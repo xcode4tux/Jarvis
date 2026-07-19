@@ -587,7 +587,7 @@ class ArchonAgent(LocalCloudAgent):
 
         # Ranker: cloud picks the best candidate.
         ranker_user = (
-            f"Issue:\n{task.get('problem_statement','')}\n\n"
+            f"Issue:\n{task.get('problem_statement', '')}\n\n"
             f"K = {K} candidate patches:\n\n"
             + "\n\n".join(
                 f"=== Candidate {c['idx']} ===\nSummary: {c['summary']}\n"

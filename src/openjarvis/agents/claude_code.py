@@ -221,7 +221,7 @@ class ClaudeCodeAgent(BaseAgent):
             # No sentinels -- treat entire stdout as plain content
             return stdout.strip(), [], {}
 
-        json_str = stdout[start + len(_OUTPUT_START) : end].strip()
+        json_str = stdout[start + len(_OUTPUT_START):end].strip()
 
         try:
             data = json.loads(json_str)

@@ -860,7 +860,7 @@ class ConductorAgent(LocalCloudAgent):
         try:
             if swe_mode:
                 shared_workdir = Path(tempfile.mkdtemp(
-                    prefix=f"conductor-swe-{task_meta.get('task_id','x')}-"
+                    prefix=f"conductor-swe-{task_meta.get('task_id', 'x')}-"
                 ))
                 _clone_repo(task_meta["repo"], task_meta["base_commit"], shared_workdir)
                 self.record_trace_event({
