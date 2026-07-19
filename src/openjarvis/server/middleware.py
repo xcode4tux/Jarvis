@@ -48,11 +48,14 @@ def create_security_middleware() -> Any:
             response.headers["Permissions-Policy"] = (
                 "camera=(), microphone=(self), geolocation=()"
             )
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-                "connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:*; "
-                "img-src 'self' data: blob:"
-            )
+            csp_parts = [
+                "default-src 'self';",
+                "script-src 'self';",
+                "style-src 'self' 'unsafe-inline';",
+                "connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:*;",
+                "img-src 'self' data: blob:",
+            ]
+            response.headers["Content-Security-Policy"] = " ".join(csp_parts)
             return response
 
     return SecurityHeadersMiddleware

@@ -447,6 +447,7 @@ class _NullToolExecutor(ToolExecutor):
 def load_disabled_skills() -> set[str]:
     """Load the set of disabled skill names from the config directory."""
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "disabled_skills.json"
@@ -465,6 +466,7 @@ def load_disabled_skills() -> set[str]:
 def save_disabled_skills(disabled: set[str]) -> None:
     """Save the set of disabled skill names to the config directory."""
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "disabled_skills.json"

@@ -40,18 +40,43 @@ TOPICS = [
 ]
 
 FACTS = [
-    "In the 70s and 80s computing moved from mainframes to personal computers. Not because PCs were more powerful, but because they became efficient enough for what people actually needed. AI is reaching a similar moment.",
-    "In our Intelligence Per Watt study, we found that local language models can accurately service 88.7 percent of single-turn chat and reasoning queries at interactive latencies, with intelligence efficiency improving 5.3 times from 2023 to 2025.",
-    "In nearly all personal AI projects today, the local component is a thin orchestration layer, while the brain lives in someone else data center. Your most personal data routes through cloud APIs, with their latency, their cost, and their terms of service. We built OpenJarvis to fix this.",
-    "OpenJarvis is structured around five composable primitives: Intelligence, Engine, Agents, Tools and Memory, and Learning. Each primitive can be benchmarked, substituted, and optimized independently.",
-    "OpenJarvis includes hardware-agnostic telemetry that profiles energy consumption across NVIDIA GPUs, AMD GPUs, and Apple Silicon. Energy and dollar cost are first-class design constraints alongside accuracy.",
-    "The learning loop uses personal traces to synthesize training data, refine agent behavior, and improve model selection over time. Four optimization layers: model weights, LM prompts, agentic logic, inference engine.",
-    "OpenJarvis is open source under Apache 2.0, built at Stanford at Hazy Research and the Scaling Intelligence Lab at SAIL. Because the tools for studying and building local-first AI should be available to everyone.",
-    "OpenJarvis supports 27 channel integrations including Slack, Discord, Telegram, WhatsApp. Adding a new channel is one file implementing BaseChannel with connect, send, and disconnect.",
-    "OpenJarvis supports multiple inference engines: Ollama, vLLM, SGLang, llama.cpp. jarvis init picks the right one for your hardware.",
-    "Install OpenJarvis by running git clone https://github.com/open-jarvis/OpenJarvis.git then cd OpenJarvis then uv sync. Use jarvis init to auto-detect hardware and configure the engine.",
-    "OpenJarvis memory and RAG supports four backends: SQLite FTS5 for keyword search, FAISS for vector similarity, ColBERT for token-level matching, and BM25 for probabilistic retrieval.",
-    "OpenJarvis ships with nine example projects: deep_research, code_companion, messaging_hub, scheduled_ops, browser_assistant, security_scanner, daily_digest, doc_qa, and multi_model_router.",
+    "In the 70s and 80s computing moved from mainframes to personal computers. "
+    "Not because PCs were more powerful, but because they became efficient enough "
+    "for what people actually needed. AI is reaching a similar moment.",
+    "In our Intelligence Per Watt study, we found that local language models can "
+    "accurately service 88.7 percent of single-turn chat and reasoning queries at "
+    "interactive latencies, with intelligence efficiency improving 5.3 times from "
+    "2023 to 2025.",
+    "In nearly all personal AI projects today, the local component is a thin "
+    "orchestration layer, while the brain lives in someone else data center. Your "
+    "most personal data routes through cloud APIs, with their latency, their cost, "
+    "and their terms of service. We built OpenJarvis to fix this.",
+    "OpenJarvis is structured around five composable primitives: Intelligence, "
+    "Engine, Agents, Tools and Memory, and Learning. Each primitive can be "
+    "benchmarked, substituted, and optimized independently.",
+    "OpenJarvis includes hardware-agnostic telemetry that profiles energy "
+    "consumption across NVIDIA GPUs, AMD GPUs, and Apple Silicon. Energy and dollar "
+    "cost are first-class design constraints alongside accuracy.",
+    "The learning loop uses personal traces to synthesize training data, refine "
+    "agent behavior, and improve model selection over time. Four optimization "
+    "layers: model weights, LM prompts, agentic logic, inference engine.",
+    "OpenJarvis is open source under Apache 2.0, built at Stanford at Hazy Research "
+    "and the Scaling Intelligence Lab at SAIL. Because the tools for studying and "
+    "building local-first AI should be available to everyone.",
+    "OpenJarvis supports 27 channel integrations including Slack, Discord, Telegram, "
+    "WhatsApp. Adding a new channel is one file implementing BaseChannel with "
+    "connect, send, and disconnect.",
+    "OpenJarvis supports multiple inference engines: Ollama, vLLM, SGLang, "
+    "llama.cpp. jarvis init picks the right one for your hardware.",
+    "Install OpenJarvis by running git clone "
+    "https://github.com/open-jarvis/OpenJarvis.git then cd OpenJarvis then uv sync. "
+    "Use jarvis init to auto-detect hardware and configure the engine.",
+    "OpenJarvis memory and RAG supports four backends: SQLite FTS5 for keyword "
+    "search, FAISS for vector similarity, ColBERT for token-level matching, and "
+    "BM25 for probabilistic retrieval.",
+    "OpenJarvis ships with nine example projects: deep_research, code_companion, "
+    "messaging_hub, scheduled_ops, browser_assistant, security_scanner, daily_digest, "
+    "doc_qa, and multi_model_router.",
 ]
 
 
@@ -101,10 +126,12 @@ def main() -> None:
     tool_log: list[dict] = []
 
     def on_tool(event):
-        tool_log.append({
-            "tool": event.data.get("tool", ""),
-            "args": event.data.get("arguments", ""),
-        })
+        tool_log.append(
+            {
+                "tool": event.data.get("tool", ""),
+                "args": event.data.get("arguments", ""),
+            }
+        )
 
     j._bus.subscribe(EventType.TOOL_CALL_START, on_tool)
 
@@ -129,9 +156,7 @@ def main() -> None:
             recent_list = "\n".join('  - "' + t + '"' for t in recent[-8:])
             recent_section = (
                 "Your recent tweets (DO NOT repeat any of these ideas "
-                "— write something completely different):\n"
-                + recent_list
-                + "\n"
+                "— write something completely different):\n" + recent_list + "\n"
             )
 
         tool_log.clear()
@@ -148,10 +173,10 @@ def main() -> None:
             "Tweets we love:\n"
             '- "88.7% of queries run fine on local hardware. why is '
             'everyone still paying per API call?"\n'
-            '- "your most personal data routes through someone else\'s '
+            "- \"your most personal data routes through someone else's "
             'server. we built openjarvis to fix that"\n'
             '- "in the 70s computing moved from mainframes to pcs. not '
-            'because pcs were more powerful — because they got efficient '
+            "because pcs were more powerful — because they got efficient "
             'enough. ai is at that moment right now"\n'
             '- "we measure energy per query the way most people measure '
             'accuracy. if your ai runs on battery, efficiency is the whole game"\n'
@@ -203,7 +228,7 @@ def main() -> None:
         # Wait with jitter
         jitter = random.uniform(0.8, 1.2)
         wait = INTERVAL_MINUTES * 60 * jitter
-        print(f"  next tweet in {wait/60:.0f} min")
+        print(f"  next tweet in {wait / 60:.0f} min")
         time.sleep(wait)
 
 

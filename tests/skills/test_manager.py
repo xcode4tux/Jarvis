@@ -572,6 +572,7 @@ class TestSkillManagerRemove:
 class TestSkillManagerDisabledState:
     def test_load_save_disabled_skills(self, tmp_path: Path) -> None:
         from unittest.mock import patch
+
         from openjarvis.skills.manager import load_disabled_skills, save_disabled_skills
 
         with patch("openjarvis.core.config.DEFAULT_CONFIG_DIR", tmp_path):
@@ -583,8 +584,11 @@ class TestSkillManagerDisabledState:
             save_disabled_skills({"obsidian"})
             assert load_disabled_skills() == {"obsidian"}
 
-    def test_disabled_skills_filtered_from_manager_outputs(self, tmp_path: Path) -> None:
+    def test_disabled_skills_filtered_from_manager_outputs(
+        self, tmp_path: Path
+    ) -> None:
         from unittest.mock import patch
+
         from openjarvis.core.events import EventBus
         from openjarvis.skills.manager import SkillManager
         from openjarvis.skills.types import SkillManifest
@@ -594,17 +598,20 @@ class TestSkillManagerDisabledState:
             name="enabled-skill",
             description="Enabled skill description",
             markdown_content="Body",
-            metadata={"openjarvis": {"few_shot": [{"input": "hi", "output": "hello"}]}}
+            metadata={"openjarvis": {"few_shot": [{"input": "hi", "output": "hello"}]}},
         )
         mgr._skills["disabled-skill"] = SkillManifest(
             name="disabled-skill",
             description="Disabled skill description",
             markdown_content="Body",
-            metadata={"openjarvis": {"few_shot": [{"input": "bye", "output": "goodbye"}]}}
+            metadata={
+                "openjarvis": {"few_shot": [{"input": "bye", "output": "goodbye"}]}
+            },
         )
 
         with patch("openjarvis.core.config.DEFAULT_CONFIG_DIR", tmp_path):
             from openjarvis.skills.manager import save_disabled_skills
+
             save_disabled_skills({"disabled-skill"})
 
             # Verify available catalog xml
@@ -616,4 +623,3 @@ class TestSkillManagerDisabledState:
             examples = mgr.get_few_shot_examples()
             assert any("hi" in ex for ex in examples)
             assert not any("bye" in ex for ex in examples)
-

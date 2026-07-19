@@ -9,53 +9,50 @@ env/
 venv/
 .venv/
 .ENV
-.ENV.local
-.env
-.env.local
-.env.*
-.venv.bak
-venv.bak
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
+.ENV.*
+.python-version
 .pytest_cache/
 .mypy_cache/
-.hypothesis/
+.coverage
+htmlcov/
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
+# Build and distribution artifacts
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+build/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.sconsign.dblite
+._build/
+cover/
 
-# IDEs
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+
+# IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
+*~
 
-# OS
+# OS specific
 .DS_Store
 Thumbs.db
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Coverage
+coverage/
+htmlcov/
+
+# Testing
+.nox/
+.tox/
 ```

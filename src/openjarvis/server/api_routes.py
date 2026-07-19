@@ -405,6 +405,7 @@ async def telemetry_energy(request: Request):
 
 # ---- Skills routes ----
 
+
 class SkillSyncRequest(BaseModel):
     source: str = "hermes"
     category: Optional[str] = None
@@ -420,8 +421,9 @@ async def list_skills(request: Request):
     """List installed skills."""
     try:
         from pathlib import Path
-        from openjarvis.skills.manager import SkillManager, load_disabled_skills
+
         from openjarvis.core.events import EventBus
+        from openjarvis.skills.manager import SkillManager, load_disabled_skills
 
         paths = []
         workspace = Path("./skills")
@@ -438,27 +440,31 @@ async def list_skills(request: Request):
         skills = []
         for name in sorted(mgr.skill_names()):
             m = mgr.resolve(name)
-            skills.append({
-                "name": m.name,
-                "version": m.version,
-                "description": m.description,
-                "author": m.author,
-                "tags": m.tags,
-                "required_capabilities": m.required_capabilities,
-                "user_invocable": m.user_invocable,
-                "disable_model_invocation": m.disable_model_invocation,
-                "enabled": name not in disabled,
-                "steps": [
-                    {
-                        "tool_name": step.tool_name,
-                        "skill_name": step.skill_name,
-                        "arguments_template": step.arguments_template,
-                        "output_key": step.output_key,
-                    }
-                    for step in m.steps
-                ] if m.steps else [],
-                "has_instructions": bool(m.markdown_content),
-            })
+            skills.append(
+                {
+                    "name": m.name,
+                    "version": m.version,
+                    "description": m.description,
+                    "author": m.author,
+                    "tags": m.tags,
+                    "required_capabilities": m.required_capabilities,
+                    "user_invocable": m.user_invocable,
+                    "disable_model_invocation": m.disable_model_invocation,
+                    "enabled": name not in disabled,
+                    "steps": [
+                        {
+                            "tool_name": step.tool_name,
+                            "skill_name": step.skill_name,
+                            "arguments_template": step.arguments_template,
+                            "output_key": step.output_key,
+                        }
+                        for step in m.steps
+                    ]
+                    if m.steps
+                    else [],
+                    "has_instructions": bool(m.markdown_content),
+                }
+            )
         return {"skills": skills}
     except Exception as exc:
         logger.warning("Failed to list skills: %s", exc)
@@ -469,21 +475,24 @@ async def list_skills(request: Request):
 async def sync_skills(req: SkillSyncRequest, request: Request):
     """Sync/install skills from a source."""
     try:
+        from openjarvis.cli.skill_cmd import _get_resolver
         from openjarvis.skills.importer import SkillImporter
         from openjarvis.skills.parser import SkillParser
         from openjarvis.skills.tool_translator import ToolTranslator
-        from openjarvis.cli.skill_cmd import _get_resolver
 
         resolver = _get_resolver(req.source)
         resolver.sync()
 
         skills_to_import = resolver.list_skills()
         if req.category:
-            skills_to_import = [s for s in skills_to_import if s.category == req.category]
+            skills_to_import = [
+                s for s in skills_to_import if s.category == req.category
+            ]
         if req.search:
             sl = req.search.lower()
             skills_to_import = [
-                s for s in skills_to_import
+                s
+                for s in skills_to_import
                 if sl in s.name.lower() or sl in s.description.lower()
             ]
 
@@ -497,7 +506,7 @@ async def sync_skills(req: SkillSyncRequest, request: Request):
         return {
             "status": "success",
             "imported": installed_count,
-            "total_available": len(skills_to_import)
+            "total_available": len(skills_to_import),
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -508,8 +517,9 @@ async def remove_skill(skill_name: str, request: Request):
     """Remove a skill."""
     try:
         from pathlib import Path
-        from openjarvis.skills.manager import SkillManager
+
         from openjarvis.core.events import EventBus
+        from openjarvis.skills.manager import SkillManager
 
         paths = []
         workspace = Path("./skills")
@@ -535,6 +545,7 @@ async def enable_skill(skill_name: str, request: Request):
     """Enable a skill."""
     try:
         from openjarvis.skills.manager import load_disabled_skills, save_disabled_skills
+
         disabled = load_disabled_skills()
         if skill_name in disabled:
             disabled.remove(skill_name)
@@ -549,6 +560,7 @@ async def disable_skill(skill_name: str, request: Request):
     """Disable a skill."""
     try:
         from openjarvis.skills.manager import load_disabled_skills, save_disabled_skills
+
         disabled = load_disabled_skills()
         if skill_name not in disabled:
             disabled.add(skill_name)

@@ -13,6 +13,7 @@ _instances: Dict[str, Any] = {}
 
 def load_custom_connectors() -> dict[str, dict]:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
@@ -30,6 +31,7 @@ def load_custom_connectors() -> dict[str, dict]:
 
 def save_custom_connector(connector_id: str, connector_data: dict) -> None:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
@@ -45,6 +47,7 @@ def save_custom_connector(connector_id: str, connector_data: dict) -> None:
 
 def delete_custom_connector_def(connector_id: str) -> None:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
@@ -61,13 +64,14 @@ def delete_custom_connector_def(connector_id: str) -> None:
 def make_custom_connector_class(
     connector_id: str, display_name: str, auth_type: str, description: str = ""
 ) -> type:
-    from openjarvis.connectors._stubs import BaseConnector, SyncStatus, Document
-    from openjarvis.connectors.oauth import load_tokens, save_tokens, delete_tokens
-    from openjarvis.core.config import DEFAULT_CONFIG_DIR
-    from pathlib import Path
-    from datetime import datetime, timezone
     import os
+    from datetime import datetime, timezone
+    from pathlib import Path
     from typing import Iterator
+
+    from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
+    from openjarvis.connectors.oauth import delete_tokens, load_tokens, save_tokens
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     class DynamicCustomConnector(BaseConnector):
         @property
@@ -171,7 +175,9 @@ def make_custom_connector_class(
                 skip = {".git", "__pycache__", "node_modules", ".venv"}
                 allowed_exts = {".txt", ".md", ".markdown", ".csv"}
                 for r, dirs, files in os.walk(root_path):
-                    dirs[:] = [d for d in dirs if d not in skip and not d.startswith(".")]
+                    dirs[:] = [
+                        d for d in dirs if d not in skip and not d.startswith(".")
+                    ]
                     for fname in files:
                         fp = Path(r) / fname
                         if fp.suffix.lower() in allowed_exts:
@@ -893,7 +899,6 @@ def create_connectors_router():
             "error": effective_error,
         }
 
-
     @router.post("/custom")
     async def add_custom_connector(req: CustomConnectorRequest):
         """Add a new custom data source connector."""
@@ -901,13 +906,20 @@ def create_connectors_router():
         if not cid:
             raise HTTPException(status_code=400, detail="connector_id cannot be empty")
         import re
+
         if not re.match(r"^[a-zA-Z0-9_]+$", cid):
-            raise HTTPException(status_code=400, detail="connector_id must be alphanumeric or underscore only")
+            raise HTTPException(
+                status_code=400,
+                detail="connector_id must be alphanumeric or underscore only",
+            )
 
         from openjarvis.core.registry import ConnectorRegistry
+
         customs = load_custom_connectors()
         if ConnectorRegistry.contains(cid) and cid not in customs:
-            raise HTTPException(status_code=400, detail=f"'{cid}' is a reserved system connector ID")
+            raise HTTPException(
+                status_code=400, detail=f"'{cid}' is a reserved system connector ID"
+            )
 
         save_custom_connector(
             cid,
@@ -915,7 +927,7 @@ def create_connectors_router():
                 "display_name": req.display_name.strip(),
                 "auth_type": req.auth_type.strip(),
                 "description": req.description.strip(),
-            }
+            },
         )
 
         _instances.pop(cid, None)
@@ -937,7 +949,9 @@ def create_connectors_router():
         """Remove a custom data source connector."""
         customs = load_custom_connectors()
         if connector_id not in customs:
-            raise HTTPException(status_code=404, detail=f"Custom connector '{connector_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Custom connector '{connector_id}' not found"
+            )
 
         try:
             instance = _get_or_create(connector_id)
@@ -949,6 +963,7 @@ def create_connectors_router():
         _instances.pop(connector_id, None)
 
         from openjarvis.core.registry import ConnectorRegistry
+
         if connector_id in ConnectorRegistry._entries():
             del ConnectorRegistry._entries()[connector_id]
 

@@ -842,9 +842,7 @@ async def _stream_managed_agent(
 
         app_config = load_config()
 
-    final_system_prompt = _build_managed_system_prompt(
-        system_prompt or "", app_config
-    )
+    final_system_prompt = _build_managed_system_prompt(system_prompt or "", app_config)
 
     if final_system_prompt and final_system_prompt.strip():
         llm_messages.append(

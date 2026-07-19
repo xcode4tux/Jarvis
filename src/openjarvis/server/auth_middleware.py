@@ -33,7 +33,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     status_code=401,
                 )
             scheme, _, token = auth.partition(" ")
-            if scheme.lower() != "bearer" or not secrets.compare_digest(token, self._api_key):
+            if scheme.lower() != "bearer" or not secrets.compare_digest(
+                token, self._api_key
+            ):
                 return JSONResponse(
                     {"detail": "Invalid API key"},
                     status_code=401,
@@ -44,7 +46,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
     def _requires_auth(path: str) -> bool:
         """Only protect API routes, not the frontend UI or static assets."""
         return path.startswith("/v1/") or path.startswith("/api/")
-
 
 
 def generate_api_key() -> str:

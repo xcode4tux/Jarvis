@@ -66,9 +66,13 @@ def detect_install() -> InstallInfo:
     candidate = pkg_file.parent
     for _ in range(8):
         if (candidate / ".git").exists() and (candidate / "pyproject.toml").exists():
+            cmd = (
+                f"cd {candidate} && git pull && "
+                "uv sync --extra server --extra dev"
+            )
             return InstallInfo(
                 kind="editable-git",
-                upgrade_command=f"cd {candidate} && git pull && uv sync --extra server --extra dev",
+                upgrade_command=cmd,
                 repo_root=candidate,
             )
         if candidate.parent == candidate:

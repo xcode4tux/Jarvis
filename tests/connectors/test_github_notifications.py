@@ -106,10 +106,11 @@ def test_disconnect(connector):
 
 
 def test_handle_callback_success(tmp_path):
+    import json
+
     from openjarvis.connectors.github_notifications import (
         GitHubNotificationsConnector,
     )
-    import json
 
     token_path = tmp_path / "github.json"
     c = GitHubNotificationsConnector(token_path=str(token_path))
@@ -127,10 +128,11 @@ def test_handle_callback_success(tmp_path):
 
 
 def test_handle_callback_empty():
+    import pytest
+
     from openjarvis.connectors.github_notifications import (
         GitHubNotificationsConnector,
     )
-    import pytest
 
     c = GitHubNotificationsConnector()
     with pytest.raises(ValueError, match="GitHub token is empty"):
@@ -138,17 +140,23 @@ def test_handle_callback_empty():
 
 
 def test_handle_callback_invalid(tmp_path):
+    import httpx
+    import pytest
+
     from openjarvis.connectors.github_notifications import (
         GitHubNotificationsConnector,
     )
-    import httpx
-    import pytest
 
     token_path = tmp_path / "github.json"
     c = GitHubNotificationsConnector(token_path=str(token_path))
 
-    response = httpx.Response(status_code=401, request=httpx.Request("GET", "https://api.github.com/notifications"))
-    exc = httpx.HTTPStatusError("Unauthorized", request=response.request, response=response)
+    response = httpx.Response(
+        status_code=401,
+        request=httpx.Request("GET", "https://api.github.com/notifications"),
+    )
+    exc = httpx.HTTPStatusError(
+        "Unauthorized", request=response.request, response=response
+    )
 
     with patch(
         "openjarvis.connectors.github_notifications._github_api_get",
@@ -158,4 +166,3 @@ def test_handle_callback_invalid(tmp_path):
             c.handle_callback("ghp_invalid")
 
     assert c.is_connected() is False
-

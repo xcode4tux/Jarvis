@@ -76,7 +76,9 @@ class GitHubNotificationsConnector(BaseConnector):
             raise ValueError(f"Failed to connect to GitHub: {exc}")
 
         self._token_path.parent.mkdir(parents=True, exist_ok=True)
-        self._token_path.write_text(json.dumps({"token": code}, indent=2), encoding="utf-8")
+        self._token_path.write_text(
+            json.dumps({"token": code}, indent=2), encoding="utf-8"
+        )
 
     def sync(
         self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
