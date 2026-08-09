@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -103,7 +102,7 @@ def test_sync_yields_contacts(
     # Configure mock
     mock_list.return_value = _CONNECTIONS_RESPONSE
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 2
 

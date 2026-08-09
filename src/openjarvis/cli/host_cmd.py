@@ -7,7 +7,6 @@ import shutil
 import signal
 import subprocess
 import sys
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -307,8 +306,8 @@ def _build_serve_command(backend: str, model: str, port: int) -> list[str]:
 )
 def host(
     model: str,
-    backend: Optional[str],
-    port: Optional[int],
+    backend: str | None,
+    port: int | None,
     trust_remote_code: bool,
 ) -> None:
     """Download (if needed) and serve a model locally.

@@ -56,8 +56,8 @@ class EventBridge:
 
     def __init__(
         self,
-        bus: "EventBus",
-        client: "AnalyticsClient",
+        bus: EventBus,
+        client: AnalyticsClient,
         aggregator: SessionAggregator | None = None,
     ) -> None:
         self.bus = bus

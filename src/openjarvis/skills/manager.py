@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.core.events import EventBus
 from openjarvis.skills.dependency import validate_dependencies
@@ -30,13 +30,13 @@ class SkillManager:
         self,
         bus: EventBus,
         *,
-        capability_policy: Optional[Any] = None,
-        overlay_dir: Optional[Path] = None,
+        capability_policy: Any | None = None,
+        overlay_dir: Path | None = None,
     ) -> None:
         self._bus = bus
         self._capability_policy = capability_policy
-        self._skills: Dict[str, SkillManifest] = {}
-        self._tool_executor: Optional[ToolExecutor] = None
+        self._skills: dict[str, SkillManifest] = {}
+        self._tool_executor: ToolExecutor | None = None
         if overlay_dir is None:
             # Try to read from config first; fall back to the default
             # ~/.openjarvis/learning/skills/ if config can't be loaded.
@@ -61,7 +61,7 @@ class SkillManager:
     # Discovery
     # ------------------------------------------------------------------
 
-    def discover(self, paths: Optional[List[Path]] = None) -> None:
+    def discover(self, paths: list[Path] | None = None) -> None:
         """Scan directories in order and register skills.
 
         First-seen name wins (workspace path listed first = highest precedence).
@@ -133,7 +133,7 @@ class SkillManager:
             raise KeyError(f"Skill '{name}' not found")
         return self._skills[name]
 
-    def skill_names(self) -> List[str]:
+    def skill_names(self) -> list[str]:
         """Return the names of all registered skills."""
         return list(self._skills.keys())
 
@@ -142,8 +142,8 @@ class SkillManager:
     # ------------------------------------------------------------------
 
     def get_skill_tools(
-        self, *, tool_executor: Optional[ToolExecutor] = None
-    ) -> List[BaseTool]:
+        self, *, tool_executor: ToolExecutor | None = None
+    ) -> list[BaseTool]:
         """Wrap each registered skill as a :class:`SkillTool` (a :class:`BaseTool`).
 
         Parameters
@@ -158,7 +158,7 @@ class SkillManager:
             One :class:`SkillTool` per registered skill.
         """
         executor = tool_executor or self._tool_executor
-        tools: List[BaseTool] = []
+        tools: list[BaseTool] = []
         disabled = load_disabled_skills()
 
         for manifest in self._skills.values():
@@ -178,7 +178,7 @@ class SkillManager:
     def _make_resolver(self):
         """Return a resolver callback that delegates sub-skill execution."""
 
-        def _resolver(name: str, context: Dict[str, Any]) -> SkillResult:
+        def _resolver(name: str, context: dict[str, Any]) -> SkillResult:
             manifest = self.resolve(name)
             skill_exec = SkillExecutor(
                 self._tool_executor or _NullToolExecutor(),
@@ -199,7 +199,7 @@ class SkillManager:
         Skills with ``disable_model_invocation=True`` are excluded so that
         internal or automation-only skills are not surfaced to the model.
         """
-        lines: List[str] = ["<available_skills>"]
+        lines: list[str] = ["<available_skills>"]
         disabled = load_disabled_skills()
 
         for manifest in self._skills.values():
@@ -214,13 +214,13 @@ class SkillManager:
         lines.append("</available_skills>")
         return "\n".join(lines)
 
-    def get_few_shot_examples(self) -> List[str]:
+    def get_few_shot_examples(self) -> list[str]:
         """Return formatted few-shot example strings ready for system prompt.
 
         Pulls from ``manifest.metadata.openjarvis.few_shot`` for every
         registered skill.  Returns one formatted string per example.
         """
-        examples: List[str] = []
+        examples: list[str] = []
         disabled = load_disabled_skills()
         for name, manifest in self._skills.items():
             if name in disabled:
@@ -246,8 +246,8 @@ class SkillManager:
         *,
         min_frequency: int = 3,
         min_outcome: float = 0.5,
-        output_dir: Optional[Path] = None,
-    ) -> List[Dict[str, Any]]:
+        output_dir: Path | None = None,
+    ) -> list[dict[str, Any]]:
         """Mine the trace store for recurring tool sequences.
 
         For each recurring sequence found by :class:`SkillDiscovery`, write
@@ -273,7 +273,7 @@ class SkillManager:
         output_dir = Path(output_dir).expanduser()
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        written: List[Dict[str, Any]] = []
+        written: list[dict[str, Any]] = []
         for skill in discovered:
             name = self._normalize_skill_name(skill.name)
             skill_subdir = output_dir / name
@@ -309,7 +309,7 @@ class SkillManager:
     @staticmethod
     def _serialize_discovered_skill(name: str, skill: Any) -> str:
         """Serialize a DiscoveredSkill into a spec-compliant skill.toml."""
-        lines: List[str] = ["[skill]"]
+        lines: list[str] = ["[skill]"]
         lines.append(f'name = "{name}"')
         lines.append('version = "0.1.0"')
         # Truncate description to spec max 1024 chars
@@ -337,7 +337,7 @@ class SkillManager:
     def execute(
         self,
         name: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> SkillResult:
         """Resolve and execute a skill by name.
 
@@ -373,8 +373,8 @@ class SkillManager:
     # ------------------------------------------------------------------
 
     def find_installed_paths(
-        self, name: str, *, roots: Optional[List[Path]] = None
-    ) -> List[Path]:
+        self, name: str, *, roots: list[Path] | None = None
+    ) -> list[Path]:
         """Return on-disk skill directories matching ``name``.
 
         A directory matches when it contains ``skill.toml`` or ``SKILL.md``
@@ -384,7 +384,7 @@ class SkillManager:
         if roots is None:
             roots = [Path("~/.openjarvis/skills/").expanduser(), Path("./skills")]
 
-        matches: List[Path] = []
+        matches: list[Path] = []
         for root in roots:
             if not root.exists():
                 continue
@@ -409,7 +409,7 @@ class SkillManager:
                     continue
         return matches
 
-    def remove(self, name: str, *, roots: Optional[List[Path]] = None) -> List[Path]:
+    def remove(self, name: str, *, roots: list[Path] | None = None) -> list[Path]:
         """Remove an installed skill by name.
 
         Returns the list of directories that were removed.  Raises
@@ -447,13 +447,14 @@ class _NullToolExecutor(ToolExecutor):
 def load_disabled_skills() -> set[str]:
     """Load the set of disabled skill names from the config directory."""
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "disabled_skills.json"
     if not path.exists():
         return set()
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, list):
                 return set(data)
@@ -465,6 +466,7 @@ def load_disabled_skills() -> set[str]:
 def save_disabled_skills(disabled: set[str]) -> None:
     """Save the set of disabled skill names to the config directory."""
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "disabled_skills.json"

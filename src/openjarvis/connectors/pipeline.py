@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import hashlib
 import time
-from typing import TYPE_CHECKING, Iterable, Optional
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from openjarvis.connectors._stubs import Attachment, Document
 from openjarvis.connectors.chunker import SemanticChunker
@@ -23,7 +24,7 @@ from openjarvis.connectors.embeddings import OllamaEmbedder
 from openjarvis.connectors.store import KnowledgeStore
 
 
-def _namespace_thread_id(source: str, thread_id: Optional[str]) -> Optional[str]:
+def _namespace_thread_id(source: str, thread_id: str | None) -> str | None:
     """Prefix ``thread_id`` with ``{source}:`` so it can't collide across sources.
 
     Idempotent: if the input already starts with ``{source}:`` it is returned
@@ -86,8 +87,8 @@ class IngestionPipeline:
         store: KnowledgeStore,
         *,
         max_tokens: int = 512,
-        attachment_store: Optional[AttachmentStore] = None,
-        embedder: Optional[OllamaEmbedder] = None,
+        attachment_store: AttachmentStore | None = None,
+        embedder: OllamaEmbedder | None = None,
     ) -> None:
         self._store = store
         self._chunker = SemanticChunker(max_tokens=max_tokens)
@@ -107,7 +108,7 @@ class IngestionPipeline:
         ).fetchall()
         self._seen_doc_ids = {r[0] for r in rows}
 
-    def _embed_chunk(self, content: str) -> tuple[Optional[bytes], str]:
+    def _embed_chunk(self, content: str) -> tuple[bytes | None, str]:
         """Return ``(embedding_bytes, model_version)`` for a chunk.
 
         Returns ``(None, "")`` when no embedder is configured or the embedder

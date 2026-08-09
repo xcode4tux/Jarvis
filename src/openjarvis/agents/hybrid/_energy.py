@@ -32,7 +32,6 @@ from __future__ import annotations
 import os
 import threading
 import time
-from typing import List, Optional
 
 _NVML_WARNED = False
 
@@ -44,12 +43,12 @@ def _log_once(msg: str) -> None:
         _NVML_WARNED = True
 
 
-def _resolve_gpu_indices(total: int) -> List[int]:
+def _resolve_gpu_indices(total: int) -> list[int]:
     """Honor CUDA_VISIBLE_DEVICES; default to every visible GPU."""
     cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
     if not cvd:
         return list(range(total))
-    out: List[int] = []
+    out: list[int] = []
     for s in cvd.split(","):
         s = s.strip()
         if not s:
@@ -80,9 +79,9 @@ class EnergyCollector:
         self.sample_hz = float(sample_hz)
         self.energy_j_total: float = 0.0
         self.samples: int = 0
-        self.gpu_indices: List[int] = []
+        self.gpu_indices: list[int] = []
         self._stop = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._t0: float = 0.0
         self._t1: float = 0.0
         self._enabled = os.environ.get("OPENJARVIS_HYBRID_ENERGY", "1") != "0"
@@ -90,7 +89,7 @@ class EnergyCollector:
         self._handles: list = []
 
     # ---- context manager
-    def __enter__(self) -> "EnergyCollector":
+    def __enter__(self) -> EnergyCollector:
         self._t0 = time.time()
         if not self._enabled:
             return self
@@ -145,7 +144,7 @@ class EnergyCollector:
         assert pynvml is not None
         period = 1.0 / max(self.sample_hz, 0.1)
         last_t = time.time()
-        last_total_w: Optional[float] = None
+        last_total_w: float | None = None
         while not self._stop.is_set():
             try:
                 total_mw = 0

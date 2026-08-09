@@ -7,7 +7,7 @@ implementation, not an integration with an external project.
 from __future__ import annotations
 
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.agents.prompt_loader import (
@@ -67,14 +67,14 @@ class NativeReActAgent(ToolUsingAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        tools: Optional[List[BaseTool]] = None,
-        bus: Optional[EventBus] = None,
-        max_turns: Optional[int] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        tools: list[BaseTool] | None = None,
+        bus: EventBus | None = None,
+        max_turns: int | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         interactive: bool = False,
         confirm_callback=None,
-        skill_few_shot_examples: Optional[List[str]] = None,
+        skill_few_shot_examples: list[str] | None = None,
     ) -> None:
         super().__init__(
             engine,
@@ -128,7 +128,7 @@ class NativeReActAgent(ToolUsingAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input)

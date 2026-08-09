@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.core.config import load_config
 from openjarvis.core.events import EventBus, EventType
@@ -24,9 +24,9 @@ class AgentContext:
     """Runtime context handed to an agent on each invocation."""
 
     conversation: Conversation = field(default_factory=Conversation)
-    tools: List[str] = field(default_factory=list)
-    memory_results: List[Any] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tools: list[str] = field(default_factory=list)
+    memory_results: list[Any] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -34,9 +34,9 @@ class AgentResult:
     """Result returned after an agent completes a run."""
 
     content: str
-    tool_results: List[ToolResult] = field(default_factory=list)
+    tool_results: list[ToolResult] = field(default_factory=list)
     turns: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseAgent(ABC):
@@ -63,10 +63,10 @@ class BaseAgent(ABC):
         engine: InferenceEngine,
         model: str,
         *,
-        bus: Optional[EventBus] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        prompt_builder: Optional[Any] = None,
+        bus: EventBus | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        prompt_builder: Any | None = None,
     ) -> None:
         self._engine = engine
         self._model = model
@@ -117,11 +117,11 @@ class BaseAgent(ABC):
     def _emit_turn_end(self, **data: Any) -> None:
         """Publish ``AGENT_TURN_END`` if an event bus is available."""
         if self._bus:
-            payload: Dict[str, Any] = {"agent": self.agent_id}
+            payload: dict[str, Any] = {"agent": self.agent_id}
             payload.update(data)
             self._bus.publish(EventType.AGENT_TURN_END, payload)
 
-    def _apply_persona(self, system_prompt: Optional[str]) -> Optional[str]:
+    def _apply_persona(self, system_prompt: str | None) -> str | None:
         """Append SOUL/MEMORY/USER persona to a self-assembled system prompt.
 
         Agents like ``monitor_operative`` / ``operative`` build their own
@@ -141,9 +141,9 @@ class BaseAgent(ABC):
     def _build_messages(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         *,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
     ) -> list[Message]:
         """Assemble the message list for a generate call.
 
@@ -221,11 +221,11 @@ class BaseAgent(ABC):
         turns: int,
         content: str = "",
         *,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> AgentResult:
         """Build the standard result for when ``max_turns`` is exceeded."""
         self._emit_turn_end(turns=turns, max_turns_exceeded=True)
-        md: Dict[str, Any] = {"max_turns_exceeded": True}
+        md: dict[str, Any] = {"max_turns_exceeded": True}
         if metadata:
             md.update(metadata)
         return AgentResult(
@@ -293,7 +293,7 @@ class BaseAgent(ABC):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         """Execute the agent on *input* and return an ``AgentResult``."""
@@ -313,18 +313,18 @@ class ToolUsingAgent(BaseAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        tools: Optional[List["BaseTool"]] = None,  # noqa: F821
-        bus: Optional[EventBus] = None,
-        max_turns: Optional[int] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        loop_guard_config: Optional[Any] = None,
-        capability_policy: Optional[Any] = None,
-        agent_id: Optional[str] = None,
+        tools: list[BaseTool] | None = None,  # noqa: F821
+        bus: EventBus | None = None,
+        max_turns: int | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        loop_guard_config: Any | None = None,
+        capability_policy: Any | None = None,
+        agent_id: str | None = None,
         interactive: bool = False,
-        confirm_callback: Optional[Any] = None,
-        skill_few_shot_examples: Optional[List[str]] = None,
-        prompt_builder: Optional[Any] = None,
+        confirm_callback: Any | None = None,
+        skill_few_shot_examples: list[str] | None = None,
+        prompt_builder: Any | None = None,
     ) -> None:
         super().__init__(
             engine,

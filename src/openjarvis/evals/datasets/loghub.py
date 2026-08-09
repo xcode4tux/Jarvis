@@ -10,8 +10,9 @@ import csv
 import logging
 import random
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.types import EvalRecord
@@ -56,7 +57,7 @@ class LogHubDataset(DatasetProvider):
     def __init__(
         self,
         subset: str = "hdfs",
-        cache_dir: Optional[str] = None,
+        cache_dir: str | None = None,
     ) -> None:
         if subset not in _DATASETS:
             raise ValueError(
@@ -67,14 +68,14 @@ class LogHubDataset(DatasetProvider):
         self._cache_dir = (
             Path(cache_dir) if cache_dir else Path.home() / ".cache" / "loghub"
         )
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         meta = _DATASETS[self._subset]
         data_dir = self._cache_dir / self._subset
@@ -100,7 +101,7 @@ class LogHubDataset(DatasetProvider):
     def size(self) -> int:
         return len(self._records)
 
-    def _download(self, meta: Dict[str, Any], data_dir: Path) -> None:
+    def _download(self, meta: dict[str, Any], data_dir: Path) -> None:
         """Download dataset from HuggingFace."""
         try:
             from huggingface_hub import snapshot_download
@@ -119,14 +120,14 @@ class LogHubDataset(DatasetProvider):
     def _load_session_mode(
         self,
         data_dir: Path,
-        meta: Dict[str, Any],
-    ) -> List[EvalRecord]:
+        meta: dict[str, Any],
+    ) -> list[EvalRecord]:
         """Load HDFS-style session-based records (group by block_id)."""
         log_path = data_dir / meta["log_file"]
         label_path = data_dir / meta["label_file"]
 
         # Load labels: block_id -> "Anomaly" / "Normal"
-        labels: Dict[str, str] = {}
+        labels: dict[str, str] = {}
         if label_path.exists():
             with open(label_path) as f:
                 reader = csv.DictReader(f)
@@ -137,7 +138,7 @@ class LogHubDataset(DatasetProvider):
 
         # Group log lines by block_id
         block_pattern = re.compile(r"blk_[-]?\d+")
-        sessions: Dict[str, List[str]] = {}
+        sessions: dict[str, list[str]] = {}
 
         with open(log_path, errors="replace") as f:
             for line in f:
@@ -146,7 +147,7 @@ class LogHubDataset(DatasetProvider):
                     bid = match.group()
                     sessions.setdefault(bid, []).append(line.rstrip())
 
-        records: List[EvalRecord] = []
+        records: list[EvalRecord] = []
         for bid, lines in sessions.items():
             label = labels.get(bid, "Normal")
             reference = "anomaly" if label == "Anomaly" else "normal"
@@ -179,14 +180,14 @@ class LogHubDataset(DatasetProvider):
     def _load_window_mode(
         self,
         data_dir: Path,
-        meta: Dict[str, Any],
-    ) -> List[EvalRecord]:
+        meta: dict[str, Any],
+    ) -> list[EvalRecord]:
         """Load BGL/Thunderbird-style windowed records."""
         log_path = data_dir / meta["log_file"]
         window_size = meta.get("window_size", 100)
 
-        records: List[EvalRecord] = []
-        window: List[str] = []
+        records: list[EvalRecord] = []
+        window: list[str] = []
         has_anomaly = False
         window_idx = 0
 

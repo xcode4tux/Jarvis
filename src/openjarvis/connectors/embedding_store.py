@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import torch  # type: ignore[import]
@@ -69,7 +69,7 @@ class EmbeddingStore:
     # Public API
     # ------------------------------------------------------------------
 
-    def store(self, chunk_id: str, embedding: "torch.Tensor") -> None:
+    def store(self, chunk_id: str, embedding: torch.Tensor) -> None:
         """Save a chunk's embedding tensor to disk.
 
         Parameters
@@ -96,7 +96,7 @@ class EmbeddingStore:
         )
         self._conn.commit()
 
-    def get(self, chunk_id: str) -> Optional["torch.Tensor"]:
+    def get(self, chunk_id: str) -> torch.Tensor | None:
         """Load a chunk's embedding from disk.
 
         Returns ``None`` if the chunk has no stored embedding or if

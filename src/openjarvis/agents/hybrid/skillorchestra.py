@@ -30,7 +30,7 @@ Ported from ``hybrid-local-cloud-compute/adapters/skillorchestra_adapter.py``.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import LocalCloudAgent
@@ -46,7 +46,7 @@ from openjarvis.core.registry import AgentRegistry
 # typical Qwen3.5-27B-FP8 vs Opus 4.7 behavior — what a 1-iteration learn
 # would seed before any oracle update.
 
-SKILL_CATALOG: Dict[str, str] = {
+SKILL_CATALOG: dict[str, str] = {
     "factual_recall":     "Recall named entities, dates, places, well-known facts from training data without external lookup.",
     "multi_step_reasoning": "Chain several inference steps together (e.g. compose dates, traverse relationships, decompose then aggregate).",
     "arithmetic":         "Exact numeric computation on values already given in the question.",
@@ -56,7 +56,7 @@ SKILL_CATALOG: Dict[str, str] = {
     "code_or_logic":      "Write or trace code, or apply logical/symbolic constraints precisely.",
 }
 
-DEFAULT_AGENT_COMPETENCE: Dict[str, Dict[str, float]] = {
+DEFAULT_AGENT_COMPETENCE: dict[str, dict[str, float]] = {
     "local-qwen-27b": {
         "factual_recall":       0.25,
         "multi_step_reasoning": 0.30,
@@ -77,7 +77,7 @@ DEFAULT_AGENT_COMPETENCE: Dict[str, Dict[str, float]] = {
     },
 }
 
-DEFAULT_AGENT_COST_USD: Dict[str, float] = {
+DEFAULT_AGENT_COST_USD: dict[str, float] = {
     "local-qwen-27b": 0.0,
     "cloud-opus-4-7": 0.30,
 }
@@ -90,10 +90,10 @@ def _format_catalog() -> str:
 
 
 def _format_agents(
-    competence: Dict[str, Dict[str, float]],
-    cost: Dict[str, float],
+    competence: dict[str, dict[str, float]],
+    cost: dict[str, float],
 ) -> str:
-    lines: List[str] = []
+    lines: list[str] = []
     for aid in competence:
         comp = competence[aid]
         comp_str = ", ".join(f"{k}={v:.2f}" for k, v in comp.items())
@@ -103,8 +103,8 @@ def _format_agents(
 
 
 def _build_router_sys(
-    competence: Dict[str, Dict[str, float]],
-    cost: Dict[str, float],
+    competence: dict[str, dict[str, float]],
+    cost: dict[str, float],
 ) -> str:
     return f"""{ROUTER_SYS_MARKER}
 You are a skill-aware model router for a compound AI system (the SkillOrchestra deployment-time orchestrator). For each user question you must:
@@ -124,7 +124,7 @@ Respond with ONLY a JSON object: {{"chosen_agent": ..., "skill_weights": {{...}}
 """
 
 
-def _build_router_schema(agent_ids: List[str]) -> Dict[str, Any]:
+def _build_router_schema(agent_ids: list[str]) -> dict[str, Any]:
     return {
         "format": {
             "type": "json_schema",
@@ -149,7 +149,7 @@ def _build_router_schema(agent_ids: List[str]) -> Dict[str, Any]:
     }
 
 
-def _parse_router_json(text: str) -> Dict[str, Any]:
+def _parse_router_json(text: str) -> dict[str, Any]:
     s = (text or "").strip()
     try:
         return json.loads(s)
@@ -171,12 +171,12 @@ def _parse_router_json(text: str) -> Dict[str, Any]:
 
 
 def _score_agents(
-    skill_weights: Dict[str, float],
-    competence: Dict[str, Dict[str, float]],
-    cost: Dict[str, float],
-) -> Dict[str, Dict[str, float]]:
+    skill_weights: dict[str, float],
+    competence: dict[str, dict[str, float]],
+    cost: dict[str, float],
+) -> dict[str, dict[str, float]]:
     lam = 0.5
-    scores: Dict[str, Dict[str, float]] = {}
+    scores: dict[str, dict[str, float]] = {}
     for aid, comps in competence.items():
         comp = sum(
             skill_weights.get(sid, 0.0) * comps[sid] for sid in SKILL_CATALOG
@@ -196,7 +196,7 @@ class SkillOrchestraAgent(LocalCloudAgent):
 
     agent_id = "skillorchestra"
 
-    def _is_soft_failure(self, exc: BaseException) -> Optional[str]:
+    def _is_soft_failure(self, exc: BaseException) -> str | None:
         # Empty/unbalanced router JSON — treat as soft failure to match the
         # hybrid adapter's behavior (matches `err=1` rows in the n=30 cell).
         if isinstance(exc, (ValueError, json.JSONDecodeError)):
@@ -206,16 +206,16 @@ class SkillOrchestraAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
         question = input
 
-        competence: Dict[str, Dict[str, float]] = cfg.get(
+        competence: dict[str, dict[str, float]] = cfg.get(
             "agent_competence", DEFAULT_AGENT_COMPETENCE
         )
-        cost: Dict[str, float] = cfg.get("agent_cost_usd", DEFAULT_AGENT_COST_USD)
+        cost: dict[str, float] = cfg.get("agent_cost_usd", DEFAULT_AGENT_COST_USD)
         agent_ids = list(competence.keys())
         router_sys = _build_router_sys(competence, cost)
         router_schema = _build_router_schema(agent_ids)
@@ -249,7 +249,7 @@ class SkillOrchestraAgent(LocalCloudAgent):
             )
 
         decision = _parse_router_json(router_text)
-        skill_weights: Dict[str, float] = decision.get("skill_weights") or {}
+        skill_weights: dict[str, float] = decision.get("skill_weights") or {}
         for sid in SKILL_CATALOG:
             skill_weights.setdefault(sid, 0.0)
         chosen = decision.get("chosen_agent") or ""

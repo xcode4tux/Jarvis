@@ -22,7 +22,7 @@ is accepted for schema compatibility but unused.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -58,11 +58,11 @@ class BaselineCloudAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
-        task: Dict[str, Any] = {}
+        task: dict[str, Any] = {}
         if context is not None:
             task = context.metadata.get("task") or {}
 

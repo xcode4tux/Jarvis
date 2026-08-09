@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -43,14 +43,14 @@ class TwilioSMSChannel(BaseChannel):
         account_sid: str = "",
         auth_token: str = "",
         phone_number: str = "",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._account_sid = account_sid or os.environ.get("TWILIO_ACCOUNT_SID", "")
         self._auth_token = auth_token or os.environ.get("TWILIO_AUTH_TOKEN", "")
         self._phone_number = phone_number or os.environ.get("TWILIO_PHONE_NUMBER", "")
         self._bus = bus
         self._client: Any = None
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
 
     def connect(self) -> None:
@@ -71,7 +71,7 @@ class TwilioSMSChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         if not self._client:
             logger.error("Twilio client not connected")
@@ -91,7 +91,7 @@ class TwilioSMSChannel(BaseChannel):
     def status(self) -> ChannelStatus:
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         return ["twilio"]
 
     def on_message(self, handler: ChannelHandler) -> None:

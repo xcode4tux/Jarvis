@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -108,7 +107,7 @@ def test_sync_yields_documents(
     mock_list.return_value = _FILES_LIST_RESPONSE
     mock_export.return_value = _EXPORT_RESPONSE
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 2
 

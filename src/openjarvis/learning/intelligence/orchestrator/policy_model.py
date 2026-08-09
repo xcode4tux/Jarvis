@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.learning.intelligence.orchestrator.types import (
     EpisodeState,
@@ -80,9 +80,9 @@ class OrchestratorPolicyModel:
         model_name: str = "Qwen/Qwen3-1.7B",
         gradient_checkpointing: bool = False,
         load_in_8bit: bool = False,
-        device: Optional[str] = None,
+        device: str | None = None,
         **kwargs: Any,
-    ) -> "OrchestratorPolicyModel":
+    ) -> OrchestratorPolicyModel:
         """Load model from a HuggingFace checkpoint.
 
         Raises ``ImportError`` if ``transformers`` is not installed.
@@ -122,7 +122,7 @@ class OrchestratorPolicyModel:
     @classmethod
     def from_checkpoint(
         cls, checkpoint_path: str, **kwargs: Any
-    ) -> "OrchestratorPolicyModel":
+    ) -> OrchestratorPolicyModel:
         """Load from a previously saved checkpoint directory."""
         return cls.from_pretrained(checkpoint_path, **kwargs)
 
@@ -131,7 +131,7 @@ class OrchestratorPolicyModel:
     def predict_action(
         self,
         state: EpisodeState,
-        available_tools: List[str],
+        available_tools: list[str],
     ) -> OrchestratorAction:
         """Predict the next action given current state."""
         prompt = self._build_prompt(state, available_tools)
@@ -156,7 +156,7 @@ class OrchestratorPolicyModel:
     def _build_prompt(
         self,
         state: EpisodeState,
-        available_tools: List[str],
+        available_tools: list[str],
     ) -> str:
         """Build the text prompt from current state."""
         parts: list[str] = []
@@ -189,7 +189,7 @@ class OrchestratorPolicyModel:
     def _parse_output(
         self,
         output_text: str,
-        available_tools: List[str],
+        available_tools: list[str],
     ) -> PolicyOutput:
         """Parse structured model output into a :class:`PolicyOutput`."""
         # Check for FINAL_ANSWER first

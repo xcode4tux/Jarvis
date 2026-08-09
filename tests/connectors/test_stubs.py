@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, Optional
 
 from openjarvis.connectors._stubs import (
     Attachment,
@@ -29,7 +29,7 @@ class FakeConnector(BaseConnector):
         self._connected = False
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         yield Document(
             doc_id="fake:1",

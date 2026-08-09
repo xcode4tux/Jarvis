@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from openjarvis.learning.spec_search.diagnose.runner import DiagnosisRunner
 from openjarvis.learning.spec_search.execute.base import ApplyContext
@@ -53,7 +54,7 @@ class SpecSearchOrchestrator:
         checkpoint_store: Any,
         openjarvis_home: Path,
         scorer: Callable[..., BenchmarkSnapshot] | None = None,
-    ) -> "SpecSearchOrchestrator":
+    ) -> SpecSearchOrchestrator:
         """Build a single-session orchestrator from a SpecSearchLearningConfig.
 
         Hyperparameters (teacher model, gate tolerance, autonomy mode, etc.)

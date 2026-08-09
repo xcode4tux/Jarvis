@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -159,7 +158,7 @@ def test_sync_yields_documents(
     mock_list.return_value = _LIST_RESPONSE
     mock_get.side_effect = [_NOTE_1, _NOTE_2]
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 2
 

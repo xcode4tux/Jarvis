@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 from openjarvis.core.types import RoutingContext
 from openjarvis.learning._stubs import QueryAnalyzer
@@ -204,7 +203,7 @@ def is_thinking_model(model_name: str) -> bool:
     return bool(_THINKING_MODEL_PATTERNS.search(model_name))
 
 
-def adjust_tokens_for_model(suggested: int, model_name: Optional[str] = None) -> int:
+def adjust_tokens_for_model(suggested: int, model_name: str | None = None) -> int:
     """Multiply the token budget when the target is a thinking model."""
     if model_name and is_thinking_model(model_name):
         return suggested * _THINKING_TOKEN_MULTIPLIER

@@ -16,9 +16,10 @@ of 2001-01-01 00:00:00 UTC.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.registry import ConnectorRegistry
@@ -181,19 +182,19 @@ class AppleContactsConnector(BaseConnector):
         self._connected: bool = False
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
+        self._last_sync: datetime | None = None
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _all_db_paths(self) -> List[Path]:
+    def _all_db_paths(self) -> list[Path]:
         """Return paths to all AddressBook databases (main + iCloud sources).
 
         macOS stores the local address book at the top level and synced
         accounts (iCloud, Exchange, etc.) under ``Sources/<UUID>/``.
         """
-        paths: List[Path] = []
+        paths: list[Path] = []
         # Main database
         if self._db_path.exists():
             paths.append(self._db_path)
@@ -215,10 +216,10 @@ class AppleContactsConnector(BaseConnector):
             return None
 
     def _build_content(
-        self, conn: sqlite3.Connection, pk: int, meta: Dict[str, Any]
+        self, conn: sqlite3.Connection, pk: int, meta: dict[str, Any]
     ) -> str:
         """Build a human-readable text block for one contact."""
-        lines: List[str] = []
+        lines: list[str] = []
 
         name = meta.get("name", "")
         if name:
@@ -308,8 +309,8 @@ class AppleContactsConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002
     ) -> Iterator[Document]:
         """Read contacts from AddressBook and yield one :class:`Document` each.
 
@@ -388,7 +389,7 @@ class AppleContactsConnector(BaseConnector):
                         except (ValueError, OverflowError):
                             pass
 
-                    meta: Dict[str, Any] = {
+                    meta: dict[str, Any] = {
                         "name": name,
                         "first_name": first,
                         "last_name": last,
@@ -433,7 +434,7 @@ class AppleContactsConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose MCP tool specs for real-time Apple Contacts queries."""
         return [
             ToolSpec(

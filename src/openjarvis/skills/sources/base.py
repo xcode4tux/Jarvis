@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -22,7 +22,7 @@ class ResolvedSkill:
     category: str
     description: str
     commit: str
-    sidecar_data: Dict[str, Any] = field(default_factory=dict)
+    sidecar_data: dict[str, Any] = field(default_factory=dict)
 
 
 class SourceResolver(ABC):
@@ -44,10 +44,10 @@ class SourceResolver(ABC):
         """Clone or pull the upstream repo into the cache."""
 
     @abstractmethod
-    def list_skills(self) -> List[ResolvedSkill]:
+    def list_skills(self) -> list[ResolvedSkill]:
         """Walk the cache directory and return all discoverable skills."""
 
-    def resolve(self, query: str) -> List[ResolvedSkill]:
+    def resolve(self, query: str) -> list[ResolvedSkill]:
         """Filter list_skills() by name (substring match).
 
         Empty *query* returns all skills.
@@ -58,7 +58,7 @@ class SourceResolver(ABC):
         q = query.lower()
         return [s for s in all_skills if q in s.name.lower()]
 
-    def filter_by_category(self, category: str) -> List[ResolvedSkill]:
+    def filter_by_category(self, category: str) -> list[ResolvedSkill]:
         """Return skills whose category exactly matches *category*."""
         return [s for s in self.list_skills() if s.category == category]
 

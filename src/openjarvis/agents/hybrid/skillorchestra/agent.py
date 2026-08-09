@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.core.registry import AgentRegistry
@@ -54,14 +54,14 @@ class SkillOrchestraAgent(LocalCloudAgent):
 
     # ------------------------------------------------------------------
 
-    def _is_soft_failure(self, exc: BaseException) -> Optional[str]:
+    def _is_soft_failure(self, exc: BaseException) -> str | None:
         # Malformed orchestrator / router JSON -> soft-fail row, matching
         # the rest of the hybrid family.
         if isinstance(exc, (ValueError, json.JSONDecodeError)):
             return f"{type(exc).__name__}: {str(exc)[:120]}"
         return None
 
-    def _load_handbook(self) -> Optional[StageSkillHandbook]:
+    def _load_handbook(self) -> StageSkillHandbook | None:
         """Load the StageSkillHandbook from ``method_cfg.handbook_path``.
 
         A relative path resolves against this package directory so the
@@ -86,9 +86,9 @@ class SkillOrchestraAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
         task_meta = (context.metadata.get("task") if context is not None else {}) or {}
 

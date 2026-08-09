@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from openjarvis.evals.backends.external._subprocess_runner import run_one_shot
 from openjarvis.evals.comparison.third_party import (
@@ -66,7 +66,7 @@ class OpenClawBackend(InferenceBackend):
         system: str = "",
         temperature: float = 0.0,
         max_tokens: int = 2048,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with tempfile.NamedTemporaryFile(
             mode="w",
             suffix=".json",

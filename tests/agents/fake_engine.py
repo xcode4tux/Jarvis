@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, List
+from collections.abc import AsyncIterator
+from typing import Any
 
 from openjarvis.engine._stubs import InferenceEngine
 
@@ -33,7 +34,7 @@ class FakeEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kw: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._last_messages = messages
         idx = min(self._call_count, len(self._responses) - 1)
         resp = self._responses[idx]
@@ -43,7 +44,7 @@ class FakeEngine(InferenceEngine):
         if "raise" in resp:
             raise resp["raise"]
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": resp.get("content", ""),
             "usage": resp.get(
                 "usage",
@@ -70,7 +71,7 @@ class FakeEngine(InferenceEngine):
         result = self.generate(messages, model=model, **kw)
         yield result["content"]
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return ["fake-model"]
 
     def health(self) -> bool:

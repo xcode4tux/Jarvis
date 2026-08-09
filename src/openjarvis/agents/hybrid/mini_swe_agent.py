@@ -43,7 +43,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -66,7 +66,7 @@ from openjarvis.core.registry import AgentRegistry
 # OpenAI/Anthropic JSON-Schema lower-case form is silently dropped — the
 # model then can't call the tool. Build a fresh dict instead of reusing
 # BASH_TOOL_OPENAI's parameters.
-BASH_TOOL_GEMINI_PARAMETERS: Dict[str, Any] = {
+BASH_TOOL_GEMINI_PARAMETERS: dict[str, Any] = {
     "type": "OBJECT",
     "properties": {
         "command": {
@@ -209,7 +209,7 @@ def _decode_bash_output(raw: bytes, exit_code: int) -> str:
 
 def _run_bash(
     command: str, workdir: Path, *, timeout: int = 120, output_cap: int = 10_000
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run one shell command in ``workdir``. Returns dict with stdout, stderr,
     exit_code, and a ``truncated`` flag if output was clamped.
 
@@ -280,7 +280,7 @@ def _run_bash(
     }
 
 
-def _format_observation(result: Dict[str, Any]) -> str:
+def _format_observation(result: dict[str, Any]) -> str:
     parts = [f"exit_code: {result['exit_code']}"]
     if result.get("timed_out"):
         parts.append("[TIMED OUT]")
@@ -302,7 +302,7 @@ def _extract_diff(workdir: Path) -> str:
     return proc.stdout
 
 
-def _anthropic_assistant_block(block: Any) -> Dict[str, Any]:
+def _anthropic_assistant_block(block: Any) -> dict[str, Any]:
     """Convert an Anthropic content block back into the dict shape the API
     expects for assistant-role messages."""
     btype = getattr(block, "type", None)
@@ -321,23 +321,23 @@ def _anthropic_assistant_block(block: Any) -> Dict[str, Any]:
 # ---------- Reusable agent-loop entry point ----------
 
 def run_swe_agent_loop(
-    task: Dict[str, Any],
+    task: dict[str, Any],
     *,
     backbone: str,                          # "cloud" or "local"
     backbone_model: str,
     cloud_endpoint: str = "anthropic",
-    local_endpoint: Optional[str] = None,
-    initial_prompt: Optional[str] = None,
+    local_endpoint: str | None = None,
+    initial_prompt: str | None = None,
     max_turns: int = 30,
     bash_timeout: int = 120,
-    bash_timeout_s: Optional[int] = None,
+    bash_timeout_s: int | None = None,
     output_cap: int = 10_000,
     turn_max_tokens: int = 4096,
     trace_prefix: str = "mini_swe",
-    workdir: Optional[Path] = None,
+    workdir: Path | None = None,
     compact_at_tokens: int = 24_000,
     compact_keep_last: int = 4,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a mini-SWE-agent loop for one SWE-bench task. Returns:
 
     .. code-block:: python
@@ -478,7 +478,7 @@ def _loop_cloud(
     output_cap: int,
     turn_max_tokens: int,
     trace_prefix: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Route to the right per-endpoint cloud loop. Anthropic path is the
     original byte-identical implementation (16 cells in the n=100 sweep
     depend on its exact behavior). OpenAI / Gemini paths added 2026-05-15
@@ -519,10 +519,10 @@ def _loop_cloud_anthropic(
     output_cap: int,
     turn_max_tokens: int,
     trace_prefix: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     import anthropic
     client = anthropic.Anthropic(timeout=600.0, max_retries=5)
-    messages: List[Dict[str, Any]] = [{"role": "user", "content": problem}]
+    messages: list[dict[str, Any]] = [{"role": "user", "content": problem}]
 
     tokens_in = 0
     tokens_out = 0
@@ -530,7 +530,7 @@ def _loop_cloud_anthropic(
     turns = 0
     for turn in range(1, max_turns + 1):
         turns = turn
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "system": SYSTEM_PROMPT,
             "max_tokens": turn_max_tokens,
@@ -546,9 +546,9 @@ def _loop_cloud_anthropic(
         tokens_in += msg.usage.input_tokens
         tokens_out += msg.usage.output_tokens
 
-        content_blocks: List[Dict[str, Any]] = []
-        tool_uses: List[Tuple[str, str, Dict[str, Any]]] = []
-        text_parts: List[str] = []
+        content_blocks: list[dict[str, Any]] = []
+        tool_uses: list[tuple[str, str, dict[str, Any]]] = []
+        text_parts: list[str] = []
         for block in msg.content:
             btype = getattr(block, "type", None)
             if btype == "tool_use":
@@ -582,7 +582,7 @@ def _loop_cloud_anthropic(
             final_text = "\n".join(text_parts).strip()
             break
 
-        tool_result_blocks: List[Dict[str, Any]] = []
+        tool_result_blocks: list[dict[str, Any]] = []
         for tu_id, tu_name, tu_input in tool_uses:
             if tu_name != "bash":
                 obs = f"unknown tool: {tu_name!r}"
@@ -631,7 +631,7 @@ def _loop_cloud_openai(
     output_cap: int,
     turn_max_tokens: int,
     trace_prefix: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """OpenAI Chat Completions multi-turn loop. Mirrors the Anthropic
     branch: each turn the model either calls ``bash`` (one or more parallel
     tool_calls) or produces a no-tool-call final message that terminates
@@ -648,7 +648,7 @@ def _loop_cloud_openai(
     from openai import OpenAI
     client = OpenAI(timeout=600.0)
 
-    messages: List[Dict[str, Any]] = [
+    messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": problem},
     ]
@@ -658,7 +658,7 @@ def _loop_cloud_openai(
     turns = 0
     for turn in range(1, max_turns + 1):
         turns = turn
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "tools": [BASH_TOOL_OPENAI],
@@ -704,7 +704,7 @@ def _loop_cloud_openai(
         # message gets replayed. Use ``""`` — explicitly allowed by the
         # schema when ``tool_calls`` is present, and equivalent to
         # "assistant had no visible text, only tool calls".
-        assistant_msg: Dict[str, Any] = {
+        assistant_msg: dict[str, Any] = {
             "role": "assistant",
             "content": text or "",
         }
@@ -806,7 +806,7 @@ def _loop_cloud_gemini(
     output_cap: int,
     turn_max_tokens: int,
     trace_prefix: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """google-genai multi-turn loop (Gemini Developer API, v1.64).
 
     Tool-use plumbing diverges from OpenAI/Anthropic enough to warrant a
@@ -839,7 +839,7 @@ def _loop_cloud_gemini(
         ),
     ])
 
-    contents: List[types.Content] = [
+    contents: list[types.Content] = [
         types.Content(role="user", parts=[types.Part(text=problem)]),
     ]
     tokens_in = 0
@@ -872,7 +872,7 @@ def _loop_cloud_gemini(
         # Pull parts out of the first candidate. Defensive against the
         # zero-candidate / safety-filtered case (returns empty parts and
         # we'll terminate on the next branch).
-        cand_parts: List[Any] = []
+        cand_parts: list[Any] = []
         try:
             cand_content = resp.candidates[0].content
             cand_parts = list(getattr(cand_content, "parts", None) or [])
@@ -880,8 +880,8 @@ def _loop_cloud_gemini(
             cand_content = None
             cand_parts = []
 
-        text_parts: List[str] = []
-        function_calls: List[Tuple[str, Dict[str, Any]]] = []
+        text_parts: list[str] = []
+        function_calls: list[tuple[str, dict[str, Any]]] = []
         for part in cand_parts:
             fc = getattr(part, "function_call", None)
             if fc is not None:
@@ -960,7 +960,7 @@ def _loop_cloud_gemini(
             final_text = "\n".join(text_parts).strip()
             break
 
-        response_parts: List[Any] = []
+        response_parts: list[Any] = []
         for name, args in function_calls:
             if name != "bash":
                 obs = f"unknown tool: {name!r}"
@@ -1022,7 +1022,7 @@ def _get_tiktoken_enc() -> Any:
     return _TIKTOKEN_ENC
 
 
-def _estimate_prompt_tokens(messages: List[Dict[str, Any]]) -> int:
+def _estimate_prompt_tokens(messages: list[dict[str, Any]]) -> int:
     enc = _get_tiktoken_enc()
     total = 0
     for m in messages:
@@ -1071,13 +1071,13 @@ def _parse_exit_code(content: Any) -> str:
     return "?"
 
 
-def _identify_turns(messages: List[Dict[str, Any]]) -> List[Tuple[int, int]]:
+def _identify_turns(messages: list[dict[str, Any]]) -> list[tuple[int, int]]:
     """Return list of (start_idx, end_idx_exclusive) for each assistant+tools turn.
 
     A turn = one assistant message (with or without tool_calls) plus any
     immediately-following tool messages. System + initial user are skipped.
     """
-    turns: List[Tuple[int, int]] = []
+    turns: list[tuple[int, int]] = []
     i = 0
     n = len(messages)
     while i < n:
@@ -1094,14 +1094,14 @@ def _identify_turns(messages: List[Dict[str, Any]]) -> List[Tuple[int, int]]:
 
 
 def _compact_local_messages(
-    messages: List[Dict[str, Any]],
+    messages: list[dict[str, Any]],
     *,
     client: Any,
     model: str,
     keep_last: int,
     trace_prefix: str,
     compact_at_tokens: int = 24_000,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if len(messages) < 2:
         return messages
     system_msg = messages[0]
@@ -1117,7 +1117,7 @@ def _compact_local_messages(
 
     # Stage 1: elide tool observations in old turns.
     before_tokens = _estimate_prompt_tokens(messages)
-    new_messages: List[Dict[str, Any]] = list(messages)
+    new_messages: list[dict[str, Any]] = list(messages)
     n_tool_elided = 0
     for (s, e) in old_turns:
         for k in range(s, e):
@@ -1222,7 +1222,7 @@ def _loop_local(
     trace_prefix: str,
     compact_at_tokens: int = 22_000,
     compact_keep_last: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     # Qwen-27B has a 32k context. With ``max_tokens=turn_max_tokens`` reserved
     # for output (default 4096) plus ~1k for the bash tool schema + system
     # prompt + format overhead, the practical input ceiling is ~27k. We
@@ -1233,7 +1233,7 @@ def _loop_local(
     from openai import OpenAI
     client = OpenAI(base_url=endpoint, api_key="EMPTY", timeout=600.0)
 
-    messages: List[Dict[str, Any]] = [
+    messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": problem},
     ]
@@ -1326,7 +1326,7 @@ def _loop_local(
         # are none (vs. setting it to None) so the message validates
         # against the strict OpenAI schema if it ever gets replayed by
         # the compactor's summarizer call.
-        assistant_local_msg: Dict[str, Any] = {
+        assistant_local_msg: dict[str, Any] = {
             "role": "assistant",
             "content": text or "",
         }
@@ -1401,11 +1401,11 @@ class MiniSWEAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
-        task: Dict[str, Any] = {}
+        task: dict[str, Any] = {}
         if context is not None:
             task = context.metadata.get("task") or {}
 

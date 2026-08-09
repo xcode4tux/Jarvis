@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple
+from typing import Literal
 
 from openjarvis.core.config import MemoryFilesConfig, SystemPromptConfig
 
@@ -25,14 +25,14 @@ class SystemPromptBuilder:
     def __init__(
         self,
         agent_template: str,
-        memory_files_config: Optional[MemoryFilesConfig] = None,
-        system_prompt_config: Optional[SystemPromptConfig] = None,
-        skill_index: Optional[List[Tuple[str, str]]] = None,
-        session_context: Optional[str] = None,
-        previous_state: Optional[str] = None,
-        skill_catalog_xml: Optional[str] = None,
-        skill_few_shot: Optional[List[str]] = None,
-        skill_few_shot_examples: Optional[List[str]] = None,
+        memory_files_config: MemoryFilesConfig | None = None,
+        system_prompt_config: SystemPromptConfig | None = None,
+        skill_index: list[tuple[str, str]] | None = None,
+        session_context: str | None = None,
+        previous_state: str | None = None,
+        skill_catalog_xml: str | None = None,
+        skill_few_shot: list[str] | None = None,
+        skill_few_shot_examples: list[str] | None = None,
     ) -> None:
         self._agent_template = agent_template
         _mf = memory_files_config or MemoryFilesConfig()
@@ -47,8 +47,8 @@ class SystemPromptBuilder:
             self._skill_few_shot = list(skill_few_shot_examples)
         else:
             self._skill_few_shot = list(skill_few_shot or [])
-        self._frozen_prefix: Optional[str] = None
-        self._frozen_sections: Optional[list[PromptSection]] = None
+        self._frozen_prefix: str | None = None
+        self._frozen_sections: list[PromptSection] | None = None
 
     def build(self) -> str:
         if self._frozen_prefix is None:

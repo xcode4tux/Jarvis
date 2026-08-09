@@ -18,8 +18,8 @@ resulting spec end-to-end and is not affected by these weights.
 from __future__ import annotations
 
 import statistics
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 
 @dataclass(slots=True, frozen=True)

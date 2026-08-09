@@ -9,9 +9,10 @@ See spec §5.2 for the tool return type rationale.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -22,8 +23,8 @@ class TraceMeta:
     query: str
     agent: str
     model: str
-    outcome: Optional[str]
-    feedback: Optional[float]
+    outcome: str | None
+    feedback: float | None
     started_at: float
 
 

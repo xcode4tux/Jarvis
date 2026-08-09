@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 from openjarvis.server.savings import CLOUD_PRICING
 
@@ -33,7 +32,7 @@ class Scenario:
     avg_output_tokens: int
 
 
-SCENARIOS: Dict[str, Scenario] = {
+SCENARIOS: dict[str, Scenario] = {
     "daily_briefing": Scenario(
         name="daily_briefing",
         label="Daily Briefing",
@@ -106,7 +105,7 @@ def estimate_monthly_cost(
     )
 
 
-def estimate_scenario(scenario_name: str) -> List[CostEstimate]:
+def estimate_scenario(scenario_name: str) -> list[CostEstimate]:
     """Estimate costs for all providers for a named scenario."""
     scenario = SCENARIOS.get(scenario_name)
     if scenario is None:
@@ -122,7 +121,7 @@ def estimate_scenario(scenario_name: str) -> List[CostEstimate]:
     ]
 
 
-def estimate_all_scenarios() -> Dict[str, List[CostEstimate]]:
+def estimate_all_scenarios() -> dict[str, list[CostEstimate]]:
     """Estimate costs for all scenarios and all providers."""
     return {name: estimate_scenario(name) for name in SCENARIOS}
 

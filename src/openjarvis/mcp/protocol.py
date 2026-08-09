@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Error codes per JSON-RPC 2.0 / MCP spec
 PARSE_ERROR = -32700
@@ -23,16 +23,16 @@ class MCPRequest:
     """
 
     method: str
-    params: Dict[str, Any] = field(default_factory=dict)
-    id: Optional[int | str] = 0
+    params: dict[str, Any] = field(default_factory=dict)
+    id: int | str | None = 0
     jsonrpc: str = "2.0"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a dict suitable for JSON serialization.
 
         Omits the ``id`` key when it is ``None`` (notification).
         """
-        obj: Dict[str, Any] = {
+        obj: dict[str, Any] = {
             "jsonrpc": self.jsonrpc,
             "method": self.method,
             "params": self.params,
@@ -62,13 +62,13 @@ class MCPResponse:
     """JSON-RPC 2.0 response message."""
 
     result: Any = None
-    error: Optional[Dict[str, Any]] = None
+    error: dict[str, Any] | None = None
     id: int | str = 0
     jsonrpc: str = "2.0"
 
     def to_json(self) -> str:
         """Serialize to JSON string."""
-        obj: Dict[str, Any] = {"jsonrpc": self.jsonrpc, "id": self.id}
+        obj: dict[str, Any] = {"jsonrpc": self.jsonrpc, "id": self.id}
         if self.error is not None:
             obj["error"] = self.error
         else:
@@ -95,7 +95,7 @@ class MCPResponse:
         data: Any = None,
     ) -> MCPResponse:
         """Create an error response."""
-        error: Dict[str, Any] = {"code": code, "message": message}
+        error: dict[str, Any] = {"code": code, "message": message}
         if data is not None:
             error["data"] = data
         return cls(error=error, id=id)
@@ -106,7 +106,7 @@ class MCPNotification:
     """JSON-RPC 2.0 notification (no id, no response expected)."""
 
     method: str
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     jsonrpc: str = "2.0"
 
     def to_json(self) -> str:

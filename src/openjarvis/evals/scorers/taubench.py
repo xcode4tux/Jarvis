@@ -7,7 +7,7 @@ computed during task execution and stored in record.metadata.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import Scorer
 from openjarvis.evals.core.types import EvalRecord
@@ -31,7 +31,7 @@ class TauBenchScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         reward = record.metadata.get("tau_reward", 0.0)
         info = record.metadata.get("tau_info", {})
         n_messages = record.metadata.get("tau_n_messages", 0)

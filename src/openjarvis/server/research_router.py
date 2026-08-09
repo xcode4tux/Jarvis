@@ -25,7 +25,8 @@ import logging
 import re
 import threading
 import time
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional
+from collections.abc import AsyncGenerator, Callable
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -56,7 +57,7 @@ _DONE = object()
 def _record_research_telemetry(
     *,
     model: str,
-    usage: Dict[str, int],
+    usage: dict[str, int],
     latency_seconds: float,
     energy_joules: float = 0.0,
     mean_power_watts: float = 0.0,
@@ -141,7 +142,7 @@ class _LiveGPUSampler:
         self._pynvml = None
         self._available = False
         self._stop = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._energy_j = 0.0
         self._peak_w = 0.0
         self._power_sum = 0.0
@@ -212,7 +213,7 @@ class _LiveGPUSampler:
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
-    def stop(self) -> Dict[str, float]:
+    def stop(self) -> dict[str, float]:
         if not self._available:
             return {
                 "energy_j": 0.0,
@@ -248,7 +249,7 @@ class ResearchRequest(BaseModel):
     # sufficient reasoning capability) that the chat-model selector should not
     # override. We accept the field for forward-compat with older clients but
     # ignore it — the planner always runs on DEFAULT_PLANNER_MODEL.
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None, description="Ignored; retained for client compatibility."
     )
 
@@ -258,7 +259,7 @@ class ResearchRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _sse(event: Dict[str, Any]) -> str:
+def _sse(event: dict[str, Any]) -> str:
     """Serialize one event dict to an SSE ``data: ...\\n\\n`` frame."""
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
@@ -305,7 +306,7 @@ async def _stream_research(query: str, model: str) -> AsyncGenerator[str, None]:
         loop = asyncio.get_event_loop()
         queue: asyncio.Queue = asyncio.Queue()
 
-        def on_event(event: Dict[str, Any]) -> None:
+        def on_event(event: dict[str, Any]) -> None:
             # Called from the agent's worker thread; bounce onto the event loop.
             loop.call_soon_threadsafe(queue.put_nowait, event)
 
@@ -399,9 +400,9 @@ async def _stream_research(query: str, model: str) -> AsyncGenerator[str, None]:
 
     task = asyncio.create_task(asyncio.to_thread(_run))
 
-    final_answer: Optional[str] = None
-    final_usage: Dict[str, int] = {}
-    final_sources: List[Dict[str, Any]] = []
+    final_answer: str | None = None
+    final_usage: dict[str, int] = {}
+    final_sources: list[dict[str, Any]] = []
     try:
         while True:
             event = await queue.get()

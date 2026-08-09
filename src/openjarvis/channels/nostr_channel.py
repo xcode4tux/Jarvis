@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -42,13 +42,13 @@ class NostrChannel(BaseChannel):
         private_key: str = "",
         *,
         relays: str = "",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._private_key = private_key or os.environ.get("NOSTR_PRIVATE_KEY", "")
         relays_str = relays or os.environ.get("NOSTR_RELAYS", "wss://relay.damus.io")
         self._relays = [r.strip() for r in relays_str.split(",") if r.strip()]
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
 
     # -- connection lifecycle ---------------------------------------------------
@@ -79,7 +79,7 @@ class NostrChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Publish a Nostr event (kind 1 note or kind 4 DM).
 
@@ -138,7 +138,7 @@ class NostrChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["nostr"]
 

@@ -43,7 +43,7 @@ import time
 from abc import abstractmethod
 from collections import deque
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, BaseAgent
 from openjarvis.agents.hybrid._openai_retry import patch_openai_globally
@@ -87,7 +87,7 @@ ANTHROPIC_WEB_SEARCH_TOOL = {
 }
 
 
-def build_web_search_tool(max_uses: int = 8) -> Dict[str, Any]:
+def build_web_search_tool(max_uses: int = 8) -> dict[str, Any]:
     """Build an Anthropic server-side web_search tool block with a custom cap.
 
     Web_search is server-side: Anthropic runs the searches internally before
@@ -101,7 +101,7 @@ def build_web_search_tool(max_uses: int = 8) -> Dict[str, Any]:
     }
 
 
-def web_search_cfg(method_cfg: Optional[Dict[str, Any]]) -> Tuple[bool, int]:
+def web_search_cfg(method_cfg: dict[str, Any] | None) -> tuple[bool, int]:
     """Parse ``method_cfg.web_search = { enabled, max_uses }``.
 
     Defaults: enabled=False, max_uses=8. ``enabled`` defaults to False so
@@ -127,18 +127,18 @@ def web_search_cfg(method_cfg: Optional[Dict[str, Any]]) -> Tuple[bool, int]:
 _TRACE_STATE = threading.local()
 
 
-def _trace_events() -> Optional[List[Dict[str, Any]]]:
+def _trace_events() -> list[dict[str, Any]] | None:
     return getattr(_TRACE_STATE, "events", None)
 
 
-def _record_event(event: Dict[str, Any]) -> None:
+def _record_event(event: dict[str, Any]) -> None:
     events = _trace_events()
     if events is not None:
         events.append(event)
 
 
-def _open_trace() -> List[Dict[str, Any]]:
-    events: List[Dict[str, Any]] = []
+def _open_trace() -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
     _TRACE_STATE.events = events
     return events
 
@@ -164,7 +164,7 @@ def _close_trace() -> None:
 _CALL_COUNTS = threading.local()
 
 
-def _call_counts() -> Optional[Dict[str, int]]:
+def _call_counts() -> dict[str, int] | None:
     return getattr(_CALL_COUNTS, "counts", None)
 
 
@@ -180,8 +180,8 @@ def _bump_local_calls(n: int = 1) -> None:
         counts["local"] += int(n)
 
 
-def _open_call_counts() -> Dict[str, int]:
-    counts: Dict[str, int] = {"cloud": 0, "local": 0}
+def _open_call_counts() -> dict[str, int]:
+    counts: dict[str, int] = {"cloud": 0, "local": 0}
     _CALL_COUNTS.counts = counts
     return counts
 
@@ -218,7 +218,7 @@ def _close_call_counts() -> None:
 # we haven't hit it yet. Add limiters for those one-by-one if needed.
 
 _OPENROUTER_LIMITER_LOCK = threading.Lock()
-_OPENROUTER_LIMITER: Optional["_OpenRouterLimiter"] = None
+_OPENROUTER_LIMITER: _OpenRouterLimiter | None = None
 
 
 class _OpenRouterLimiter:
@@ -228,7 +228,7 @@ class _OpenRouterLimiter:
         self.max_concurrent = int(max_concurrent)
         self.rpm = int(rpm)
         self._sem = threading.Semaphore(self.max_concurrent)
-        self._window: Deque[float] = deque()
+        self._window: deque[float] = deque()
         self._window_lock = threading.Lock()
 
     def acquire_concurrency(self) -> None:
@@ -268,7 +268,7 @@ def _openrouter_limiter() -> _OpenRouterLimiter:
     return _OPENROUTER_LIMITER
 
 
-def _serialize_block(block: Any) -> Dict[str, Any]:
+def _serialize_block(block: Any) -> dict[str, Any]:
     """Turn an Anthropic content block (text / tool_use / server_tool_use /
     web_search_tool_result / thinking) into a JSON-safe dict.
 
@@ -276,7 +276,7 @@ def _serialize_block(block: Any) -> Dict[str, Any]:
     so the per-task log file is a complete record of what the model emitted
     (including every tool call request and tool result body).
     """
-    out: Dict[str, Any] = {"type": getattr(block, "type", type(block).__name__)}
+    out: dict[str, Any] = {"type": getattr(block, "type", type(block).__name__)}
     for attr in (
         "id", "name", "input", "text", "thinking", "signature",
         "tool_use_id", "content",
@@ -292,10 +292,10 @@ def _serialize_block(block: Any) -> Dict[str, Any]:
     return out
 
 
-def _serialize_openai_tool_calls(tool_calls: Any) -> List[Dict[str, Any]]:
+def _serialize_openai_tool_calls(tool_calls: Any) -> list[dict[str, Any]]:
     """vLLM / OpenAI returns ChatCompletionMessageToolCall objects. Pull out
     id, type, name, and the (JSON-string) arguments so they're round-trippable."""
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     if not tool_calls:
         return out
     for tc in tool_calls:
@@ -358,13 +358,13 @@ class LocalCloudAgent(BaseAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        local_model: Optional[str] = None,
-        local_endpoint: Optional[str] = None,
+        local_model: str | None = None,
+        local_endpoint: str | None = None,
         cloud_endpoint: str = "anthropic",
-        cfg: Optional[Dict[str, Any]] = None,
-        bus: Optional[Any] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        cfg: dict[str, Any] | None = None,
+        bus: Any | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> None:
         super().__init__(
             engine,
@@ -377,7 +377,7 @@ class LocalCloudAgent(BaseAgent):
         self._cloud_endpoint = (cloud_endpoint or "anthropic").lower()
         self._local_model = local_model
         self._local_endpoint = local_endpoint
-        self._cfg: Dict[str, Any] = dict(cfg or {})
+        self._cfg: dict[str, Any] = dict(cfg or {})
 
     # ------------------------------------------------------------------
     # SDK call helpers — raw clients, paradigm-shaped quirks applied
@@ -388,16 +388,16 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        tools: Optional[list] = None,
-        tool_choice: Optional[dict] = None,
-        output_config: Optional[dict] = None,
+        tools: list | None = None,
+        tool_choice: dict | None = None,
+        output_config: dict | None = None,
         timeout: float = 600.0,
         max_retries: int = 12,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int, int]:
+    ) -> tuple[str, int, int, int]:
         """Single Anthropic call. Returns (text, p_tok, c_tok, n_web_searches).
 
         Strips ``temperature`` for Opus 4.7+ (rejected by the API). Captures
@@ -409,7 +409,7 @@ class LocalCloudAgent(BaseAgent):
         import anthropic
 
         client = anthropic.Anthropic(timeout=timeout, max_retries=max_retries)
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": user}],
@@ -465,15 +465,15 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        response_format: Optional[dict] = None,
-        tools: Optional[list] = None,
-        tool_choice: Optional[Any] = None,
+        response_format: dict | None = None,
+        tools: list | None = None,
+        tool_choice: Any | None = None,
         timeout: float = 600.0,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int]:
+    ) -> tuple[str, int, int]:
         """Single OpenAI call. Returns (text, p_tok, c_tok). Trace-captured;
         also records any tool_calls the model emits."""
         from openai import OpenAI
@@ -483,7 +483,7 @@ class LocalCloudAgent(BaseAgent):
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user})
-        kwargs: Dict[str, Any] = {"model": model, "messages": messages}
+        kwargs: dict[str, Any] = {"model": model, "messages": messages}
         if is_gpt5_family(model):
             kwargs["max_completion_tokens"] = max_tokens
         else:
@@ -534,13 +534,13 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
         timeout: float = 600.0,
         trace_role: str = "cloud",
-        extra_body: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[str, int, int]:
+        extra_body: dict[str, Any] | None = None,
+    ) -> tuple[str, int, int]:
         """Single OpenRouter call. Returns (text, p_tok, c_tok).
 
         OpenRouter is OpenAI-API-compatible; we use the OpenAI SDK with a
@@ -588,7 +588,7 @@ class LocalCloudAgent(BaseAgent):
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user})
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
@@ -639,12 +639,12 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
         timeout: float = 600.0,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int]:
+    ) -> tuple[str, int, int]:
         """Single Gemini Developer-API call. Returns (text, p_tok, c_tok).
 
         Tool-call parity with Anthropic is intentionally NOT implemented —
@@ -710,15 +710,15 @@ class LocalCloudAgent(BaseAgent):
         endpoint: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
         enable_thinking: bool = False,
-        tools: Optional[list] = None,
-        tool_choice: Optional[Any] = None,
+        tools: list | None = None,
+        tool_choice: Any | None = None,
         timeout: float = 600.0,
         trace_role: str = "local",
-    ) -> Tuple[str, int, int]:
+    ) -> tuple[str, int, int]:
         """Local vLLM (OpenAI-compatible) call. Returns (text, p_tok, c_tok).
         Captures the full response into the trace — including any tool_calls
         the local model emits (vLLM exposes them in
@@ -731,7 +731,7 @@ class LocalCloudAgent(BaseAgent):
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user})
-        kwargs: Dict[str, Any] = dict(
+        kwargs: dict[str, Any] = dict(
             model=model,
             messages=messages,
             temperature=temperature,
@@ -784,15 +784,15 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        tools: Optional[list] = None,
+        tools: list | None = None,
         max_turns: int = 8,
         timeout: float = 600.0,
         max_retries: int = 5,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int, int, int]:
+    ) -> tuple[str, int, int, int, int]:
         """Multi-turn Anthropic loop with optional tools.
 
         Returns ``(final_text, prompt_tokens_sum, completion_tokens_sum,
@@ -815,7 +815,7 @@ class LocalCloudAgent(BaseAgent):
         # use + web_search_tool_result). For server tools Anthropic is
         # happy as long as we feed the raw assistant content back; no
         # synthetic user tool_result block is needed.
-        messages: List[Dict[str, Any]] = [{"role": "user", "content": user}]
+        messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
         p_total = 0
         c_total = 0
         n_searches_total = 0
@@ -823,7 +823,7 @@ class LocalCloudAgent(BaseAgent):
         turns = 0
         for turn in range(max(1, max_turns)):
             turns = turn + 1
-            kwargs: Dict[str, Any] = {
+            kwargs: dict[str, Any] = {
                 "model": model,
                 "max_tokens": max_tokens,
                 "messages": messages,
@@ -901,14 +901,14 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        tools: Optional[list] = None,
+        tools: list | None = None,
         max_turns: int = 8,
         timeout: float = 600.0,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int, int, int]:
+    ) -> tuple[str, int, int, int, int]:
         """OpenAI hosted-web-search call via the Responses API.
 
         Returns ``(final_text, prompt_tokens_sum, completion_tokens_sum,
@@ -934,7 +934,7 @@ class LocalCloudAgent(BaseAgent):
         client = OpenAI(timeout=timeout)
 
         search_tool_names = ["web_search", "web_search_preview"]
-        kwargs_base: Dict[str, Any] = {
+        kwargs_base: dict[str, Any] = {
             "model": model,
             "input": user,
             "max_output_tokens": max_tokens,
@@ -947,7 +947,7 @@ class LocalCloudAgent(BaseAgent):
             kwargs_base["temperature"] = temperature
 
         resp = None
-        last_exc: Optional[BaseException] = None
+        last_exc: BaseException | None = None
         used_tool_name = search_tool_names[0]
         t0 = time.time()
         for tool_name in search_tool_names:
@@ -982,7 +982,7 @@ class LocalCloudAgent(BaseAgent):
             text = ""
         output_items = list(getattr(resp, "output", None) or [])
         if not text:
-            chunks: List[str] = []
+            chunks: list[str] = []
             for item in output_items:
                 if getattr(item, "type", None) != "message":
                     continue
@@ -1023,14 +1023,14 @@ class LocalCloudAgent(BaseAgent):
         model: str,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
-        tools: Optional[list] = None,
+        tools: list | None = None,
         max_turns: int = 8,
         timeout: float = 600.0,
         trace_role: str = "cloud",
-    ) -> Tuple[str, int, int, int, int]:
+    ) -> tuple[str, int, int, int, int]:
         """Gemini call grounded with Google Search.
 
         Returns ``(final_text, prompt_tokens_sum, completion_tokens_sum,
@@ -1076,7 +1076,7 @@ class LocalCloudAgent(BaseAgent):
 
         # Derive search count from grounding metadata when present.
         n_searches = 0
-        web_search_queries: List[str] = []
+        web_search_queries: list[str] = []
         finish_reason = None
         try:
             cand0 = resp.candidates[0]
@@ -1111,11 +1111,11 @@ class LocalCloudAgent(BaseAgent):
         self,
         *,
         user: str,
-        system: Optional[str] = None,
+        system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.0,
         **kwargs: Any,
-    ) -> Tuple[str, int, int]:
+    ) -> tuple[str, int, int]:
         """Dispatch a single cloud call by ``self._cloud_endpoint``.
 
         Returns (text, p_tok, c_tok). For Anthropic, the web_search count
@@ -1165,7 +1165,7 @@ class LocalCloudAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _soft_fail_metadata(reason: str) -> Dict[str, Any]:
+    def _soft_fail_metadata(reason: str) -> dict[str, Any]:
         """Metadata for a soft-fail row (Qwen JSON broke, Anthropic 400, etc.).
 
         The agent still returns an :class:`AgentResult` with empty content;
@@ -1193,17 +1193,17 @@ class LocalCloudAgent(BaseAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input)
         t0 = time.time()
         events = _open_trace()
         counts = _open_call_counts()
-        meta: Dict[str, Any]
+        meta: dict[str, Any]
         answer: str = ""
-        soft_reason: Optional[str] = None
-        exc_obj: Optional[BaseException] = None
+        soft_reason: str | None = None
+        exc_obj: BaseException | None = None
         try:
             try:
                 answer, meta = self._run_paradigm(input, context, **kwargs)
@@ -1245,7 +1245,7 @@ class LocalCloudAgent(BaseAgent):
         )
 
     @staticmethod
-    def record_trace_event(event: Dict[str, Any]) -> None:
+    def record_trace_event(event: dict[str, Any]) -> None:
         """Public hook for paradigm code that bypasses the SDK helpers
         (Minions's protocol loop, Archon's layer pipeline, …) to drop a
         custom event into the current task's trace.
@@ -1254,13 +1254,13 @@ class LocalCloudAgent(BaseAgent):
 
     def _write_trace_log(
         self,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         input: str,
         answer: str,
-        meta: Dict[str, Any],
-        events: List[Dict[str, Any]],
-        soft_reason: Optional[str],
-        exc: Optional[BaseException],
+        meta: dict[str, Any],
+        events: list[dict[str, Any]],
+        soft_reason: str | None,
+        exc: BaseException | None,
     ) -> None:
         log_dir = None
         task_id = "unknown"
@@ -1300,9 +1300,9 @@ class LocalCloudAgent(BaseAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         """Run the paradigm. Return ``(final_answer, metadata)``.
 
         Metadata should include the hybrid-shape fields:
@@ -1312,7 +1312,7 @@ class LocalCloudAgent(BaseAgent):
 
     # Subclasses override to declare deterministic failure modes they
     # want the base to swallow into a soft-fail row.
-    def _is_soft_failure(self, exc: BaseException) -> Optional[str]:
+    def _is_soft_failure(self, exc: BaseException) -> str | None:
         return None
 
 

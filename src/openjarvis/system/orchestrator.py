@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from openjarvis.core.types import Message, Role
 from openjarvis.tools._stubs import BaseTool
@@ -23,14 +23,14 @@ class QueryOrchestrator:
         query: str,
         *,
         context: bool = True,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        agent: Optional[str] = None,
-        tools: Optional[List[str]] = None,
-        system_prompt: Optional[str] = None,
-        operator_id: Optional[str] = None,
-        prior_messages: Optional[List[Message]] = None,
-    ) -> Dict[str, Any]:
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        agent: str | None = None,
+        tools: list[str] | None = None,
+        system_prompt: str | None = None,
+        operator_id: str | None = None,
+        prior_messages: list[Message] | None = None,
+    ) -> dict[str, Any]:
         """Execute a query through the system and return a result dict."""
         s = self._system
         if temperature is None:
@@ -92,7 +92,7 @@ class QueryOrchestrator:
             "engine": s.engine_key,
         }
 
-    def _detect_agent_intent(self, query: str) -> Optional[str]:
+    def _detect_agent_intent(self, query: str) -> str | None:
         """Detect if a query should be routed to a specific agent."""
         import re
 
@@ -120,7 +120,7 @@ class QueryOrchestrator:
         system_prompt=None,
         operator_id=None,
         prior_messages=None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run through an agent."""
         from openjarvis.agents._stubs import AgentContext
         from openjarvis.core.events import EventType
@@ -147,7 +147,7 @@ class QueryOrchestrator:
             for msg in messages[:-1]:
                 ctx.conversation.add(msg)
 
-        agent_kwargs: Dict[str, Any] = {
+        agent_kwargs: dict[str, Any] = {
             "bus": s.bus,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -201,7 +201,7 @@ class QueryOrchestrator:
             except TypeError:
                 ag = agent_cls()
 
-        telemetry_events: List[Dict[str, Any]] = []
+        telemetry_events: list[dict[str, Any]] = []
 
         def _on_inference_end(event: Any) -> None:
             telemetry_events.append(event.data if hasattr(event, "data") else event)
@@ -227,7 +227,7 @@ class QueryOrchestrator:
         finally:
             s.bus.unsubscribe(EventType.INFERENCE_END, _on_inference_end)
 
-        _telemetry: Dict[str, Any] = {}
+        _telemetry: dict[str, Any] = {}
         if telemetry_events:
             total_energy = sum(e.get("energy_joules", 0.0) for e in telemetry_events)
             total_latency = sum(e.get("latency", 0.0) for e in telemetry_events)
@@ -291,12 +291,12 @@ class QueryOrchestrator:
             "_telemetry": _telemetry,
         }
 
-    def _build_tools(self, tool_names: List[str]) -> List[BaseTool]:
+    def _build_tools(self, tool_names: list[str]) -> list[BaseTool]:
         """Build tool instances from tool names."""
         from openjarvis.core.registry import ToolRegistry
 
         s = self._system
-        tools: List[BaseTool] = []
+        tools: list[BaseTool] = []
         for name in tool_names:
             try:
                 if name == "retrieval" and s.memory_backend:

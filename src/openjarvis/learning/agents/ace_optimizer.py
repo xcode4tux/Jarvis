@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.core.config import ACEOptimizerConfig
 from openjarvis.core.registry import LearningRegistry
@@ -68,7 +68,7 @@ class _TraceDataProcessor:
     """
 
     @staticmethod
-    def process_task_data(raw: Dict[str, Any]) -> Dict[str, Any]:
+    def process_task_data(raw: dict[str, Any]) -> dict[str, Any]:
         return {
             "question": raw.get("question", ""),
             "ground_truth_answer": raw.get("ground_truth_answer", ""),
@@ -82,7 +82,7 @@ class _TraceDataProcessor:
 
     @classmethod
     def evaluate_accuracy(
-        cls, predictions: List[str], ground_truths: List[str]
+        cls, predictions: list[str], ground_truths: list[str]
     ) -> float:
         if not predictions:
             return 0.0
@@ -94,9 +94,9 @@ class _TraceDataProcessor:
         return n_correct / len(predictions)
 
 
-def _traces_to_samples(traces: List[Any]) -> List[Dict[str, Any]]:
+def _traces_to_samples(traces: list[Any]) -> list[dict[str, Any]]:
     """Convert OpenJarvis trace records to ACE's sample dict shape."""
-    samples: List[Dict[str, Any]] = []
+    samples: list[dict[str, Any]] = []
     for t in traces:
         question = getattr(t, "query", "") or ""
         answer = getattr(t, "result", "") or ""
@@ -112,8 +112,8 @@ def _traces_to_samples(traces: List[Any]) -> List[Dict[str, Any]]:
 
 
 def _split_samples(
-    samples: List[Dict[str, Any]],
-) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    samples: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """70/15/15 train/val/test split, preserving order for reproducibility."""
     n = len(samples)
     train_end = int(n * 0.70)
@@ -134,13 +134,13 @@ class ACEAgentOptimizer:
     def __init__(self, config: ACEOptimizerConfig) -> None:
         self.config = config
 
-    def optimize(self, trace_store: Any) -> Dict[str, Any]:
+    def optimize(self, trace_store: Any) -> dict[str, Any]:
         """Run ACE offline-mode optimization on traces from the store.
 
         Returns a status dict mirroring DSPy / GEPA shape:
         ``{"status": "completed" | "skipped" | "error", ...}``.
         """
-        kwargs: Dict[str, Any] = {"limit": 10_000}
+        kwargs: dict[str, Any] = {"limit": 10_000}
         if self.config.agent_filter:
             kwargs["agent"] = self.config.agent_filter
         traces = trace_store.list_traces(**kwargs)
@@ -237,7 +237,7 @@ class _ACELearningPolicy(AgentLearningPolicy):
     def __init__(self, **kwargs: object) -> None:
         pass
 
-    def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+    def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
         config = ACEOptimizerConfig()
         optimizer = ACEAgentOptimizer(config)
         return optimizer.optimize(trace_store)

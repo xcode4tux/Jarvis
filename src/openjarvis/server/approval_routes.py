@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from openjarvis.tools.approval_store import (
     STATUS_APPROVED,
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Singleton that shares the same DB file as ProactiveAgent (WAL mode is safe)
-_store: Optional[ApprovalStore] = None
+_store: ApprovalStore | None = None
 
 
 def _get_store() -> ApprovalStore:
@@ -32,7 +32,7 @@ def _get_store() -> ApprovalStore:
     return _store
 
 
-def _serialize(action: PendingAction) -> Dict[str, Any]:
+def _serialize(action: PendingAction) -> dict[str, Any]:
     return {
         "id": action.id,
         "action_type": action.action_type,
@@ -47,7 +47,7 @@ def _serialize(action: PendingAction) -> Dict[str, Any]:
 
 
 @router.get("/v1/approvals/pending")
-async def list_pending_approvals() -> Dict[str, Any]:
+async def list_pending_approvals() -> dict[str, Any]:
     store = _get_store()
     store.expire_stale()
     actions = store.list_pending()
@@ -55,7 +55,7 @@ async def list_pending_approvals() -> Dict[str, Any]:
 
 
 @router.post("/v1/approvals/{action_id}/approve")
-async def approve_action(action_id: str) -> Dict[str, Any]:
+async def approve_action(action_id: str) -> dict[str, Any]:
     store = _get_store()
     action = store.get_action(action_id)
     if action is None:
@@ -66,7 +66,7 @@ async def approve_action(action_id: str) -> Dict[str, Any]:
 
 
 @router.post("/v1/approvals/{action_id}/deny")
-async def deny_action(action_id: str) -> Dict[str, Any]:
+async def deny_action(action_id: str) -> dict[str, Any]:
     store = _get_store()
     action = store.get_action(action_id)
     if action is None:

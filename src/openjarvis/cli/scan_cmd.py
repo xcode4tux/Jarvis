@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List
 
 import click
 
@@ -443,7 +443,7 @@ _RICH_ICONS = {
 }
 
 
-def _render_results(results: List[ScanResult]) -> None:
+def _render_results(results: list[ScanResult]) -> None:
     """Render scan results as a Rich table."""
     from rich.console import Console
     from rich.table import Table
@@ -498,7 +498,7 @@ def _render_results(results: List[ScanResult]) -> None:
 def scan(quick: bool, as_json: bool) -> None:
     """Audit your environment for privacy and security risks."""
     scanner = PrivacyScanner()
-    results: List[ScanResult] = scanner.run_quick() if quick else scanner.run_all()
+    results: list[ScanResult] = scanner.run_quick() if quick else scanner.run_all()
 
     if as_json:
         import json as json_mod

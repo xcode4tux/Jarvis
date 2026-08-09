@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import ast
 import random
-from typing import Iterable, List, MutableMapping, Optional
+from collections.abc import Iterable, MutableMapping
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -57,7 +57,7 @@ _CONFIGS = [
 ]
 
 
-def _parse_content(raw: object) -> List[MutableMapping[str, object]]:
+def _parse_content(raw: object) -> list[MutableMapping[str, object]]:
     """Parse the ``content`` field, which may be a list or a string repr of one."""
     if isinstance(raw, list):
         return raw  # type: ignore[return-value]
@@ -72,15 +72,15 @@ def _parse_content(raw: object) -> List[MutableMapping[str, object]]:
 
 
 def _extract_problem_reference(
-    turns: List[MutableMapping[str, object]],
-) -> tuple[Optional[str], str]:
+    turns: list[MutableMapping[str, object]],
+) -> tuple[str | None, str]:
     """Return (problem, reference) from a list of trajectory turns.
 
     problem   = content of the first user-sourced turn
     reference = content of the last message_action turn (agent's final output),
                 truncated to 2000 chars; falls back to the last non-user turn
     """
-    problem: Optional[str] = None
+    problem: str | None = None
     for turn in turns:
         if turn.get("source") == "user":
             text = str(turn.get("content") or "").strip()
@@ -115,14 +115,14 @@ class ADPDataset(DatasetProvider):
     dataset_name = "Agent Data Collection (neulab)"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
@@ -142,7 +142,7 @@ class ADPDataset(DatasetProvider):
         else:
             row_cap = max_samples
 
-        rows: List[MutableMapping[str, object]] = []
+        rows: list[MutableMapping[str, object]] = []
         for cfg in _CONFIGS:
             if row_cap is not None and len(rows) >= row_cap:
                 break
@@ -173,7 +173,7 @@ class ADPDataset(DatasetProvider):
         if max_samples is not None:
             rows = rows[:max_samples]
 
-        records: List[EvalRecord] = []
+        records: list[EvalRecord] = []
         for i, r in enumerate(rows):
             turns = _parse_content(r.get("content"))
             problem, reference = _extract_problem_reference(turns)

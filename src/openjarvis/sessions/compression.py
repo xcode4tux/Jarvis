@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 from dataclasses import replace
-from typing import List
 
 from openjarvis.core.registry import CompressionRegistry
 from openjarvis.core.types import Message, Role
@@ -13,14 +12,14 @@ class BaseCompressor(ABC):
     """Abstract base for context compression strategies."""
 
     @abstractmethod
-    def compress(self, messages: List[Message], threshold: float) -> List[Message]: ...
+    def compress(self, messages: list[Message], threshold: float) -> list[Message]: ...
 
 
 @CompressionRegistry.register("session_consolidation")
 class SessionConsolidation(BaseCompressor):
     """Summarize oldest N% of turns, keep recent (100-N)%."""
 
-    def compress(self, messages: List[Message], threshold: float) -> List[Message]:
+    def compress(self, messages: list[Message], threshold: float) -> list[Message]:
         if not messages:
             return messages
         split = int(len(messages) * threshold)
@@ -41,7 +40,7 @@ class RuleBasedPrecompression(BaseCompressor):
 
     TOOL_OUTPUT_MAX = 2000
 
-    def compress(self, messages: List[Message], threshold: float) -> List[Message]:
+    def compress(self, messages: list[Message], threshold: float) -> list[Message]:
         result: list[Message] = []
         for msg in messages:
             if msg.role == Role.TOOL and len(msg.content) > self.TOOL_OUTPUT_MAX:
@@ -63,7 +62,7 @@ class RuleBasedPrecompression(BaseCompressor):
 class ModelSummarization(BaseCompressor):
     """LLM-based summarization using configured engine/model."""
 
-    def compress(self, messages: List[Message], threshold: float) -> List[Message]:
+    def compress(self, messages: list[Message], threshold: float) -> list[Message]:
         fallback = SessionConsolidation()
         return fallback.compress(messages, threshold)
 
@@ -72,7 +71,7 @@ class ModelSummarization(BaseCompressor):
 class TieredSummaries(BaseCompressor):
     """Progressive compression: L0 (full) -> L1 (paragraph) -> L2 (one-line)."""
 
-    def compress(self, messages: List[Message], threshold: float) -> List[Message]:
+    def compress(self, messages: list[Message], threshold: float) -> list[Message]:
         if not messages:
             return messages
         n = len(messages)

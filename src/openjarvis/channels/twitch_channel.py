@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -49,7 +49,7 @@ class TwitchChannel(BaseChannel):
         client_id: str = "",
         nick: str = "",
         initial_channels: str = "",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._access_token = access_token or os.environ.get("TWITCH_ACCESS_TOKEN", "")
         self._client_id = client_id or os.environ.get("TWITCH_CLIENT_ID", "")
@@ -58,7 +58,7 @@ class TwitchChannel(BaseChannel):
             "TWITCH_CHANNELS", ""
         )
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
 
     # -- connection lifecycle ---------------------------------------------------
@@ -89,7 +89,7 @@ class TwitchChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Send a chat message to a Twitch channel.
 
@@ -118,7 +118,7 @@ class TwitchChannel(BaseChannel):
                 "Client-Id": self._client_id,
                 "Content-Type": "application/json",
             }
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "broadcaster_id": channel,
                 "sender_id": self._nick,
                 "message": content,
@@ -138,7 +138,7 @@ class TwitchChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["twitch"]
 

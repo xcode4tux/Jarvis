@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class SkillBenchmarkConfig:
     model: str = "qwen3.5:9b"
     engine: str = "ollama"
     agent: str = "native_react"
-    tools: List[str] = field(
+    tools: list[str] = field(
         default_factory=lambda: [
             "calculator",
             "think",
@@ -49,8 +49,8 @@ class SkillBenchmarkConfig:
             "file_write",
         ]
     )
-    seeds: List[int] = field(default_factory=lambda: [42, 43, 44])
-    max_samples: Optional[int] = None
+    seeds: list[int] = field(default_factory=lambda: [42, 43, 44])
+    max_samples: int | None = None
     output_dir: Path = field(default_factory=lambda: Path("docs/superpowers/results/"))
     skills_dir: Path = field(
         default_factory=lambda: Path("~/.openjarvis/skills/").expanduser()
@@ -68,12 +68,12 @@ class ConditionResult:
     """Aggregated result for a single condition across all seeds."""
 
     condition: str
-    seeds: List[int]
-    per_seed_pass_rate: Dict[int, float]
+    seeds: list[int]
+    per_seed_pass_rate: dict[int, float]
     mean_pass_rate: float
     stddev_pass_rate: float
-    per_task_results: Dict[str, List[bool]]  # task_id → [pass_seed1, ...]
-    skill_invocation_counts: Dict[str, int]  # skill_name → total invocations
+    per_task_results: dict[str, list[bool]]  # task_id → [pass_seed1, ...]
+    skill_invocation_counts: dict[str, int]  # skill_name → total invocations
     total_tokens: int
     total_runtime_seconds: float
 
@@ -85,8 +85,8 @@ class ConditionComparison:
     config: SkillBenchmarkConfig
     started_at: str
     ended_at: str
-    results: Dict[str, ConditionResult]
-    deltas: Dict[str, float]
+    results: dict[str, ConditionResult]
+    deltas: dict[str, float]
 
 
 class SkillBenchmarkRunner:
@@ -117,7 +117,7 @@ class SkillBenchmarkRunner:
     # Per-condition backend construction
     # ------------------------------------------------------------------
 
-    def _backend_kwargs_for_condition(self, condition: str) -> Dict[str, Any]:
+    def _backend_kwargs_for_condition(self, condition: str) -> dict[str, Any]:
         """Return the kwargs to pass to JarvisAgentBackend for *condition*.
 
         Pure function — no side effects, no SystemBuilder construction.
@@ -176,7 +176,7 @@ class SkillBenchmarkRunner:
         self,
         condition: str,
         seed: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run the benchmark once for one (condition, seed) pair.
 
         Returns a raw dict with per-task results, pass rate, skill
@@ -240,7 +240,7 @@ class SkillBenchmarkRunner:
         # Aggregate per-task results.  RunSummary doesn't carry the
         # per-record list — that lives on the runner instance via the
         # `results` property (which returns List[EvalResult]).
-        per_task: Dict[str, bool] = {}
+        per_task: dict[str, bool] = {}
         for r in eval_runner.results:
             rid = getattr(r, "record_id", "") or ""
             ok = bool(getattr(r, "is_correct", False))
@@ -270,7 +270,7 @@ class SkillBenchmarkRunner:
             "total_runtime_seconds": elapsed,
         }
 
-    def _extract_skill_invocations(self, backend: Any) -> Dict[str, int]:
+    def _extract_skill_invocations(self, backend: Any) -> dict[str, int]:
         """Count per-skill invocations in the trace store from this run.
 
         Walks all traces in the backend's system trace store and counts
@@ -288,7 +288,7 @@ class SkillBenchmarkRunner:
         except Exception:
             return {}
 
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for trace in traces:
             steps = getattr(trace, "steps", None) or []
             for step in steps:
@@ -311,9 +311,9 @@ class SkillBenchmarkRunner:
                 f"{', '.join(CONDITIONS)}"
             )
 
-        per_seed_pass_rate: Dict[int, float] = {}
-        per_task_results: Dict[str, List[bool]] = {}
-        skill_counts: Dict[str, int] = {}
+        per_seed_pass_rate: dict[int, float] = {}
+        per_task_results: dict[str, list[bool]] = {}
+        skill_counts: dict[str, int] = {}
         total_tokens = 0
         total_runtime = 0.0
 
@@ -358,7 +358,7 @@ class SkillBenchmarkRunner:
         """
         started_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        results: Dict[str, ConditionResult] = {}
+        results: dict[str, ConditionResult] = {}
         for condition in CONDITIONS:
             LOGGER.info("Running condition: %s", condition)
             results[condition] = self.run_condition(condition)
@@ -366,7 +366,7 @@ class SkillBenchmarkRunner:
         ended_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Compute the headline deltas
-        deltas: Dict[str, float] = {}
+        deltas: dict[str, float] = {}
         if "no_skills" in results and "skills_on" in results:
             deltas["skills_on - no_skills"] = (
                 results["skills_on"].mean_pass_rate
@@ -401,7 +401,7 @@ class SkillBenchmarkRunner:
         out_dir.mkdir(parents=True, exist_ok=True)
         path = out_dir / f"pinchbench-skills-eval-{date_str}.md"
 
-        lines: List[str] = []
+        lines: list[str] = []
         lines.append(f"# PinchBench Skills Evaluation — {date_str}")
         lines.append("")
         lines.append(f"**Started:** {comparison.started_at}")

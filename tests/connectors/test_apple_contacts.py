@@ -9,7 +9,6 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -270,7 +269,7 @@ def test_not_connected_missing_db() -> None:
 
 def test_sync_yields_contacts(connector) -> None:
     """sync() yields one Document per real contact (3 total, skips system row)."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     assert len(docs) == 3
     for doc in docs:
         assert doc.source == "apple_contacts"
@@ -284,7 +283,7 @@ def test_sync_yields_contacts(connector) -> None:
 
 def test_sync_extracts_all_fields(connector) -> None:
     """sync() includes phone, email, address, URL, social, and notes in content."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     alice = next(d for d in docs if d.doc_id == "apple_contacts:uid-alice")
 
     assert "Alice M Smith" in alice.content
@@ -304,7 +303,7 @@ def test_sync_extracts_all_fields(connector) -> None:
 
 def test_sync_cleans_labels(connector) -> None:
     """sync() strips _$!<Label>!$_ markup from content."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     alice = next(d for d in docs if d.doc_id == "apple_contacts:uid-alice")
 
     assert "_$!<" not in alice.content
@@ -320,7 +319,7 @@ def test_sync_cleans_labels(connector) -> None:
 
 def test_org_only_contact(connector) -> None:
     """A contact with only an organization name uses it as the title."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     acme = next(d for d in docs if d.doc_id == "apple_contacts:uid-acme")
 
     assert acme.title == "Acme Corp"
@@ -334,7 +333,7 @@ def test_org_only_contact(connector) -> None:
 
 def test_minimal_contact(connector) -> None:
     """A contact with only a name still syncs correctly."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     bob = next(d for d in docs if d.doc_id == "apple_contacts:uid-bob")
 
     assert bob.title == "Bob Jones"
@@ -352,7 +351,7 @@ def test_sync_since_filter(connector) -> None:
     # Acme was modified at 694310400 (2023-01-02)
     # Pick a cutoff that excludes Alice and Acme but includes Bob
     cutoff = datetime(2023, 1, 3, 12, 0, 0, tzinfo=timezone.utc)
-    docs: List[Document] = list(connector.sync(since=cutoff))
+    docs: list[Document] = list(connector.sync(since=cutoff))
 
     ids = {d.doc_id for d in docs}
     assert "apple_contacts:uid-bob" in ids
@@ -382,7 +381,7 @@ def test_sync_status(connector) -> None:
 
 def test_metadata_fields(connector) -> None:
     """Documents include structured metadata with name components."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     alice = next(d for d in docs if d.doc_id == "apple_contacts:uid-alice")
 
     assert alice.metadata["first_name"] == "Alice"

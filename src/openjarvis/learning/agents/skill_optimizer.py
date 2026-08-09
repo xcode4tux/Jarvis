@@ -17,7 +17,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.core.types import Trace, TraceStep
 from openjarvis.skills.manager import SkillManager
@@ -33,7 +33,7 @@ class SkillOptimizationResult:
     skill_name: str
     status: str  # "optimized" | "skipped" | "error"
     trace_count: int = 0
-    overlay_path: Optional[Path] = None
+    overlay_path: Path | None = None
     error: str = ""
 
 
@@ -42,7 +42,7 @@ class _OptimizerOutput:
     """Internal: extracted output from the underlying DSPy/GEPA optimizer."""
 
     description: str = ""
-    few_shot: List[Dict[str, str]] = field(default_factory=list)
+    few_shot: list[dict[str, str]] = field(default_factory=list)
 
 
 class SkillOptimizer:
@@ -75,8 +75,8 @@ class SkillOptimizer:
         trace_store: Any,
         skill_manager: SkillManager,
         *,
-        overlay_dir: Optional[Path] = None,
-    ) -> Dict[str, SkillOptimizationResult]:
+        overlay_dir: Path | None = None,
+    ) -> dict[str, SkillOptimizationResult]:
         """Run the per-skill optimization loop.
 
         Returns a dict mapping skill name to result.  Writes overlay TOML
@@ -106,7 +106,7 @@ class SkillOptimizer:
         traces = trace_store.list_traces(limit=10000)
         buckets = self._bucket_traces_by_skill(traces)
 
-        results: Dict[str, SkillOptimizationResult] = {}
+        results: dict[str, SkillOptimizationResult] = {}
         for skill_name, skill_traces in buckets.items():
             if len(skill_traces) < self._min_traces:
                 results[skill_name] = SkillOptimizationResult(
@@ -153,13 +153,13 @@ class SkillOptimizer:
     # Bucketing
     # ------------------------------------------------------------------
 
-    def _bucket_traces_by_skill(self, traces: List[Trace]) -> Dict[str, List[Trace]]:
+    def _bucket_traces_by_skill(self, traces: list[Trace]) -> dict[str, list[Trace]]:
         """Group traces by the skill names they invoked.
 
         A trace is added to a skill's bucket once for each unique skill it
         invoked.  Traces with no skill-tagged tool calls are dropped entirely.
         """
-        buckets: Dict[str, List[Trace]] = {}
+        buckets: dict[str, list[Trace]] = {}
         for trace in traces:
             skill_names = self._extract_skill_names(trace)
             for name in skill_names:
@@ -167,12 +167,12 @@ class SkillOptimizer:
         return buckets
 
     @staticmethod
-    def _extract_skill_names(trace: Trace) -> List[str]:
+    def _extract_skill_names(trace: Trace) -> list[str]:
         """Return the unique skill names invoked in *trace*'s tool steps."""
-        seen: List[str] = []
+        seen: list[str] = []
         steps = getattr(trace, "steps", []) or []
         for step in steps:
-            metadata: Dict[str, Any] = {}
+            metadata: dict[str, Any] = {}
             if isinstance(step, dict):
                 metadata = step.get("metadata", {}) or {}
             elif isinstance(step, TraceStep):
@@ -191,7 +191,7 @@ class SkillOptimizer:
     def _run_dspy(
         self,
         skill_name: str,
-        skill_traces: List[Trace],
+        skill_traces: list[Trace],
     ) -> _OptimizerOutput:
         """Run DSPyAgentOptimizer on the bucket and extract description + few-shot.
 
@@ -230,7 +230,7 @@ class SkillOptimizer:
 
         description = str(updates.get("system_prompt", "")) if updates else ""
         few_shot_raw = updates.get("few_shot_examples", []) if updates else []
-        few_shot: List[Dict[str, str]] = []
+        few_shot: list[dict[str, str]] = []
         for item in few_shot_raw or []:
             if isinstance(item, dict):
                 few_shot.append(
@@ -256,7 +256,7 @@ class SkillOptimizer:
     def _run_gepa(
         self,
         skill_name: str,
-        skill_traces: List[Trace],
+        skill_traces: list[Trace],
     ) -> _OptimizerOutput:
         """Run GEPAAgentOptimizer on the bucket.  Same shape as _run_dspy."""
         from openjarvis.core.config import GEPAOptimizerConfig
@@ -286,7 +286,7 @@ class SkillOptimizer:
 
         # Parse GEPA's few_shot_examples output (matches DSPy path semantics)
         few_shot_raw = updates.get("few_shot_examples", []) if updates else []
-        few_shot: List[Dict[str, str]] = []
+        few_shot: list[dict[str, str]] = []
         for item in few_shot_raw or []:
             if isinstance(item, dict):
                 few_shot.append(

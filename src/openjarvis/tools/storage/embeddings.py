@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any
 
 
 class Embedder(ABC):
@@ -96,9 +96,9 @@ class OllamaEmbedder(Embedder):
         self._max_parallel = max(1, max_parallel)
         self._timeout_s = timeout_s
         self._httpx = httpx
-        self._dim_cached: Optional[int] = None
+        self._dim_cached: int | None = None
 
-    def _embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Issue one HTTP request for ``texts`` and return raw vectors."""
         resp = self._httpx.post(
             f"{self._base_url}/api/embed",
@@ -133,7 +133,7 @@ class OllamaEmbedder(Embedder):
         ]
 
         # Fan out batches concurrently
-        results: List[Optional[List[List[float]]]] = [None] * len(batches)
+        results: list[list[list[float]] | None] = [None] * len(batches)
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=min(self._max_parallel, len(batches)),
         ) as pool:
@@ -146,7 +146,7 @@ class OllamaEmbedder(Embedder):
                 results[idx] = future.result()
 
         # Stitch back in order and stack
-        flat: List[List[float]] = []
+        flat: list[list[float]] = []
         for batch_result in results:
             assert batch_result is not None  # all futures returned
             flat.extend(batch_result)

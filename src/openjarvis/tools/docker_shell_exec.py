@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import subprocess
 import threading
-from typing import Any, Optional
+from typing import Any
 
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.tools._stubs import BaseTool, ToolResult, ToolSpec
@@ -33,20 +33,20 @@ from openjarvis.tools._stubs import BaseTool, ToolResult, ToolSpec
 # thread are not visible there. The eval runner processes one task at
 # a time per process, so there is no cross-task race. Parallelism
 # across models is achieved through isolated HOMEs (separate processes).
-_active_container: Optional[str] = None
+_active_container: str | None = None
 _lock = threading.Lock()
 _DEFAULT_TIMEOUT = 60
 _MAX_TIMEOUT = 600
 
 
-def set_active_container(name: Optional[str]) -> None:
+def set_active_container(name: str | None) -> None:
     """Bind (or clear) the Docker container for this process."""
     global _active_container
     with _lock:
         _active_container = name
 
 
-def get_active_container() -> Optional[str]:
+def get_active_container() -> str | None:
     with _lock:
         return _active_container
 

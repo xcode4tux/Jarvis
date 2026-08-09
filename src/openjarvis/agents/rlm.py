@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.agents.prompt_loader import (
@@ -112,16 +112,16 @@ class RLMAgent(ToolUsingAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        tools: Optional[List[BaseTool]] = None,
-        bus: Optional[EventBus] = None,
-        max_turns: Optional[int] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        sub_model: Optional[str] = None,
+        tools: list[BaseTool] | None = None,
+        bus: EventBus | None = None,
+        max_turns: int | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        sub_model: str | None = None,
         sub_temperature: float = 0.3,
         sub_max_tokens: int = 1024,
         max_output_chars: int = 10000,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         interactive: bool = False,
         confirm_callback=None,
     ) -> None:
@@ -152,7 +152,7 @@ class RLMAgent(ToolUsingAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input)
@@ -182,7 +182,7 @@ class RLMAgent(ToolUsingAgent):
                 system_prompt = prompt_template
 
         # Create REPL with sub-LM callbacks
-        self._repl_tool_results: List[ToolResult] = []
+        self._repl_tool_results: list[ToolResult] = []
         repl = RLMRepl(
             llm_query_fn=self._make_sub_query,
             llm_batch_fn=self._make_batch_query,
@@ -351,16 +351,16 @@ class RLMAgent(ToolUsingAgent):
 
         return result.get("content", "")
 
-    def _make_batch_query(self, prompts: List[str]) -> List[str]:
+    def _make_batch_query(self, prompts: list[str]) -> list[str]:
         """Execute multiple sub-LM queries sequentially.
 
         Called from REPL code via ``llm_batch(prompts)``.
         """
         return [self._make_sub_query(p) for p in prompts]
 
-    def _tool_arg_names(self) -> Dict[str, Optional[str]]:
+    def _tool_arg_names(self) -> dict[str, str | None]:
         """Build a best-effort primary-arg map for injected tool helpers."""
-        arg_names: Dict[str, Optional[str]] = {}
+        arg_names: dict[str, str | None] = {}
         for tool in self._tools:
             props = tool.spec.parameters.get("properties", {})
             required = tool.spec.parameters.get("required", [])
@@ -372,7 +372,7 @@ class RLMAgent(ToolUsingAgent):
             arg_names[tool.spec.name] = primary
         return arg_names
 
-    def _execute_tool_from_repl(self, tool_name: str, params: Dict[str, Any]) -> str:
+    def _execute_tool_from_repl(self, tool_name: str, params: dict[str, Any]) -> str:
         """Execute a real OpenJarvis tool from within the REPL."""
         if self._executor is None:
             raise RuntimeError(f"Tool '{tool_name}' is not available")
@@ -388,7 +388,7 @@ class RLMAgent(ToolUsingAgent):
 
     def _repl_read_file(self, path: str, max_lines: int = 120) -> str:
         """Read a bounded number of lines from a file via the real tool."""
-        params: Dict[str, Any] = {"path": path}
+        params: dict[str, Any] = {"path": path}
         try:
             max_lines_int = int(max_lines)
         except (TypeError, ValueError):
@@ -428,7 +428,7 @@ class RLMAgent(ToolUsingAgent):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_code(text: str) -> Optional[str]:
+    def _extract_code(text: str) -> str | None:
         """Extract the first ```python code block from *text*.
 
         Also matches bare ``` blocks (without language tag).
@@ -445,7 +445,7 @@ class RLMAgent(ToolUsingAgent):
         return None
 
     @staticmethod
-    def _resolve_context(context: Optional[AgentContext]) -> Optional[str]:
+    def _resolve_context(context: AgentContext | None) -> str | None:
         """Resolve context text from AgentContext metadata or memory_results."""
         if context is None:
             return None

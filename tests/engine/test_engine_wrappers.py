@@ -4,7 +4,7 @@ delegation."""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -26,7 +26,7 @@ class _FakeStreamFullEngine(InferenceEngine):
     def __init__(self, chunks: list[StreamChunk]) -> None:
         self._chunks = chunks
 
-    def generate(self, messages, *, model, **kwargs) -> Dict[str, Any]:
+    def generate(self, messages, *, model, **kwargs) -> dict[str, Any]:
         return {"content": "ok", "usage": {}}
 
     async def stream(self, messages, *, model, **kwargs) -> AsyncIterator[str]:
@@ -38,7 +38,7 @@ class _FakeStreamFullEngine(InferenceEngine):
         for c in self._chunks:
             yield c
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return ["fake-model"]
 
     def health(self) -> bool:

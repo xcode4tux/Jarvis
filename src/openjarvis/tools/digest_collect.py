@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.connectors._stubs import Document
 from openjarvis.core.registry import ConnectorRegistry, ToolRegistry
@@ -17,7 +17,7 @@ from openjarvis.tools._stubs import BaseTool, ToolSpec
 # Section definitions: ordered list of (section_name, connector_ids)
 # ---------------------------------------------------------------------------
 
-_SECTION_ORDER: List[tuple] = [
+_SECTION_ORDER: list[tuple] = [
     ("HEALTH", {"oura", "apple_health", "strava"}),
     (
         "MESSAGES",
@@ -38,7 +38,7 @@ _SECTION_ORDER: List[tuple] = [
     ("MUSIC", {"spotify", "apple_music"}),
 ]
 
-_CONNECTOR_TO_SECTION: Dict[str, str] = {}
+_CONNECTOR_TO_SECTION: dict[str, str] = {}
 for _section_name, _ids in _SECTION_ORDER:
     for _cid in _ids:
         _CONNECTOR_TO_SECTION[_cid] = _section_name
@@ -87,7 +87,7 @@ def _format_time(ts: datetime) -> str:
     return ts.strftime("%-I:%M %p") if hasattr(ts, "strftime") else str(ts)
 
 
-def _parse_content_json(doc: Document) -> Dict[str, Any]:
+def _parse_content_json(doc: Document) -> dict[str, Any]:
     """Try to parse the document content as JSON; return {} on failure."""
     try:
         return json.loads(doc.content)
@@ -334,7 +334,7 @@ def _format_news_rss(doc: Document) -> str:
 
 
 # Map connector IDs to their formatting functions
-_FORMATTERS: Dict[str, Any] = {
+_FORMATTERS: dict[str, Any] = {
     "oura": _format_oura,
     "apple_health": _format_apple_health,
     "strava": _format_strava,
@@ -369,11 +369,11 @@ def _format_doc(source: str, doc: Document) -> str:
 
 
 def _format_music_section(
-    collected_docs: Dict[str, List[Document]],
+    collected_docs: dict[str, list[Document]],
     music_connectors: set,
-) -> List[str]:
+) -> list[str]:
     """Format music connectors as grouped lists instead of per-track lines."""
-    lines: List[str] = []
+    lines: list[str] = []
     for source in sorted(music_connectors):
         docs = collected_docs.get(source, [])
         if not docs:
@@ -386,7 +386,7 @@ def _format_music_section(
     return lines
 
 
-def _filter_unanswered_threads(docs: List[Document]) -> List[Document]:
+def _filter_unanswered_threads(docs: list[Document]) -> list[Document]:
     """Keep only iMessage threads where the last message is NOT from the user.
 
     Groups by chat title, finds the most-recent message per chat, and returns
@@ -395,11 +395,11 @@ def _filter_unanswered_threads(docs: List[Document]) -> List[Document]:
     """
     from collections import defaultdict
 
-    by_chat: Dict[str, List[Document]] = defaultdict(list)
+    by_chat: dict[str, list[Document]] = defaultdict(list)
     for doc in docs:
         by_chat[doc.title or doc.author or ""].append(doc)
 
-    result: List[Document] = []
+    result: list[Document] = []
     for chat_docs in by_chat.values():
         latest = max(chat_docs, key=lambda d: d.timestamp)
         if latest.author != "me":
@@ -407,9 +407,9 @@ def _filter_unanswered_threads(docs: List[Document]) -> List[Document]:
     return result
 
 
-def _filter_pending_invites(docs: List[Document]) -> List[Document]:
+def _filter_pending_invites(docs: list[Document]) -> list[Document]:
     """Keep only calendar events the user has not yet responded to."""
-    pending: List[Document] = []
+    pending: list[Document] = []
     for doc in docs:
         response_status = doc.metadata.get("response_status", "")
         # Include if status is explicitly needsAction, or if no status recorded
@@ -474,15 +474,15 @@ class DigestCollectTool(BaseTool):
         # Ensure connectors are registered
         import openjarvis.connectors  # noqa: F401
 
-        sources: List[str] = params.get("sources", [])
+        sources: list[str] = params.get("sources", [])
         hours_back: float = params.get("hours_back", 24)
         unacted_only: bool = bool(params.get("unacted_only", False))
         seen_ids: set = set(params.get("seen_ids", []))
         since = datetime.now() - timedelta(hours=hours_back)
 
         # Collect raw documents per source
-        collected_docs: Dict[str, List[Document]] = {}
-        errors: List[str] = []
+        collected_docs: dict[str, list[Document]] = {}
+        errors: list[str] = []
 
         for source in sources:
             if not ConnectorRegistry.contains(source):
@@ -501,9 +501,9 @@ class DigestCollectTool(BaseTool):
 
                 # Cap per-source to avoid overwhelming the LLM context
                 max_per_source = 15
-                docs: List[Document] = []
+                docs: list[Document] = []
 
-                sync_kwargs: Dict[str, Any] = {"since": since}
+                sync_kwargs: dict[str, Any] = {"since": since}
                 if unacted_only and source == "gmail":
                     sync_kwargs["query_extra"] = "is:unread"
 
@@ -524,7 +524,7 @@ class DigestCollectTool(BaseTool):
                 errors.append(f"Error fetching from '{source}': {exc}")
 
         # Group by section and build human-readable output
-        summary_parts: List[str] = []
+        summary_parts: list[str] = []
         for section_name, section_connectors in _SECTION_ORDER:
             # Gather all sources that belong to this section and have data
             section_sources = [
@@ -533,7 +533,7 @@ class DigestCollectTool(BaseTool):
             if not section_sources:
                 continue
 
-            section_lines: List[str] = []
+            section_lines: list[str] = []
 
             if section_name == "MUSIC":
                 # Music gets special grouped formatting

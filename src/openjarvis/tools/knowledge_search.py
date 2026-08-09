@@ -7,7 +7,7 @@ Optionally delegates to a ``TwoStageRetriever`` for BM25 + reranking.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from openjarvis.connectors.store import KnowledgeStore
 from openjarvis.core.registry import ToolRegistry
@@ -31,8 +31,8 @@ class KnowledgeSearchTool(BaseTool):
 
     def __init__(
         self,
-        store: Optional[KnowledgeStore] = None,
-        retriever: Optional["TwoStageRetriever"] = None,
+        store: KnowledgeStore | None = None,
+        retriever: TwoStageRetriever | None = None,
     ) -> None:
         self._store = store
         self._retriever = retriever
@@ -110,11 +110,11 @@ class KnowledgeSearchTool(BaseTool):
             )
 
         top_k: int = int(params.get("top_k", 10))
-        source: Optional[str] = params.get("source")
-        doc_type: Optional[str] = params.get("doc_type")
-        author: Optional[str] = params.get("author")
-        since: Optional[str] = params.get("since")
-        until: Optional[str] = params.get("until")
+        source: str | None = params.get("source")
+        doc_type: str | None = params.get("doc_type")
+        author: str | None = params.get("author")
+        since: str | None = params.get("since")
+        until: str | None = params.get("until")
 
         if self._retriever is not None:
             results = self._retriever.retrieve(

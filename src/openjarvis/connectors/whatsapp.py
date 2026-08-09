@@ -19,9 +19,9 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator, List, Optional
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.registry import ConnectorRegistry
@@ -49,7 +49,7 @@ _DATE_FORMATS = [
 ]
 
 
-def _parse_timestamp(ts_str: str) -> Optional[datetime]:
+def _parse_timestamp(ts_str: str) -> datetime | None:
     """Try to parse a WhatsApp timestamp string into a UTC-aware datetime."""
     # Normalise whitespace in AM/PM (the regex allows optional space)
     ts_str = ts_str.strip()
@@ -92,7 +92,7 @@ class WhatsAppConnector(BaseConnector):
         self._export_path = Path(export_path) if export_path else Path("")
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
+        self._last_sync: datetime | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -110,8 +110,8 @@ class WhatsAppConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002
     ) -> Iterator[Document]:
         """Parse WhatsApp export files and yield one Document per chat file.
 
@@ -138,7 +138,7 @@ class WhatsAppConnector(BaseConnector):
         self._items_total = len(txt_files)
         synced = 0
 
-        since_utc: Optional[datetime] = None
+        since_utc: datetime | None = None
         if since is not None:
             if since.tzinfo is None:
                 since_utc = since.replace(tzinfo=timezone.utc)
@@ -167,7 +167,7 @@ class WhatsAppConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time WhatsApp queries."""
         return [
             ToolSpec(
@@ -226,8 +226,8 @@ class WhatsAppConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def _parse_export_file(
-        self, path: Path, *, since: Optional[datetime] = None
-    ) -> Optional[Document]:
+        self, path: Path, *, since: datetime | None = None
+    ) -> Document | None:
         """Parse a single WhatsApp export .txt file.
 
         Returns a :class:`Document` if the file contains parseable messages
@@ -240,10 +240,10 @@ class WhatsAppConnector(BaseConnector):
             return None
 
         chat_name = path.stem
-        lines: List[str] = []
+        lines: list[str] = []
         participants: set[str] = set()
-        latest_ts: Optional[datetime] = None
-        earliest_ts: Optional[datetime] = None
+        latest_ts: datetime | None = None
+        earliest_ts: datetime | None = None
 
         for raw_line in raw.splitlines():
             m = _LINE_RE.match(raw_line.strip())

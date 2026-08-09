@@ -9,7 +9,6 @@ from __future__ import annotations
 import gzip
 import sqlite3
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -113,7 +112,7 @@ def test_not_connected_missing_db() -> None:
 
 def test_sync_yields_notes(connector) -> None:
     """sync() yields one Document per note (2 total)."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     assert len(docs) == 2
     for doc in docs:
         assert doc.source == "apple_notes"
@@ -127,7 +126,7 @@ def test_sync_yields_notes(connector) -> None:
 
 def test_sync_decompresses_content(connector) -> None:
     """sync() produces plain text with no HTML tags in content."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     for doc in docs:
         # No HTML tags should remain
@@ -148,7 +147,7 @@ def test_sync_decompresses_content(connector) -> None:
 
 def test_sync_sets_doc_type_note(connector) -> None:
     """All documents yielded by sync() have doc_type == 'note'."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     for doc in docs:
         assert doc.doc_type == "note"
 
@@ -160,7 +159,7 @@ def test_sync_sets_doc_type_note(connector) -> None:
 
 def test_sync_doc_ids_and_titles(connector) -> None:
     """sync() sets doc_id from ZIDENTIFIER and title from ZTITLE."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     doc1 = next(d for d in docs if d.doc_id == "apple_notes:note-001")
     assert doc1.title == "Shopping List"

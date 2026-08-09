@@ -13,7 +13,7 @@ so ingestion never fails because a sidecar service is down.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -54,7 +54,7 @@ class OllamaEmbedder:
         self._model = model
         self._host = host.rstrip("/")
         self._timeout = timeout
-        self._dim: Optional[int] = None
+        self._dim: int | None = None
 
     # ------------------------------------------------------------------
     # Identity / capability checks
@@ -66,7 +66,7 @@ class OllamaEmbedder:
         return f"ollama:{self._model}"
 
     @property
-    def dim(self) -> Optional[int]:
+    def dim(self) -> int | None:
         """Embedding dimensionality, learned after the first successful call."""
         return self._dim
 
@@ -90,7 +90,7 @@ class OllamaEmbedder:
     # Embedding
     # ------------------------------------------------------------------
 
-    def embed(self, text: str) -> Optional[bytes]:
+    def embed(self, text: str) -> bytes | None:
         """Embed a single string. Returns float32 bytes or ``None`` on failure."""
         if not text or not text.strip():
             return None
@@ -129,7 +129,7 @@ class OllamaEmbedder:
             return None
         return arr.tobytes()
 
-    def embed_batch(self, texts: List[str]) -> List[Optional[bytes]]:
+    def embed_batch(self, texts: list[str]) -> list[bytes | None]:
         """Embed a list of strings sequentially.
 
         Ollama's HTTP API serves one prompt per call; on the same host the
@@ -144,8 +144,8 @@ class OllamaEmbedder:
 
 
 def decode_embedding(
-    blob: Optional[bytes], *, dtype=None
-) -> Optional[np.ndarray]:
+    blob: bytes | None, *, dtype=None
+) -> np.ndarray | None:
     """Reconstruct a 1-D vector from a BLOB written by ``OllamaEmbedder.embed``.
 
     Returns ``None`` when the input is missing or zero-length so callers can

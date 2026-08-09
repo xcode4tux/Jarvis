@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import List
 
 from openjarvis.evals.core.types import (
     BenchmarkConfig,
@@ -150,7 +149,7 @@ def load_eval_config(path: str | Path) -> EvalSuiteConfig:
     if not models_raw:
         raise EvalConfigError("Config must define at least one [[models]] entry")
 
-    models: List[ModelConfig] = []
+    models: list[ModelConfig] = []
     for m in models_raw:
         if not m.get("name"):
             raise EvalConfigError("Each [[models]] entry must have a 'name' field")
@@ -176,7 +175,7 @@ def load_eval_config(path: str | Path) -> EvalSuiteConfig:
     if not benchmarks_raw:
         raise EvalConfigError("Config must define at least one [[benchmarks]] entry")
 
-    benchmarks: List[BenchmarkConfig] = []
+    benchmarks: list[BenchmarkConfig] = []
     for b in benchmarks_raw:
         if not b.get("name"):
             raise EvalConfigError("Each [[benchmarks]] entry must have a 'name' field")
@@ -239,7 +238,7 @@ def load_eval_config(path: str | Path) -> EvalSuiteConfig:
     )
 
 
-def expand_suite(suite: EvalSuiteConfig) -> List[RunConfig]:
+def expand_suite(suite: EvalSuiteConfig) -> list[RunConfig]:
     """Expand an EvalSuiteConfig into a list of RunConfigs (models x benchmarks).
 
     Merge precedence (highest wins):
@@ -251,7 +250,7 @@ def expand_suite(suite: EvalSuiteConfig) -> List[RunConfig]:
     Returns:
         List of RunConfig, one per model-benchmark pair.
     """
-    configs: List[RunConfig] = []
+    configs: list[RunConfig] = []
     output_dir = suite.run.output_dir.rstrip("/")
 
     for model in suite.models:

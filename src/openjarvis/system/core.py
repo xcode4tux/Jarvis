@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from openjarvis.core.config import JarvisConfig
 from openjarvis.core.events import EventBus
@@ -58,34 +58,34 @@ class JarvisSystem:
     engine: InferenceEngine
     engine_key: str
     model: str
-    agent: Optional[BaseAgent] = None
+    agent: BaseAgent | None = None
     agent_name: str = ""
-    tools: List[BaseTool] = field(default_factory=list)
-    tool_executor: Optional[ToolExecutor] = None
-    memory_backend: Optional[MemoryBackend] = None
-    channel_backend: Optional[BaseChannel] = None
-    router: Optional[RouterPolicy] = None
-    mcp_server: Optional[MCPServer] = None
-    telemetry_store: Optional[TelemetryStore] = None
-    trace_store: Optional[TraceStore] = None
-    trace_collector: Optional[TraceCollector] = None
-    gpu_monitor: Optional[GpuMonitor] = None
-    scheduler_store: Optional[SchedulerStore] = None
-    scheduler: Optional[TaskScheduler] = None
-    container_runner: Optional[ContainerRunner] = None
-    workflow_engine: Optional[WorkflowEngine] = None
-    session_store: Optional[SessionStore] = None
-    capability_policy: Optional[CapabilityPolicy] = None
-    audit_logger: Optional[AuditLogger] = None
-    boundary_guard: Optional[BoundaryGuard] = None
-    operator_manager: Optional[OperatorManager] = None
-    agent_manager: Optional[AgentManager] = None
-    agent_scheduler: Optional[AgentScheduler] = None
-    agent_executor: Optional[AgentExecutor] = None
-    speech_backend: Optional[SpeechBackend] = None
-    skill_manager: Optional[SkillManager] = None
-    _learning_orchestrator: Optional[LearningOrchestrator] = None
-    _mcp_clients: List[MCPClient] = field(default_factory=list)
+    tools: list[BaseTool] = field(default_factory=list)
+    tool_executor: ToolExecutor | None = None
+    memory_backend: MemoryBackend | None = None
+    channel_backend: BaseChannel | None = None
+    router: RouterPolicy | None = None
+    mcp_server: MCPServer | None = None
+    telemetry_store: TelemetryStore | None = None
+    trace_store: TraceStore | None = None
+    trace_collector: TraceCollector | None = None
+    gpu_monitor: GpuMonitor | None = None
+    scheduler_store: SchedulerStore | None = None
+    scheduler: TaskScheduler | None = None
+    container_runner: ContainerRunner | None = None
+    workflow_engine: WorkflowEngine | None = None
+    session_store: SessionStore | None = None
+    capability_policy: CapabilityPolicy | None = None
+    audit_logger: AuditLogger | None = None
+    boundary_guard: BoundaryGuard | None = None
+    operator_manager: OperatorManager | None = None
+    agent_manager: AgentManager | None = None
+    agent_scheduler: AgentScheduler | None = None
+    agent_executor: AgentExecutor | None = None
+    speech_backend: SpeechBackend | None = None
+    skill_manager: SkillManager | None = None
+    _learning_orchestrator: LearningOrchestrator | None = None
+    _mcp_clients: list[MCPClient] = field(default_factory=list)
 
     @property
     def security(self) -> SecurityContext:
@@ -135,14 +135,14 @@ class JarvisSystem:
         query: str,
         *,
         context: bool = True,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        agent: Optional[str] = None,
-        tools: Optional[List[str]] = None,
-        system_prompt: Optional[str] = None,
-        operator_id: Optional[str] = None,
-        prior_messages: Optional[List[Message]] = None,
-    ) -> Dict[str, Any]:
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        agent: str | None = None,
+        tools: list[str] | None = None,
+        system_prompt: str | None = None,
+        operator_id: str | None = None,
+        prior_messages: list[Message] | None = None,
+    ) -> dict[str, Any]:
         return self._get_orchestrator().ask(
             query,
             context=context,
@@ -155,10 +155,10 @@ class JarvisSystem:
             prior_messages=prior_messages,
         )
 
-    def _detect_agent_intent(self, query: str) -> Optional[str]:
+    def _detect_agent_intent(self, query: str) -> str | None:
         return self._get_orchestrator()._detect_agent_intent(query)
 
-    def _build_tools(self, tool_names: List[str]) -> List[BaseTool]:
+    def _build_tools(self, tool_names: list[str]) -> list[BaseTool]:
         return self._get_orchestrator()._build_tools(tool_names)
 
     def _run_agent(
@@ -173,7 +173,7 @@ class JarvisSystem:
         system_prompt=None,
         operator_id=None,
         prior_messages=None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self._get_orchestrator()._run_agent(
             query,
             messages,
@@ -221,7 +221,7 @@ class JarvisSystem:
                 channel_user_id=cm.sender,
             )
 
-            prior_msgs: List[Message] = []
+            prior_msgs: list[Message] = []
             for sm in session.messages:
                 try:
                     role = Role(sm.role)

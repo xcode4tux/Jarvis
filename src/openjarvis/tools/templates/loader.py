@@ -8,8 +8,9 @@ import logging
 import operator
 import shlex
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from openjarvis.core.types import ToolResult
 from openjarvis.tools._stubs import BaseTool, ToolSpec
@@ -36,7 +37,7 @@ except ModuleNotFoundError:
 # implementation and raise ``ValueError`` — the escape vectors are
 # unreachable by construction.
 
-_SAFE_EVAL_FUNCS: Dict[str, Callable[..., Any]] = {
+_SAFE_EVAL_FUNCS: dict[str, Callable[..., Any]] = {
     "str": str,
     "int": int,
     "float": float,
@@ -53,7 +54,7 @@ _SAFE_EVAL_FUNCS: Dict[str, Callable[..., Any]] = {
     "set": set,
 }
 
-_BIN_OPS: Dict[type, Callable[[Any, Any], Any]] = {
+_BIN_OPS: dict[type, Callable[[Any, Any], Any]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
@@ -63,14 +64,14 @@ _BIN_OPS: Dict[type, Callable[[Any, Any], Any]] = {
     ast.Pow: operator.pow,
 }
 
-_UNARY_OPS: Dict[type, Callable[[Any], Any]] = {
+_UNARY_OPS: dict[type, Callable[[Any], Any]] = {
     ast.UAdd: operator.pos,
     ast.USub: operator.neg,
     ast.Not: operator.not_,
     ast.Invert: operator.invert,
 }
 
-_CMP_OPS: Dict[type, Callable[[Any, Any], bool]] = {
+_CMP_OPS: dict[type, Callable[[Any, Any], bool]] = {
     ast.Eq: operator.eq,
     ast.NotEq: operator.ne,
     ast.Lt: operator.lt,
@@ -84,7 +85,7 @@ _CMP_OPS: Dict[type, Callable[[Any, Any], bool]] = {
 }
 
 
-def _eval_node(node: ast.AST, names: Dict[str, Any]) -> Any:
+def _eval_node(node: ast.AST, names: dict[str, Any]) -> Any:
     """Recursively evaluate a single whitelisted AST node."""
     if isinstance(node, ast.Expression):
         return _eval_node(node.body, names)
@@ -155,7 +156,7 @@ def _eval_node(node: ast.AST, names: Dict[str, Any]) -> Any:
     raise ValueError(f"disallowed expression element: {type(node).__name__}")
 
 
-def safe_eval_expr(expr: str, names: Dict[str, Any]) -> Any:
+def safe_eval_expr(expr: str, names: dict[str, Any]) -> Any:
     """Safely evaluate a template ``python``-action expression.
 
     Parses *expr* and interprets it against the allowlist in
@@ -171,7 +172,7 @@ class ToolTemplate(BaseTool):
 
     tool_id: str
 
-    def __init__(self, template_data: Dict[str, Any]) -> None:
+    def __init__(self, template_data: dict[str, Any]) -> None:
         self._data = template_data
         self.tool_id = template_data.get("name", "template")
         self._name = template_data.get("name", "template")
@@ -212,7 +213,7 @@ class ToolTemplate(BaseTool):
                 success=False,
             )
 
-    def _execute_python(self, params: Dict[str, Any]) -> ToolResult:
+    def _execute_python(self, params: dict[str, Any]) -> ToolResult:
         """Execute a Python expression."""
         expr = self._action.get("expression", "")
         if not expr:
@@ -235,7 +236,7 @@ class ToolTemplate(BaseTool):
             success=True,
         )
 
-    def _execute_shell(self, params: Dict[str, Any]) -> ToolResult:
+    def _execute_shell(self, params: dict[str, Any]) -> ToolResult:
         """Execute a shell command (requires code:execute capability)."""
         cmd_template = self._action.get("command", "")
         if not cmd_template:
@@ -280,13 +281,13 @@ class ToolTemplate(BaseTool):
         )
 
     @staticmethod
-    def _substitute(token: str, params: Dict[str, Any]) -> str:
+    def _substitute(token: str, params: dict[str, Any]) -> str:
         """Replace ``{key}`` placeholders in a single argv token."""
         for key, val in params.items():
             token = token.replace(f"{{{key}}}", str(val))
         return token
 
-    def _execute_transform(self, params: Dict[str, Any]) -> ToolResult:
+    def _execute_transform(self, params: dict[str, Any]) -> ToolResult:
         """Execute a data transformation."""
         transform = self._action.get("transform", "identity")
         input_val = params.get("input", "")
@@ -349,8 +350,8 @@ def load_template(path: str | Path) -> ToolTemplate:
 
 
 def discover_templates(
-    directory: Optional[str | Path] = None,
-) -> List[ToolTemplate]:
+    directory: str | Path | None = None,
+) -> list[ToolTemplate]:
     """Discover all TOML templates in a directory."""
     if directory is None:
         directory = Path(__file__).parent / "builtin"

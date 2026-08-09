@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -116,7 +115,7 @@ def test_not_connected_missing_db() -> None:
 
 def test_sync_yields_messages(connector) -> None:
     """sync() yields one Document per non-NULL message (3 total)."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     assert len(docs) == 3
     for doc in docs:
         assert doc.source == "imessage"
@@ -130,7 +129,7 @@ def test_sync_yields_messages(connector) -> None:
 
 def test_sync_message_content(connector) -> None:
     """sync() surfaces the exact message text in each Document's content."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     contents = {d.content for d in docs}
     assert "Hey, are we meeting tomorrow?" in contents
     assert "Yes at 3pm!" in contents
@@ -144,7 +143,7 @@ def test_sync_message_content(connector) -> None:
 
 def test_sync_sets_author(connector) -> None:
     """Received messages use the handle identifier; sent messages use 'me'."""
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     # Message 1 is received from handle +15550100
     msg1 = next(d for d in docs if d.doc_id == "imessage:1")

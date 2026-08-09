@@ -7,7 +7,7 @@ import logging
 import os
 import threading
 from email.mime.text import MIMEText
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -50,7 +50,7 @@ class GmailChannel(BaseChannel):
         token_path: str = "",
         user_id: str = "me",
         poll_interval: int = 30,
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._credentials_path = credentials_path or os.environ.get(
             "GMAIL_CREDENTIALS_PATH",
@@ -63,10 +63,10 @@ class GmailChannel(BaseChannel):
         self._user_id = user_id
         self._poll_interval = poll_interval
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
         self._service: Any = None
-        self._listener_thread: Optional[threading.Thread] = None
+        self._listener_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
     # -- connection lifecycle ---------------------------------------------------
@@ -155,7 +155,7 @@ class GmailChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Send an email via the Gmail API.
 
@@ -175,7 +175,7 @@ class GmailChannel(BaseChannel):
             )
 
             raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
-            body: Dict[str, Any] = {"raw": raw}
+            body: dict[str, Any] = {"raw": raw}
             if conversation_id:
                 body["threadId"] = conversation_id
 
@@ -196,7 +196,7 @@ class GmailChannel(BaseChannel):
             return ChannelStatus.ERROR
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["inbox"]
 

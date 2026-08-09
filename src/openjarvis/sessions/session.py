@@ -11,7 +11,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
@@ -23,7 +23,7 @@ class SessionIdentity:
     user_id: str
     display_name: str = ""
     # channel_type -> channel_user_id
-    channel_ids: Dict[str, str] = field(
+    channel_ids: dict[str, str] = field(
         default_factory=dict,
     )
 
@@ -36,7 +36,7 @@ class SessionMessage:
     content: str
     channel: str = ""
     timestamp: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -44,11 +44,11 @@ class Session:
     """A conversation session with cross-channel message history."""
 
     session_id: str = ""
-    identity: Optional[SessionIdentity] = None
-    messages: List[SessionMessage] = field(default_factory=list)
+    identity: SessionIdentity | None = None
+    messages: list[SessionMessage] = field(default_factory=list)
     created_at: float = 0.0
     last_activity: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_message(self, role: str, content: str, *, channel: str = "") -> None:
         self.messages.append(
@@ -67,7 +67,7 @@ class SessionStore:
 
     def __init__(
         self,
-        db_path: Union[str, Path] = DEFAULT_CONFIG_DIR / "sessions.db",
+        db_path: str | Path = DEFAULT_CONFIG_DIR / "sessions.db",
         *,
         max_age_hours: float = 24.0,
         consolidation_threshold: int = 100,
@@ -203,7 +203,7 @@ class SessionStore:
         content: str,
         *,
         channel: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Persist a message to a session."""
         self._conn.execute(
@@ -265,7 +265,7 @@ class SessionStore:
         )
         self._conn.commit()
 
-    def decay(self, max_age_hours: Optional[float] = None) -> int:
+    def decay(self, max_age_hours: float | None = None) -> int:
         """Remove sessions older than max_age_hours. Returns count removed."""
         age = max_age_hours or self._max_age_hours
         cutoff = time.time() - (age * 3600)
@@ -306,7 +306,7 @@ class SessionStore:
         *,
         active_only: bool = True,
         limit: int = 50,
-    ) -> List[Session]:
+    ) -> list[Session]:
         """List sessions, optionally filtering to active only."""
         sql = (
             "SELECT session_id, user_id, display_name,"
@@ -339,7 +339,7 @@ class SessionStore:
             )
         return sessions
 
-    def _load_messages(self, session_id: str) -> List[SessionMessage]:
+    def _load_messages(self, session_id: str) -> list[SessionMessage]:
         rows = self._conn.execute(
             "SELECT role, content, channel, timestamp, metadata "
             "FROM session_messages WHERE session_id = ? ORDER BY timestamp",

@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import LLMJudgeScorer
 from openjarvis.evals.core.types import EvalRecord
@@ -59,9 +59,9 @@ _GENERIC_RUBRIC = """Evaluate the research report across these four dimensions o
    - 9-10: Exceptionally clear, professional structure and presentation"""
 
 
-def _format_criteria_rubric(criterions: Dict[str, List[Dict[str, Any]]]) -> str:
+def _format_criteria_rubric(criterions: dict[str, list[dict[str, Any]]]) -> str:
     """Format task-specific criteria into a rubric string for the judge prompt."""
-    parts: List[str] = []
+    parts: list[str] = []
     for dimension in DIMENSIONS:
         criteria_list = criterions.get(dimension, [])
         if not criteria_list:
@@ -134,7 +134,7 @@ def _escape_newlines_inside_strings(text: str) -> str:
     Walks the text tracking whether we are inside a double-quoted string,
     respecting backslash escapes. Outside strings the text is left untouched.
     """
-    out: List[str] = []
+    out: list[str] = []
     in_string = False
     escape_next = False
     for ch in text:
@@ -182,7 +182,7 @@ def _safe_json_loads(text: str) -> Any:
     return json.loads(_escape_newlines_inside_strings(text))
 
 
-def _parse_judge_response(raw: str) -> Dict[str, Any]:
+def _parse_judge_response(raw: str) -> dict[str, Any]:
     """Parse LLM judge response, extracting dimension scores.
 
     Tries: JSON code block -> balanced braces -> regex fallback.
@@ -205,9 +205,9 @@ def _parse_judge_response(raw: str) -> Dict[str, Any]:
             pass
 
     # Try balanced braces extraction
-    candidates: List[str] = []
+    candidates: list[str] = []
     depth = 0
-    current: List[str] = []
+    current: list[str] = []
     in_str = False
     esc = False
     for char in raw:
@@ -250,7 +250,7 @@ def _parse_judge_response(raw: str) -> Dict[str, Any]:
             continue
 
     # Regex fallback: look for individual dimension scores
-    scores: Dict[str, float] = {}
+    scores: dict[str, float] = {}
     for dim in DIMENSIONS:
         match = re.search(
             rf'"?{dim}"?\s*[:=]\s*([\d.]+)',
@@ -282,9 +282,9 @@ def _parse_judge_response(raw: str) -> Dict[str, Any]:
     }
 
 
-def _normalize_response(parsed: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_response(parsed: dict[str, Any]) -> dict[str, Any]:
     """Normalize judge response to standard structure."""
-    result: Dict[str, Any] = {"scores": {}, "weighted_total": 0.0, "notes": ""}
+    result: dict[str, Any] = {"scores": {}, "weighted_total": 0.0, "notes": ""}
 
     # Extract scores
     scores_data = parsed.get("scores", {})
@@ -370,7 +370,7 @@ class LiveResearchBenchScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response", "score": 0.0}
 
@@ -418,7 +418,7 @@ class LiveResearchBenchScorer(LLMJudgeScorer):
         # Threshold: score >= 0.5 (i.e., 5/10 weighted average) is considered passing
         is_correct = normalized_score >= 0.5
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "score": normalized_score,
             "dimension_scores": scores,
             "dimension_weights": dimension_weights,

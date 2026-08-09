@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -40,7 +40,7 @@ class SignalChannel(BaseChannel):
         api_url: str = "",
         *,
         phone_number: str = "",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._api_url = api_url or os.environ.get("SIGNAL_API_URL", "")
         self._phone_number = phone_number or os.environ.get(
@@ -48,7 +48,7 @@ class SignalChannel(BaseChannel):
             "",
         )
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
 
     # -- connection lifecycle ---------------------------------------------------
@@ -73,7 +73,7 @@ class SignalChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Send a message via the signal-cli REST API."""
         if not self._api_url:
@@ -84,7 +84,7 @@ class SignalChannel(BaseChannel):
             import httpx
 
             url = f"{self._api_url}/v2/send"
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "message": content,
                 "number": self._phone_number,
                 "recipients": [channel],
@@ -107,7 +107,7 @@ class SignalChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["signal"]
 

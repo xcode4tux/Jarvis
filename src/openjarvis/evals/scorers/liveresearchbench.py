@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import LLMJudgeScorer
 from openjarvis.evals.core.types import EvalRecord
@@ -28,7 +28,7 @@ def _build_judge_prompt(
     *,
     question: str,
     answer: str,
-    checklist: List[str],
+    checklist: list[str],
 ) -> str:
     """Build a batched judge prompt that evaluates all checklist items at once."""
     bullets = "\n".join(f"{i}. {item}" for i, item in enumerate(checklist, 1))
@@ -64,7 +64,7 @@ Return one judgment per checklist item, indexed in the same order as above.
 Be rigorous: `covered: true` only if the report genuinely satisfies the item."""
 
 
-def _parse_judge_response(raw: str, num_items: int) -> List[Dict[str, Any]]:
+def _parse_judge_response(raw: str, num_items: int) -> list[dict[str, Any]]:
     """Extract per-item judgments from the judge's raw response.
 
     Returns one dict per checklist item ({index, covered, reason}). Missing
@@ -76,15 +76,15 @@ def _parse_judge_response(raw: str, num_items: int) -> List[Dict[str, Any]]:
             for i in range(num_items)
         ]
 
-    judgments: Dict[int, Dict[str, Any]] = {}
+    judgments: dict[int, dict[str, Any]] = {}
 
     # Collect JSON candidates: code blocks first, then balanced braces.
-    candidates: List[str] = []
+    candidates: list[str] = []
     for match in re.finditer(r"```(?:json)?\s*(.*?)\s*```", raw, re.DOTALL):
         candidates.append(match.group(1))
 
     depth = 0
-    current: List[str] = []
+    current: list[str] = []
     for char in raw:
         if char == "{":
             if depth == 0:
@@ -166,8 +166,8 @@ class LiveResearchBenchScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
-        checklist: List[str] = list(record.metadata.get("checklist", []) or [])
+    ) -> tuple[bool | None, dict[str, Any]]:
+        checklist: list[str] = list(record.metadata.get("checklist", []) or [])
 
         if not model_answer or not model_answer.strip():
             return False, {
@@ -214,7 +214,7 @@ class LiveResearchBenchScorer(LLMJudgeScorer):
         coverage = covered_count / len(checklist)
         is_correct = coverage >= PASS_THRESHOLD
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "score": coverage,
             "coverage": coverage,
             "covered_count": covered_count,

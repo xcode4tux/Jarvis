@@ -89,6 +89,7 @@ def create_webhook_router(
     whatsapp_verify_token: str = "",
     whatsapp_app_secret: str = "",
     sendblue_channel: Any = None,
+    require_secrets: bool = False,
 ) -> APIRouter:
     """Create a FastAPI router with webhook endpoints.
 
@@ -99,8 +100,35 @@ def create_webhook_router(
         whatsapp_verify_token: WhatsApp verification token.
         whatsapp_app_secret: WhatsApp app secret for HMAC.
         sendblue_channel: SendBlueChannel instance for reply-back.
+        require_secrets: When True (server bound to a non-loopback
+            interface), webhook endpoints reject requests unless the
+            corresponding verification secret is configured. Fail-closed
+            prevents unauthenticated webhook processing on exposed hosts.
     """
     router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+
+    # Fail-open visibility: when a webhook is mounted without a verification
+    # secret it accepts unauthenticated requests. The default loopback bind is
+    # safe, but warn loudly so anyone exposing the server over the network
+    # (port-forward, ngrok, cloud deploy) sees the exposure at startup.
+    if not twilio_auth_token:
+        logger.warning(
+            "Twilio webhook mounted WITHOUT an auth token — "
+            "incoming requests will not be signature-verified. "
+            "Set twilio_auth_token in the webhook config."
+        )
+    if not whatsapp_app_secret:
+        logger.warning(
+            "WhatsApp webhook mounted WITHOUT an app secret — "
+            "incoming requests will not be signature-verified. "
+            "Set whatsapp_app_secret in the webhook config."
+        )
+    if not bluebubbles_password:
+        logger.warning(
+            "BlueBubbles webhook mounted WITHOUT a password — "
+            "incoming requests will not be authenticated. "
+            "Set bluebubbles_password in the webhook config."
+        )
 
     # ----------------------------------------------------------
     # Twilio SMS
@@ -113,7 +141,14 @@ def create_webhook_router(
         signature = request.headers.get("X-Twilio-Signature", "")
         url = str(request.url)
 
-        if twilio_auth_token and not _validate_twilio_signature(
+        if not twilio_auth_token:
+            if require_secrets:
+                logger.error(
+                    "Twilio webhook not configured with an auth token — "
+                    "rejecting request (fail-closed on non-loopback bind)"
+                )
+                return Response("Webhook not configured", status_code=403)
+        elif not _validate_twilio_signature(
             twilio_auth_token, url, params, signature
         ):
             return Response("Invalid signature", status_code=403)
@@ -152,20 +187,25 @@ def create_webhook_router(
                     for agent in mgr.list_agents():
                         aid = agent.get("id", "")
                         for b in mgr.list_channel_bindings(aid):
-                            if b.get("channel_type") == "twilio":
-                                cfg = b.get("config", {})
-                                sid = cfg.get("account_sid", "")
-                                tok = cfg.get("auth_token", "")
-                                twilio_from = cfg.get(
-                                    "phone_number",
-                                    "",
+                            if b.get("channel_type") != "twilio":
+                                continue
+                            cfg = b.get("config", {})
+                            sid = cfg.get("account_sid", "")
+                            tok = cfg.get("auth_token", "")
+                            twilio_from = cfg.get(
+                                "phone_number",
+                                "",
+                            )
+                            if sid and tok:
+                                twilio_client = Client(
+                                    sid,
+                                    tok,
                                 )
-                                if sid and tok:
-                                    twilio_client = Client(
-                                        sid,
-                                        tok,
-                                    )
-                                break
+                            # Stop scanning this agent's bindings.
+                            break
+                        if twilio_client is not None:
+                            # First agent with a usable Twilio binding wins.
+                            break
 
                 if twilio_client and twilio_from:
                     twilio_client.messages.create(
@@ -256,8 +296,18 @@ def create_webhook_router(
     async def bluebubbles_incoming(
         request: Request,
     ) -> Response:
-        auth = request.headers.get("Authorization", "")
-        if bluebubbles_password and auth != bluebubbles_password:
+        auth = request.headers.get("Authorization", "").strip()
+        # BlueBubbles clients may send the raw password or ``Bearer <password>``.
+        if auth.lower().startswith("bearer "):
+            auth = auth[7:].strip()
+        if not bluebubbles_password:
+            if require_secrets:
+                logger.error(
+                    "BlueBubbles webhook not configured with a password — "
+                    "rejecting request (fail-closed on non-loopback bind)"
+                )
+                return Response("Webhook not configured", status_code=403)
+        elif not hmac.compare_digest(auth, bluebubbles_password):
             return Response("Invalid password", status_code=403)
 
         payload = await request.json()
@@ -315,6 +365,12 @@ def create_webhook_router(
             )
             if not hmac.compare_digest(signature, expected):
                 return Response("Invalid signature", status_code=403)
+        elif require_secrets:
+            logger.error(
+                "WhatsApp webhook not configured with an app secret — "
+                "rejecting request (fail-closed on non-loopback bind)"
+            )
+            return Response("Webhook not configured", status_code=403)
 
         payload = json.loads(body_bytes)
         for entry in payload.get("entry", []):
@@ -352,8 +408,14 @@ def create_webhook_router(
         # Verify webhook secret if configured
         if sb and sb.webhook_secret:
             header_secret = request.headers.get("x-sendblue-secret", "")
-            if header_secret != sb.webhook_secret:
+            if not hmac.compare_digest(header_secret, sb.webhook_secret):
                 return Response("Invalid secret", status_code=403)
+        elif require_secrets:
+            logger.error(
+                "SendBlue webhook not configured with a webhook secret — "
+                "rejecting request (fail-closed on non-loopback bind)"
+            )
+            return Response("Webhook not configured", status_code=403)
         elif sb:
             logger.warning(
                 "SendBlue webhook received without secret verification. "

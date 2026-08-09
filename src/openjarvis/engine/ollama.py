@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 
@@ -44,7 +44,7 @@ class OllamaEngine(InferenceEngine):
         self._host = host.rstrip("/")
         self._client = httpx.Client(base_url=self._host, timeout=timeout)
         # Last stream usage — captured from Ollama's final chunk
-        self._last_stream_usage: Dict[str, int] = {}
+        self._last_stream_usage: dict[str, int] = {}
 
     def generate(
         self,
@@ -54,7 +54,7 @@ class OllamaEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         msg_dicts = messages_to_dicts(messages)
         # Ollama expects tool_call arguments as dicts, not JSON strings
         for md in msg_dicts:
@@ -66,7 +66,7 @@ class OllamaEngine(InferenceEngine):
                         fn["arguments"] = json.loads(args)
                     except (json.JSONDecodeError, TypeError):
                         pass
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": msg_dicts,
             "stream": False,
@@ -127,7 +127,7 @@ class OllamaEngine(InferenceEngine):
         )
         completion_tokens = data.get("eval_count", 0)
         content = data.get("message", {}).get("content", "")
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": content,
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -182,7 +182,7 @@ class OllamaEngine(InferenceEngine):
         max_tokens: int = 1024,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "stream": True,
@@ -261,7 +261,7 @@ class OllamaEngine(InferenceEngine):
                     except (json.JSONDecodeError, TypeError):
                         pass
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": msg_dicts,
             "stream": True,
@@ -287,7 +287,7 @@ class OllamaEngine(InferenceEngine):
 
     async def _run_stream(
         self,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         messages: Sequence[Message],
         *,
         retry_without_tools: bool,
@@ -326,7 +326,7 @@ class OllamaEngine(InferenceEngine):
                         # chunk (not fragmented). Convert to the
                         # OpenAI-delta fragment shape that agent_manager_routes
                         # expects in _merge_tool_call_fragments.
-                        fragments: List[Dict[str, Any]] = []
+                        fragments: list[dict[str, Any]] = []
                         for i, tc in enumerate(raw_tool_calls):
                             fn = tc.get("function", {}) or {}
                             raw_args = fn.get("arguments", "{}")
@@ -375,7 +375,7 @@ class OllamaEngine(InferenceEngine):
                 f"Ollama not reachable at {self._host}"
             ) from exc
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         try:
             resp = self._client.get("/api/tags")
             resp.raise_for_status()

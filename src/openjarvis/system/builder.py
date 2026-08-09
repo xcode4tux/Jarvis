@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.core.config import JarvisConfig, load_config
 from openjarvis.core.events import EventBus, get_event_bus
@@ -19,9 +19,9 @@ class SystemBuilder:
 
     def __init__(
         self,
-        config: Optional[JarvisConfig] = None,
+        config: JarvisConfig | None = None,
         *,
-        config_path: Optional[Any] = None,
+        config_path: Any | None = None,
     ) -> None:
         if config is not None:
             self._config = config
@@ -32,19 +32,19 @@ class SystemBuilder:
         else:
             self._config = load_config()
 
-        self._engine_key: Optional[str] = None
-        self._model: Optional[str] = None
-        self._agent_name: Optional[str] = None
-        self._tool_names: Optional[List[str]] = None
-        self._telemetry: Optional[bool] = None
-        self._traces: Optional[bool] = None
-        self._bus: Optional[EventBus] = None
-        self._sandbox: Optional[bool] = None
-        self._scheduler: Optional[bool] = None
-        self._workflow: Optional[bool] = None
-        self._sessions: Optional[bool] = None
-        self._speech: Optional[bool] = None
-        self._mcp_clients: List = []
+        self._engine_key: str | None = None
+        self._model: str | None = None
+        self._agent_name: str | None = None
+        self._tool_names: list[str] | None = None
+        self._telemetry: bool | None = None
+        self._traces: bool | None = None
+        self._bus: EventBus | None = None
+        self._sandbox: bool | None = None
+        self._scheduler: bool | None = None
+        self._workflow: bool | None = None
+        self._sessions: bool | None = None
+        self._speech: bool | None = None
+        self._mcp_clients: list = []
 
     def engine(self, key: str) -> SystemBuilder:
         self._engine_key = key
@@ -58,7 +58,7 @@ class SystemBuilder:
         self._agent_name = name
         return self
 
-    def tools(self, names: List[str]) -> SystemBuilder:
+    def tools(self, names: list[str]) -> SystemBuilder:
         self._tool_names = names
         return self
 
@@ -168,7 +168,7 @@ class SystemBuilder:
         tool_executor = ToolExecutor(tool_list, bus) if tool_list else None
 
         skill_manager = None
-        skill_few_shot_examples: List[str] = []
+        skill_few_shot_examples: list[str] = []
         if config.skills.enabled:
             try:
                 from pathlib import Path
@@ -568,7 +568,7 @@ class SystemBuilder:
             logger.warning("Failed to set up learning orchestrator: %s", exc)
             return None
 
-    def _discover_external_mcp(self, server_cfg) -> List[BaseTool]:
+    def _discover_external_mcp(self, server_cfg) -> list[BaseTool]:
         """Discover tools from an external MCP server configuration.
 
         Supports both stdio (command + args) and Streamable HTTP (url)

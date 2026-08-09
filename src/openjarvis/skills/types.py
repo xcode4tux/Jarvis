@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -24,12 +24,12 @@ class SkillManifest:
     version: str = "0.1.0"
     description: str = ""
     author: str = ""
-    steps: List[SkillStep] = field(default_factory=list)
-    required_capabilities: List[str] = field(default_factory=list)
+    steps: list[SkillStep] = field(default_factory=list)
+    required_capabilities: list[str] = field(default_factory=list)
     signature: str = ""  # Base64-encoded Ed25519 signature
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    tags: List[str] = field(default_factory=list)
-    depends: List[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    depends: list[str] = field(default_factory=list)
     user_invocable: bool = True
     disable_model_invocation: bool = False
     markdown_content: str = ""  # loaded from SKILL.md

@@ -26,7 +26,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 try:
     import tomllib
@@ -45,7 +44,7 @@ class SkillOverlay:
     optimized_at: str  # ISO 8601 UTC timestamp
     trace_count: int
     description: str
-    few_shot: List[Dict[str, str]] = field(default_factory=list)
+    few_shot: list[dict[str, str]] = field(default_factory=list)
 
 
 class SkillOverlayLoader:
@@ -57,7 +56,7 @@ class SkillOverlayLoader:
     def __init__(self, root: Path) -> None:
         self._root = Path(root).expanduser()
 
-    def load(self, skill_name: str) -> Optional[SkillOverlay]:
+    def load(self, skill_name: str) -> SkillOverlay | None:
         """Load the overlay for *skill_name*.
 
         Returns ``None`` if the overlay file is missing or malformed.
@@ -87,7 +86,7 @@ class SkillOverlayLoader:
             return None
 
         few_shot_raw = opt.get("few_shot", []) or []
-        few_shot: List[Dict[str, str]] = []
+        few_shot: list[dict[str, str]] = []
         if isinstance(few_shot_raw, list):
             for item in few_shot_raw:
                 if isinstance(item, dict):
@@ -118,7 +117,7 @@ def write_overlay(overlay: SkillOverlay, root: Path) -> Path:
     skill_dir.mkdir(parents=True, exist_ok=True)
     path = skill_dir / "optimized.toml"
 
-    lines: List[str] = ["[optimized]"]
+    lines: list[str] = ["[optimized]"]
     lines.append(f'skill_name = "{_escape(overlay.skill_name)}"')
     lines.append(f'optimizer = "{_escape(overlay.optimizer)}"')
     lines.append(f'optimized_at = "{_escape(overlay.optimized_at)}"')

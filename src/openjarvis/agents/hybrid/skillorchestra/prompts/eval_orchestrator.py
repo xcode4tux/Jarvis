@@ -2,7 +2,7 @@
 Eval orchestrator prompts for skill-based agent orchestration.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 # =============================================================================
 # Baseline Tool Info
@@ -164,13 +164,13 @@ def build_skill_orchestrator_prompt(
     context_str: str,
     strategy: str = "router_decides",
     handbook: Any = None,
-    search_skills: Optional[str] = None,
-    reasoning_skills: Optional[str] = None,
-    answer_skills: Optional[str] = None,
-    search_model_performance: Optional[str] = None,
-    reasoning_model_performance: Optional[str] = None,
-    answer_model_performance: Optional[str] = None,
-    baseline_tool_info: Optional[str] = None,
+    search_skills: str | None = None,
+    reasoning_skills: str | None = None,
+    answer_skills: str | None = None,
+    search_model_performance: str | None = None,
+    reasoning_model_performance: str | None = None,
+    answer_model_performance: str | None = None,
+    baseline_tool_info: str | None = None,
 ) -> str:
     """
     Build enhanced orchestrator prompt with skill catalog and model performance.

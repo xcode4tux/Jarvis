@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 
 from openjarvis.skills.types import SkillManifest
 
@@ -42,7 +42,7 @@ SPEC_FIELDS = frozenset(
 # When target_kind is "field" the value is set directly on the SkillManifest
 # dataclass attribute.  When target_kind is "openjarvis_meta" the value is
 # stored under manifest.metadata["openjarvis"][attr].
-FIELD_MAPPING: Dict[str, tuple[str, str]] = {
+FIELD_MAPPING: dict[str, tuple[str, str]] = {
     "version": ("field", "version"),
     "author": ("field", "author"),
     "tags": ("field", "tags"),
@@ -73,7 +73,7 @@ class SkillParser:
 
     def parse_frontmatter(
         self,
-        frontmatter: Dict[str, Any],
+        frontmatter: dict[str, Any],
         *,
         markdown_content: str = "",
     ) -> SkillManifest:
@@ -88,7 +88,7 @@ class SkillParser:
     # Strict pass
     # ------------------------------------------------------------------
 
-    def _validate_strict(self, frontmatter: Dict[str, Any]) -> None:
+    def _validate_strict(self, frontmatter: dict[str, Any]) -> None:
         """Validate required fields, length limits, and naming rules."""
         # Required fields
         if "name" not in frontmatter:
@@ -156,7 +156,7 @@ class SkillParser:
 
     def _build_manifest(
         self,
-        frontmatter: Dict[str, Any],
+        frontmatter: dict[str, Any],
         markdown_content: str,
     ) -> SkillManifest:
         """Construct a SkillManifest from validated frontmatter.
@@ -180,7 +180,7 @@ class SkillParser:
         oj_meta = dict(raw_metadata.get("openjarvis") or {})
 
         # Apply FIELD_MAPPING for non-spec top-level fields
-        unmapped: Dict[str, Any] = {}
+        unmapped: dict[str, Any] = {}
         for key, value in frontmatter.items():
             if key in SPEC_FIELDS:
                 continue

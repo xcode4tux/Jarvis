@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -47,7 +46,7 @@ def load_skill(
     path: str | Path,
     *,
     verify_signature: bool = False,
-    public_key: Optional[bytes] = None,
+    public_key: bytes | None = None,
     scan_for_injection: bool = False,
 ) -> SkillManifest:
     """Load a skill manifest from a TOML file.

@@ -19,7 +19,6 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -38,10 +37,10 @@ class ImportResult:
     success: bool = True
     skipped: bool = False
     target_path: Path | None = None
-    translated_tools: List[str] = field(default_factory=list)
-    untranslated_tools: List[str] = field(default_factory=list)
+    translated_tools: list[str] = field(default_factory=list)
+    untranslated_tools: list[str] = field(default_factory=list)
     scripts_imported: bool = False
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 class SkillImporter:
@@ -104,7 +103,7 @@ class SkillImporter:
         translated_body, untranslated = self._translator.translate_markdown(body)
         result.untranslated_tools = untranslated
         # Compute the list of translations actually applied
-        applied: List[str] = []
+        applied: list[str] = []
         for ext, internal in self._translator._table.items():
             if ext in body and ext not in translated_body:
                 applied.append(f"{ext}->{internal}")

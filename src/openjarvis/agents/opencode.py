@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, BaseAgent
 from openjarvis.core.events import EventBus
@@ -71,7 +71,7 @@ def _derive_openai_base_url(engine: Any) -> str:
     return ""
 
 
-def _extract_text(parts: List[dict]) -> str:
+def _extract_text(parts: list[dict]) -> str:
     """Join the assistant's text parts from an opencode message response."""
     return "".join(
         p.get("text", "")
@@ -80,9 +80,9 @@ def _extract_text(parts: List[dict]) -> str:
     ).strip()
 
 
-def _extract_tool_results(parts: List[dict]) -> List[ToolResult]:
+def _extract_tool_results(parts: list[dict]) -> list[ToolResult]:
     """Map opencode ``tool`` parts to OpenJarvis ToolResults (best-effort)."""
-    results: List[ToolResult] = []
+    results: list[ToolResult] = []
     for p in parts:
         if not isinstance(p, dict) or p.get("type") != "tool":
             continue
@@ -121,16 +121,16 @@ class OpenCodeAgent(BaseAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        bus: Optional[EventBus] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        bus: EventBus | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         workspace: str = "",
         agent: str = "build",
         provider_id: str = "openjarvis",
         provider_base_url: str = "",
         model_id: str = "",
         api_key: str = "",
-        permission: Optional[Any] = None,
+        permission: Any | None = None,
         hostname: str = "127.0.0.1",
         port: int = 0,
         server_password: str = "",
@@ -158,9 +158,9 @@ class OpenCodeAgent(BaseAgent):
         )
         self._timeout = timeout
         self._opencode_bin = opencode_bin or shutil.which("opencode") or "opencode"
-        self._proc: Optional[subprocess.Popen] = None
+        self._proc: subprocess.Popen | None = None
         self._base: str = ""
-        self._config_dir: Optional[str] = None
+        self._config_dir: str | None = None
 
     # ------------------------------------------------------------------
     # Server lifecycle
@@ -297,7 +297,7 @@ class OpenCodeAgent(BaseAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         """Run a coding task through opencode and return the assistant result."""
@@ -332,7 +332,7 @@ class OpenCodeAgent(BaseAgent):
             )
 
         data: dict = {}
-        turn_parts: List[dict] = []
+        turn_parts: list[dict] = []
         try:
             with self._client() as c:
                 ses = c.post("/session", json={"title": input[:80]})

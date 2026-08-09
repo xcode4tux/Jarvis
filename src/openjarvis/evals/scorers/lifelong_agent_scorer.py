@@ -37,7 +37,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import Scorer
 from openjarvis.evals.core.types import EvalRecord
@@ -53,7 +53,7 @@ _SINGLE_SHOT_WARNING = (
     "evaluation. Use episode_mode=True for faithful evaluation."
 )
 
-_TYPE_MAP: Dict[str, str] = {
+_TYPE_MAP: dict[str, str] = {
     "INT": "INTEGER",
     "INTEGER": "INTEGER",
     "BIGINT": "INTEGER",
@@ -98,7 +98,7 @@ class LifelongAgentScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         # If this result came from interactive evaluation, the metadata
         # already contains the score — pass it through.
         # (The EvalRunner handles this case directly; this is just safety.)
@@ -134,7 +134,7 @@ class LifelongAgentScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         table_info = record.metadata.get("table_info", {})
         answer_info = record.metadata.get("answer_info", {})
         skills = record.metadata.get("skills", [])
@@ -172,15 +172,15 @@ class LifelongAgentScorer(Scorer):
         self,
         conn: sqlite3.Connection,
         model_answer: str,
-        table_info: Dict,
-        answer_info: Dict,
-        skills: List[str],
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+        table_info: dict,
+        answer_info: dict,
+        skills: list[str],
+    ) -> tuple[bool | None, dict[str, Any]]:
         expected_sql = answer_info.get("sql", "")
         table_name = table_info.get("name", "data")
         agent_sql = extract_sql(model_answer)
 
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "match_type": "md5_table_state",
             "expected_sql": expected_sql,
             "agent_sql": agent_sql,
@@ -258,13 +258,13 @@ class LifelongAgentScorer(Scorer):
         self,
         conn: sqlite3.Connection,
         model_answer: str,
-        answer_info: Dict,
-        skills: List[str],
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+        answer_info: dict,
+        skills: list[str],
+    ) -> tuple[bool | None, dict[str, Any]]:
         expected_direct = answer_info.get("direct")
         expected_sql = answer_info.get("sql", "")
 
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "match_type": "direct_tuple_comparison",
             "expected_sql": expected_sql,
             "skills": skills,
@@ -320,7 +320,7 @@ class LifelongAgentScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         expected = record.metadata.get("answer_list", [])
         skills = record.metadata.get("skills", [])
 
@@ -360,13 +360,13 @@ class LifelongAgentScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         skills = record.metadata.get("skills", [])
         init_command = record.metadata.get("init_command", {})
         eval_info = record.metadata.get("evaluation_info", {})
         eval_command = record.metadata.get("evaluation_command", {})
 
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "match_type": "os_docker_eval",
             "skills": skills,
         }
@@ -417,7 +417,7 @@ class LifelongAgentScorer(Scorer):
 # ====================================================================
 
 
-def build_db(table_info: Dict[str, Any]) -> sqlite3.Connection:
+def build_db(table_info: dict[str, Any]) -> sqlite3.Connection:
     """Build an in-memory SQLite DB from table_info.
 
     Note: The original uses MySQL Docker containers.  SQLite is used
@@ -468,14 +468,14 @@ def build_db(table_info: Dict[str, Any]) -> sqlite3.Connection:
 def _get_table_rows(
     conn: sqlite3.Connection,
     table_name: str,
-) -> List[List[Any]]:
+) -> list[list[Any]]:
     cursor = conn.execute(
         f'SELECT * FROM "{table_name}" ORDER BY rowid',
     )
     return [list(row) for row in cursor.fetchall()]
 
 
-def _hash_table_state(rows: List[List[Any]]) -> str:
+def _hash_table_state(rows: list[list[Any]]) -> str:
     row_hashes = []
     for row in rows:
         concat = ",".join(str(v) if v is not None else "NULL" for v in row)
@@ -485,9 +485,9 @@ def _hash_table_state(rows: List[List[Any]]) -> str:
 
 
 def _compare_table_states(
-    expected: List[List[Any]],
-    actual: List[List[Any]],
-) -> Tuple[bool, str]:
+    expected: list[list[Any]],
+    actual: list[list[Any]],
+) -> tuple[bool, str]:
     if len(expected) != len(actual):
         return False, (
             f"row_count_mismatch: expected {len(expected)}, got {len(actual)}"
@@ -590,7 +590,7 @@ def _normalize_sql(sql: str) -> str:
 # ====================================================================
 
 
-def _parse_text_answer(text: str) -> Optional[List[List[Any]]]:
+def _parse_text_answer(text: str) -> list[list[Any]] | None:
     m = re.search(
         r"(?:Action:\s*Answer\s*\n\s*)?Final\s+Answer:\s*(.+)",
         text,
@@ -647,7 +647,7 @@ def _try_numeric(s: str) -> Any:
 # ====================================================================
 
 
-def extract_kg_answers(text: str) -> List[str]:
+def extract_kg_answers(text: str) -> list[str]:
     text = text.strip()
 
     # Original format: Final Answer: #N (variable reference).
@@ -713,8 +713,8 @@ def _docker_available() -> bool:
         return False
 
 
-def _extract_bash_commands(text: str) -> List[str]:
-    commands: List[str] = []
+def _extract_bash_commands(text: str) -> list[str]:
+    commands: list[str] = []
 
     # Original format: Act: bash\n```bash\n...\n```
     for m in re.finditer(
@@ -759,10 +759,10 @@ def _extract_bash_commands(text: str) -> List[str]:
 
 
 def _evaluate_os_in_docker(
-    init_command: Dict[str, Any],
-    agent_commands: List[str],
-    eval_command: Dict[str, Any],
-    eval_info: Dict[str, Any],
+    init_command: dict[str, Any],
+    agent_commands: list[str],
+    eval_command: dict[str, Any],
+    eval_info: dict[str, Any],
 ) -> bool:
     """Run OS evaluation in Docker matching the original's protocol."""
     container_name = "lifelong-agent-os-eval"
@@ -871,9 +871,9 @@ def _evaluate_os_in_docker(
 
 
 def compare_tuple_lists(
-    expected: List[List[Any]],
-    actual: List[List[Any]],
-) -> Tuple[bool, str]:
+    expected: list[list[Any]],
+    actual: list[list[Any]],
+) -> tuple[bool, str]:
     if len(expected) != len(actual):
         return False, (
             f"row_count_mismatch: expected {len(expected)}, got {len(actual)}"

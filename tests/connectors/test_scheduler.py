@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Optional
 
 import pytest
 
@@ -43,7 +43,7 @@ class _FakeConnector(BaseConnector):
         self._connected = False
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         for i in range(self._doc_count):
             yield Document(

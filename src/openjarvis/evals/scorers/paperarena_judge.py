@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import LLMJudgeScorer
 from openjarvis.evals.core.types import EvalRecord
@@ -33,7 +33,7 @@ class PaperArenaScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response"}
 
@@ -51,7 +51,7 @@ class PaperArenaScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         """Score multiple-choice via letter extraction."""
         ref_letter = record.reference.strip().upper()
         if len(ref_letter) != 1 or ref_letter not in "ABCD":
@@ -81,7 +81,7 @@ class PaperArenaScorer(LLMJudgeScorer):
             "candidate_letter": extracted,
         }
 
-    def _extract_letter(self, text: str) -> Optional[str]:
+    def _extract_letter(self, text: str) -> str | None:
         """Try to extract a single answer letter from text via regex."""
         # Common patterns: "The answer is A", "A)", "(A)", just "A"
         patterns = [
@@ -107,7 +107,7 @@ class PaperArenaScorer(LLMJudgeScorer):
         self,
         problem: str,
         model_answer: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Use LLM to extract answer letter."""
         prompt = (
             f"Extract the final answer letter (A, B, C, or D) from this response.\n"
@@ -129,7 +129,7 @@ class PaperArenaScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         """Score CA/OA via LLM judge."""
         question = record.problem
         if "## Question" in question:

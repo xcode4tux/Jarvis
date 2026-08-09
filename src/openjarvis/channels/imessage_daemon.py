@@ -16,7 +16,7 @@ import sqlite3
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def poll_new_messages(
     db_path: str = _DEFAULT_DB_PATH,
     last_rowid: int = 0,
     chat_identifier: str = "",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return new incoming messages since last_rowid."""
     try:
         conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)

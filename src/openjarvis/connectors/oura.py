@@ -7,9 +7,10 @@ All API calls are in module-level functions for easy mocking in tests.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
 
 import httpx
 
@@ -22,8 +23,8 @@ _DEFAULT_TOKEN_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "oura.json")
 
 
 def _oura_api_get(
-    token: str, endpoint: str, params: Optional[Dict[str, str]] = None
-) -> Dict[str, Any]:
+    token: str, endpoint: str, params: dict[str, str] | None = None
+) -> dict[str, Any]:
     """Call an Oura API v2 endpoint."""
     resp = httpx.get(
         f"{_OURA_API_BASE}/{endpoint}",
@@ -60,7 +61,7 @@ class OuraConnector(BaseConnector):
             self._token_path.unlink()
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield Documents for sleep, readiness, and activity."""
         token = self._load_token()

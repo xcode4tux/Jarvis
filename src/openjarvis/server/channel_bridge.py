@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import BaseChannel, ChannelStatus
 from openjarvis.core.events import EventBus, EventType
@@ -46,7 +47,7 @@ class ChannelBridge:
 
     def __init__(
         self,
-        channels: Dict[str, BaseChannel],
+        channels: dict[str, BaseChannel],
         session_store: SessionStore,
         bus: EventBus,
         system: Any = None,
@@ -59,7 +60,10 @@ class ChannelBridge:
         self._system = system
         self._agent_manager = agent_manager
         self._deep_research_agent = deep_research_agent
-        self._notification_timestamps: Dict[str, float] = {}
+        self._notification_timestamps: dict[str, float] = {}
+        # Guard the rate-limit bookkeeping; event callbacks can arrive
+        # concurrently from multiple worker threads.
+        self._notification_lock = threading.Lock()
         self._subscribe_notifications()
 
     # --------------------------------------------------------------
@@ -74,8 +78,8 @@ class ChannelBridge:
         for ch in self._channels.values():
             ch.disconnect()
 
-    def list_channels(self) -> List[str]:
-        result: List[str] = []
+    def list_channels(self) -> list[str]:
+        result: list[str] = []
         for ch in self._channels.values():
             result.extend(ch.list_channels())
         return result
@@ -96,7 +100,7 @@ class ChannelBridge:
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         for ch in self._channels.values():
             if channel in ch.list_channels():
@@ -118,7 +122,7 @@ class ChannelBridge:
         sender_id: str,
         content: str,
         channel_type: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
         max_length: int = _DEFAULT_MAX_LENGTH,
     ) -> str:
         self._session_store.get_or_create(sender_id, channel_type)
@@ -142,7 +146,7 @@ class ChannelBridge:
         sender_id: str,
         content: str,
         channel_type: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         parts = content.split(None, 2)
         cmd = parts[0].lower()
 
@@ -255,10 +259,12 @@ class ChannelBridge:
                 f"Previous conversation:\n{context_str}\n\nCurrent message: {content}"
             )
 
-        # Try DeepResearchAgent first
+        # Try DeepResearchAgent first — pass the context-rich query so
+        # conversation history is not silently dropped (matches the
+        # JarvisSystem.ask() path below).
         if self._deep_research_agent is not None:
             try:
-                result = self._deep_research_agent.run(content)
+                result = self._deep_research_agent.run(query)
                 response_text = result.content or "No results found."
             except Exception as exc:
                 logger.error("DeepResearch agent failed: %s", exc)
@@ -323,10 +329,11 @@ class ChannelBridge:
         now = time.time()
 
         # Rate limit: max 1 per event type per 5 minutes
-        last = self._notification_timestamps.get(event_key, 0)
-        if now - last < 300:
-            return
-        self._notification_timestamps[event_key] = now
+        with self._notification_lock:
+            last = self._notification_timestamps.get(event_key, 0)
+            if now - last < 300:
+                return
+            self._notification_timestamps[event_key] = now
 
         message = self._format_notification(event)
         if not message:
@@ -341,7 +348,7 @@ class ChannelBridge:
     def _format_notification(  # noqa: ANN201
         self,
         event,  # noqa: ANN001
-    ) -> Optional[str]:
+    ) -> str | None:
         data = event.data or {}
         name = data.get("agent_name", data.get("name", "unknown"))
 

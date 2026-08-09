@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # Only used by type-checkers (mypy/pyright) for the ``JarvisConfig.mining``
@@ -63,7 +63,7 @@ class HardwareInfo:
     cpu_brand: str = ""
     cpu_count: int = 0
     ram_gb: float = 0.0
-    gpu: Optional[GpuInfo] = None
+    gpu: GpuInfo | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ def _run_cmd(cmd: list[str]) -> str:
         return ""
 
 
-def _detect_nvidia_gpu() -> Optional[GpuInfo]:
+def _detect_nvidia_gpu() -> GpuInfo | None:
     if not shutil.which("nvidia-smi"):
         return None
     raw = _run_cmd(
@@ -115,7 +115,7 @@ def _detect_nvidia_gpu() -> Optional[GpuInfo]:
         return None
 
 
-def _detect_amd_gpu() -> Optional[GpuInfo]:
+def _detect_amd_gpu() -> GpuInfo | None:
     if not shutil.which("rocm-smi"):
         return None
     raw = _run_cmd(["rocm-smi", "--showproductname"])
@@ -150,7 +150,7 @@ def _detect_amd_gpu() -> Optional[GpuInfo]:
     return GpuInfo(vendor="amd", name=name, vram_gb=vram_gb, count=count)
 
 
-def _detect_apple_gpu() -> Optional[GpuInfo]:
+def _detect_apple_gpu() -> GpuInfo | None:
     if platform.system() != "Darwin":
         return None
     raw = _run_cmd(["system_profiler", "SPDisplaysDataType"])
@@ -220,8 +220,15 @@ def _total_ram_gb() -> float:
     return 0.0
 
 
+@functools.lru_cache(maxsize=1)
 def detect_hardware() -> HardwareInfo:
-    """Auto-detect hardware capabilities with graceful fallbacks."""
+    """Auto-detect hardware capabilities with graceful fallbacks.
+
+    Results are cached for the process lifetime — hardware doesn't change
+    at runtime, and the detection shells out to ``nvidia-smi``/``lscpu``
+    (subprocess spawns that previously happened on every ``load_config()``
+    call, including per-request in the API server).
+    """
     gpu = _detect_nvidia_gpu() or _detect_amd_gpu() or _detect_apple_gpu()
     return HardwareInfo(
         platform=platform.system().lower(),
@@ -1252,7 +1259,7 @@ class SecurityConfig:
 # Security profile presets
 # ---------------------------------------------------------------------------
 
-_SECURITY_PROFILES: Dict[str, Dict[str, Dict[str, Any]]] = {
+_SECURITY_PROFILES: dict[str, dict[str, dict[str, Any]]] = {
     "personal": {
         "security": {
             "mode": "redact",
@@ -1292,10 +1299,10 @@ _SECURITY_PROFILES: Dict[str, Dict[str, Dict[str, Any]]] = {
 
 
 def apply_security_profile(
-    security_cfg: "SecurityConfig",
-    server_cfg: "ServerConfig | None",
+    security_cfg: SecurityConfig,
+    server_cfg: ServerConfig | None,
     *,
-    overrides: "set[str] | None" = None,
+    overrides: set[str] | None = None,
 ) -> None:
     """Expand a named security profile into config fields.
 
@@ -1458,7 +1465,7 @@ class SkillSourceConfig:
 
     source: str = ""  # "hermes", "openclaw", or "github"
     url: str = ""  # required when source = "github"
-    filter: Dict[str, Any] = field(default_factory=dict)
+    filter: dict[str, Any] = field(default_factory=dict)
     auto_update: bool = False
 
 
@@ -1476,16 +1483,16 @@ class SkillsConfig:
     index_dir: str = "~/.openjarvis/skill-index/"
     max_depth: int = 5
     sandbox_dangerous: bool = True
-    sources: List[SkillSourceConfig] = field(default_factory=list)
+    sources: list[SkillSourceConfig] = field(default_factory=list)
 
 
 @dataclass
 class DigestSectionConfig:
     """Configuration for a single digest section."""
 
-    sources: List[str] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
     max_items: int = 10
-    priority_contacts: List[str] = field(default_factory=list)
+    priority_contacts: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -1496,10 +1503,10 @@ class DigestConfig:
     schedule: str = "0 6 * * *"
     timezone: str = "America/Los_Angeles"
     persona: str = "jarvis"
-    sections: List[str] = field(
+    sections: list[str] = field(
         default_factory=lambda: ["messages", "calendar", "health", "world"]
     )
-    optional_sections: List[str] = field(
+    optional_sections: list[str] = field(
         default_factory=lambda: ["github", "financial", "music", "fitness"]
     )
     honorific: str = "sir"
@@ -1555,7 +1562,7 @@ class JarvisConfig:
     skills: SkillsConfig = field(default_factory=SkillsConfig)
     digest: DigestConfig = field(default_factory=DigestConfig)
     proactive: ProactiveConfig = field(default_factory=ProactiveConfig)
-    mining: Optional["MiningConfig"] = None
+    mining: MiningConfig | None = None
 
     @property
     def memory(self) -> StorageConfig:
@@ -1650,7 +1657,7 @@ def validate_config_key(dotted_key: str) -> type:
 # ---------------------------------------------------------------------------
 
 
-def _apply_toml_section(target: Any, section: Dict[str, Any]) -> None:
+def _apply_toml_section(target: Any, section: dict[str, Any]) -> None:
     """Overlay TOML key/value pairs onto a dataclass instance.
 
     Recursively handles nested dicts when the target attribute is itself
@@ -1684,7 +1691,7 @@ def _apply_toml_section(target: Any, section: Dict[str, Any]) -> None:
                 setattr(target, key, value)
 
 
-def _migrate_toml_data(data: Dict[str, Any], cfg: "JarvisConfig") -> None:
+def _migrate_toml_data(data: dict[str, Any], cfg: JarvisConfig) -> None:
     """Migrate old-format TOML keys to new structure in-place.
 
     Handles cross-section moves that can't be solved by backward-compat
@@ -1718,7 +1725,7 @@ def _migrate_toml_data(data: Dict[str, Any], cfg: "JarvisConfig") -> None:
                 )
 
 
-def _parse_mining_section(data: dict) -> Optional["MiningConfig"]:
+def _parse_mining_section(data: dict) -> MiningConfig | None:
     """Parse the ``[mining]`` TOML section into a ``MiningConfig``.
 
     Returns None if the section is absent. Resolves the ``submit_target``
@@ -1760,7 +1767,7 @@ def _parse_mining_section(data: dict) -> Optional["MiningConfig"]:
 
 
 @functools.lru_cache(maxsize=1)
-def load_config(path: Optional[Path] = None) -> JarvisConfig:
+def load_config(path: Path | None = None) -> JarvisConfig:
     """Detect hardware, build defaults, overlay TOML overrides.
 
     Parameters

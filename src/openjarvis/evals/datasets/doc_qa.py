@@ -12,7 +12,8 @@ Difficulty tiers:
 from __future__ import annotations
 
 import random
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.types import EvalRecord
@@ -32,7 +33,7 @@ Provide a clear, well-structured answer with citations."""
 # EASY tasks (10): single-doc extraction
 # ---------------------------------------------------------------------------
 
-_EASY_TASKS: List[Dict[str, Any]] = [
+_EASY_TASKS: list[dict[str, Any]] = [
     {
         "question": "What is the purpose of PostgreSQL's VACUUM command?",
         "documents": [
@@ -262,7 +263,7 @@ _EASY_TASKS: List[Dict[str, Any]] = [
 # MEDIUM tasks (10): multi-doc synthesis
 # ---------------------------------------------------------------------------
 
-_MEDIUM_TASKS: List[Dict[str, Any]] = [
+_MEDIUM_TASKS: list[dict[str, Any]] = [
     {
         "question": "Compare RDB and AOF persistence strategies in Redis. When should you use each?",
         "documents": [
@@ -596,7 +597,7 @@ _MEDIUM_TASKS: List[Dict[str, Any]] = [
 # HARD tasks (10): multi-doc reasoning with distractors
 # ---------------------------------------------------------------------------
 
-_HARD_TASKS: List[Dict[str, Any]] = [
+_HARD_TASKS: list[dict[str, Any]] = [
     {
         "question": "Design a high-availability PostgreSQL setup with both streaming and logical replication. What are the trade-offs?",
         "documents": [
@@ -1047,9 +1048,9 @@ class DocQADataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
+        max_samples: int | None = None,
         split: str = "test",
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         all_tasks = _EASY_TASKS + _MEDIUM_TASKS + _HARD_TASKS
         difficulties = (
@@ -1066,7 +1067,7 @@ class DocQADataset(DatasetProvider):
         if max_samples is not None:
             paired = paired[:max_samples]
 
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
         for idx, (task, diff) in enumerate(paired):
             doc_listing = "\n\n".join(
                 f"### Document {i + 1}: {doc['title']}\n{doc['content']}"

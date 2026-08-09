@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional
 
 from openjarvis.core.events import EventBus, EventType
 
@@ -42,7 +41,7 @@ class LoopGuard:
     4. Context overflow recovery: 4-stage compression of message history
     """
 
-    def __init__(self, config: LoopGuardConfig, *, bus: Optional[EventBus] = None):
+    def __init__(self, config: LoopGuardConfig, *, bus: EventBus | None = None):
         self._config = config
         self._bus = bus
         # Track call hashes and their counts

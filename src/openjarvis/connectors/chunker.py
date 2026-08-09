@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Regexes
@@ -48,7 +48,7 @@ class ChunkResult:
 
     content: str
     index: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -61,25 +61,25 @@ def _count_tokens(text: str) -> int:
     return len(text.split())
 
 
-def _split_sentences(text: str) -> List[str]:
+def _split_sentences(text: str) -> list[str]:
     parts = _SENTENCE_SPLIT_RE.split(text)
     return [p.strip() for p in parts if p.strip()]
 
 
 def _accumulate_capped(
-    segments: List[str],
+    segments: list[str],
     *,
     max_tokens: int,
     max_chars: int,
     sep: str = " ",
-) -> List[str]:
+) -> list[str]:
     """Greedy-merge segments into chunks bounded by token AND char counts.
 
     Segments larger than the bounds pass through as their own chunk —
     the caller force-splits those in a separate pass.
     """
-    chunks: List[str] = []
-    current: List[str] = []
+    chunks: list[str] = []
+    current: list[str] = []
     cur_tokens = 0
     cur_chars = 0
 
@@ -119,7 +119,7 @@ def _best_cut_index(window: str) -> int:
     return len(window)
 
 
-def _force_split(text: str, *, max_chars: int, max_tokens: int) -> List[str]:
+def _force_split(text: str, *, max_chars: int, max_tokens: int) -> list[str]:
     """Split an oversized run into pieces that fit both caps.
 
     Walks the text greedily: takes a window up to ``max_chars``, shrinks
@@ -127,7 +127,7 @@ def _force_split(text: str, *, max_chars: int, max_tokens: int) -> List[str]:
     boundary, falling back to a word boundary, then a hard cut.
     """
     rest = text.strip()
-    out: List[str] = []
+    out: list[str] = []
     while rest:
         if len(rest) <= max_chars and _count_tokens(rest) <= max_tokens:
             out.append(rest)
@@ -151,7 +151,7 @@ def _force_split(text: str, *, max_chars: int, max_tokens: int) -> List[str]:
     return out
 
 
-def _apply_overlap(chunks: List[str], *, overlap_tokens: int) -> List[str]:
+def _apply_overlap(chunks: list[str], *, overlap_tokens: int) -> list[str]:
     """Prepend the last ``overlap_tokens`` tokens of each chunk to the next.
 
     The tail is taken from the *original* preceding chunk (not the
@@ -205,8 +205,8 @@ class SemanticChunker:
         self,
         max_tokens: int = 512,
         *,
-        max_chars: Optional[int] = None,
-        overlap_tokens: Optional[int] = None,
+        max_chars: int | None = None,
+        overlap_tokens: int | None = None,
     ) -> None:
         self.max_tokens = max_tokens
         self.max_chars = max_chars if max_chars is not None else max_tokens * 4
@@ -241,8 +241,8 @@ class SemanticChunker:
         text: str,
         *,
         doc_type: str = "document",
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[ChunkResult]:
+        metadata: dict[str, Any] | None = None,
+    ) -> list[ChunkResult]:
         """Split *text* into ``ChunkResult`` objects.
 
         Returns an empty list if *text* is empty or whitespace-only.
@@ -253,7 +253,7 @@ class SemanticChunker:
         if not text or not text.strip():
             return []
 
-        parent_meta: Dict[str, Any] = dict(metadata or {})
+        parent_meta: dict[str, Any] = dict(metadata or {})
 
         if doc_type in ("event", "contact"):
             return [ChunkResult(content=text, index=0, metadata=parent_meta)]
@@ -270,9 +270,9 @@ class SemanticChunker:
         metas = [m for _, m in raw_chunks]
         overlapped = _apply_overlap(contents, overlap_tokens=self.overlap_tokens)
 
-        results: List[ChunkResult] = []
+        results: list[ChunkResult] = []
         for idx, (content, extra_meta) in enumerate(zip(overlapped, metas)):
-            merged: Dict[str, Any] = dict(parent_meta)
+            merged: dict[str, Any] = dict(parent_meta)
             merged.update(extra_meta)
             results.append(ChunkResult(content=content, index=idx, metadata=merged))
         return results
@@ -281,7 +281,7 @@ class SemanticChunker:
     # Strategy implementations
     # ------------------------------------------------------------------
 
-    def _pack_text(self, text: str) -> List[str]:
+    def _pack_text(self, text: str) -> list[str]:
         """Emit one chunk per paragraph; sub-split paragraphs over the soft target.
 
         Paragraphs are the natural chunk unit. A paragraph that fits the
@@ -295,7 +295,7 @@ class SemanticChunker:
             stripped = text.strip()
             return [stripped] if stripped else []
 
-        out: List[str] = []
+        out: list[str] = []
         for para in paragraphs:
             if (
                 len(para) <= self._target_chars
@@ -330,19 +330,19 @@ class SemanticChunker:
                     )
         return [c for c in out if c]
 
-    def _chunk_email(self, text: str) -> List[Tuple[str, Dict[str, Any]]]:
+    def _chunk_email(self, text: str) -> list[tuple[str, dict[str, Any]]]:
         """Split on reply boundaries; pack each part."""
         boundaries = _REPLY_BOUNDARY_RE.split(text)
         headers = _REPLY_BOUNDARY_RE.findall(text)
 
-        raw_parts: List[str] = []
+        raw_parts: list[str] = []
         if boundaries:
             raw_parts.append(boundaries[0])
             for header, body in zip(headers, boundaries[1:]):
                 part = (header.strip() + "\n" + body).strip()
                 raw_parts.append(part)
 
-        chunks: List[Tuple[str, Dict[str, Any]]] = []
+        chunks: list[tuple[str, dict[str, Any]]] = []
         for part in raw_parts:
             part = part.strip()
             if not part:
@@ -353,18 +353,18 @@ class SemanticChunker:
 
         return chunks if chunks else [(text.strip(), {})]
 
-    def _chunk_message(self, text: str) -> List[Tuple[str, Dict[str, Any]]]:
+    def _chunk_message(self, text: str) -> list[tuple[str, dict[str, Any]]]:
         """Pack a message via paragraphs → sentences → force-split."""
         return [(c, {}) for c in self._pack_text(text)]
 
-    def _chunk_document(self, text: str) -> List[Tuple[str, Dict[str, Any]]]:
+    def _chunk_document(self, text: str) -> list[tuple[str, dict[str, Any]]]:
         """Split on ## headings → paragraphs → sentences → force-split."""
         section_matches = list(_SECTION_RE.finditer(text))
 
         if not section_matches:
             return [(c, {}) for c in self._pack_text(text)]
 
-        sections: List[Tuple[str, str]] = []
+        sections: list[tuple[str, str]] = []
         for i, m in enumerate(section_matches):
             title = m.group(1).strip()
             body_start = m.end()
@@ -376,7 +376,7 @@ class SemanticChunker:
             body = text[body_start:body_end].strip()
             sections.append((title, body))
 
-        result: List[Tuple[str, Dict[str, Any]]] = []
+        result: list[tuple[str, dict[str, Any]]] = []
         preamble = text[: section_matches[0].start()].strip()
         if preamble:
             for c in self._pack_text(preamble):
@@ -384,7 +384,7 @@ class SemanticChunker:
                     result.append((c, {}))
 
         for title, body in sections:
-            section_meta: Dict[str, Any] = {"section": title}
+            section_meta: dict[str, Any] = {"section": title}
             if not body:
                 result.append((title, section_meta))
                 continue

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -151,7 +150,7 @@ def test_sync_yields_documents(
     mock_channels.return_value = _CHANNELS_RESPONSE
     mock_history.return_value = _HISTORY_RESPONSE
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     # 2 channels × 2 messages = 4 documents
     assert len(docs) == 4
@@ -301,7 +300,7 @@ def test_sync_includes_dms_and_group_dms(
     # mean the connector is back to bot-token behavior.
     mock_retry.return_value = {"ok": False}
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     # One message per conversation × 3 conversations = 3 documents.
     assert len(docs) == 3

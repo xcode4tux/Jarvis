@@ -12,7 +12,7 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
@@ -183,8 +183,8 @@ class AgentManager:
         self,
         name: str,
         agent_type: str = "monitor_operative",
-        config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         agent_id = uuid.uuid4().hex[:12]
         now = time.time()
         # Pin the model the executor will actually use into the agent's config
@@ -208,7 +208,7 @@ class AgentManager:
         self._conn.commit()
         return self.get_agent(agent_id)  # type: ignore[return-value]
 
-    def list_agents(self, include_archived: bool = False) -> List[Dict[str, Any]]:
+    def list_agents(self, include_archived: bool = False) -> list[dict[str, Any]]:
         query = "SELECT * FROM managed_agents"
         if not include_archived:
             query += " WHERE status != 'archived'"
@@ -216,15 +216,15 @@ class AgentManager:
         rows = self._conn.execute(query).fetchall()
         return [self._row_to_agent(r) for r in rows]
 
-    def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def get_agent(self, agent_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             "SELECT * FROM managed_agents WHERE id = ?", (agent_id,)
         ).fetchone()
         return self._row_to_agent(row) if row else None
 
-    def update_agent(self, agent_id: str, **kwargs: Any) -> Dict[str, Any]:
-        sets: List[str] = []
-        vals: List[Any] = []
+    def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any]:
+        sets: list[str] = []
+        vals: list[Any] = []
         for key in ("name", "agent_type", "status", "current_activity"):
             if key in kwargs:
                 sets.append(f"{key} = ?")
@@ -364,7 +364,7 @@ class AgentManager:
         ).fetchall()
         return [self._row_to_checkpoint(r) for r in rows]
 
-    def get_latest_checkpoint(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def get_latest_checkpoint(self, agent_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             "SELECT * FROM agent_checkpoints"
             " WHERE agent_id = ? ORDER BY created_at DESC LIMIT 1",
@@ -372,14 +372,14 @@ class AgentManager:
         ).fetchone()
         return self._row_to_checkpoint(row) if row else None
 
-    def recover_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def recover_agent(self, agent_id: str) -> dict[str, Any] | None:
         checkpoint = self.get_latest_checkpoint(agent_id)
         # Always reset to idle — clearing the error state is the primary purpose
         self.update_agent(agent_id, status="idle")
         return checkpoint
 
     @staticmethod
-    def _row_to_checkpoint(row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_checkpoint(row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
             "agent_id": row["agent_id"],
@@ -403,7 +403,7 @@ class AgentManager:
 
     def create_task(
         self, agent_id: str, description: str, status: str = "pending"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         task_id = uuid.uuid4().hex[:12]
         now = time.time()
         self._conn.execute(
@@ -415,10 +415,10 @@ class AgentManager:
         return self._get_task(task_id)  # type: ignore[return-value]
 
     def list_tasks(
-        self, agent_id: str, status: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, agent_id: str, status: str | None = None
+    ) -> list[dict[str, Any]]:
         query = "SELECT * FROM agent_tasks WHERE agent_id = ?"
-        params: List[Any] = [agent_id]
+        params: list[Any] = [agent_id]
         if status:
             query += " AND status = ?"
             params.append(status)
@@ -426,9 +426,9 @@ class AgentManager:
         rows = self._conn.execute(query, params).fetchall()
         return [self._row_to_task(r) for r in rows]
 
-    def update_task(self, task_id: str, **kwargs: Any) -> Dict[str, Any]:
-        sets: List[str] = []
-        vals: List[Any] = []
+    def update_task(self, task_id: str, **kwargs: Any) -> dict[str, Any]:
+        sets: list[str] = []
+        vals: list[Any] = []
         for key in ("description", "status"):
             if key in kwargs:
                 sets.append(f"{key} = ?")
@@ -452,7 +452,7 @@ class AgentManager:
         self._conn.execute("DELETE FROM agent_tasks WHERE id = ?", (task_id,))
         self._conn.commit()
 
-    def _get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def _get_task(self, task_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             "SELECT * FROM agent_tasks WHERE id = ?", (task_id,)
         ).fetchone()
@@ -464,9 +464,9 @@ class AgentManager:
         self,
         agent_id: str,
         channel_type: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         routing_mode: str = "dedicated",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         binding_id = uuid.uuid4().hex[:12]
         session_id = uuid.uuid4().hex[:16]
         config_json = json.dumps(config or {})
@@ -479,7 +479,7 @@ class AgentManager:
         self._conn.commit()
         return self._get_binding(binding_id)  # type: ignore[return-value]
 
-    def list_channel_bindings(self, agent_id: str) -> List[Dict[str, Any]]:
+    def list_channel_bindings(self, agent_id: str) -> list[dict[str, Any]]:
         rows = self._conn.execute(
             "SELECT * FROM channel_bindings WHERE agent_id = ?", (agent_id,)
         ).fetchall()
@@ -489,7 +489,7 @@ class AgentManager:
         self._conn.execute("DELETE FROM channel_bindings WHERE id = ?", (binding_id,))
         self._conn.commit()
 
-    def _get_binding(self, binding_id: str) -> Optional[Dict[str, Any]]:
+    def _get_binding(self, binding_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             "SELECT * FROM channel_bindings WHERE id = ?", (binding_id,)
         ).fetchone()
@@ -497,7 +497,7 @@ class AgentManager:
 
     def find_binding_for_channel(
         self, channel_type: str, channel_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Find a dedicated binding for a specific channel."""
         rows = self._conn.execute(
             "SELECT * FROM channel_bindings WHERE channel_type = ?",
@@ -513,7 +513,7 @@ class AgentManager:
     # ── Templates ─────────────────────────────────────────────────
 
     @staticmethod
-    def list_templates() -> List[Dict[str, Any]]:
+    def list_templates() -> list[dict[str, Any]]:
         """Discover built-in and user templates."""
         import importlib.resources
 
@@ -522,7 +522,7 @@ class AgentManager:
         except ModuleNotFoundError:
             import tomli as tomllib  # type: ignore[no-redef]
 
-        templates: List[Dict[str, Any]] = []
+        templates: list[dict[str, Any]] = []
 
         # Built-in templates
         try:
@@ -551,8 +551,8 @@ class AgentManager:
         return templates
 
     def create_from_template(
-        self, template_id: str, name: str, overrides: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, template_id: str, name: str, overrides: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create an agent from a template with optional overrides."""
         templates = self.list_templates()
         tpl = next((t for t in templates if t.get("id") == template_id), None)
@@ -600,7 +600,7 @@ class AgentManager:
         self,
         agent_id: str,
         content: str,
-        tool_calls: Optional[list] = None,
+        tool_calls: list | None = None,
     ) -> dict:
         """Store an agent-to-user response message.
 
@@ -746,7 +746,7 @@ class AgentManager:
     # ── Row converters ────────────────────────────────────────────
 
     @staticmethod
-    def _row_to_agent(row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_agent(row: sqlite3.Row) -> dict[str, Any]:
         config_raw = row["config_json"]
         return {
             "id": row["id"],
@@ -769,7 +769,7 @@ class AgentManager:
         }
 
     @staticmethod
-    def _row_to_task(row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_task(row: sqlite3.Row) -> dict[str, Any]:
         progress_raw = row["progress_json"]
         findings_raw = row["findings_json"]
         return {
@@ -783,7 +783,7 @@ class AgentManager:
         }
 
     @staticmethod
-    def _row_to_binding(row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_binding(row: sqlite3.Row) -> dict[str, Any]:
         config_raw = row["config_json"]
         return {
             "id": row["id"],

@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import httpx
 
@@ -23,7 +23,7 @@ from openjarvis.engine._stubs import StreamChunk
 logger = logging.getLogger(__name__)
 
 # Pricing per million tokens (input, output)
-PRICING: Dict[str, tuple[float, float]] = {
+PRICING: dict[str, tuple[float, float]] = {
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-5": (10.00, 30.00),
@@ -171,7 +171,7 @@ def estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> flo
     return input_cost + output_cost
 
 
-def _serialize_anthropic_block(block: Any) -> Dict[str, Any]:
+def _serialize_anthropic_block(block: Any) -> dict[str, Any]:
     """Turn an Anthropic content block into a JSON-safe dict for tracing.
 
     Handles every block type Anthropic returns today (text, tool_use,
@@ -180,7 +180,7 @@ def _serialize_anthropic_block(block: Any) -> Dict[str, Any]:
     citation/result blocks) recurses so the trace has the full payload, not
     a truncated summary.
     """
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "type": getattr(block, "type", None) or type(block).__name__,
     }
     for attr in (
@@ -234,8 +234,8 @@ def _annotate_anthropic_cache(messages: list[dict]) -> list[dict]:
 
 
 def _convert_tools_to_anthropic(
-    openai_tools: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    openai_tools: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Convert OpenAI function-calling tools to Anthropic tool format."""
     result = []
     for tool in openai_tools:
@@ -251,8 +251,8 @@ def _convert_tools_to_anthropic(
 
 
 def _convert_tools_to_google(
-    openai_tools: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    openai_tools: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Convert OpenAI function-calling tools to Google function declarations."""
     declarations = []
     for tool in openai_tools:
@@ -282,7 +282,7 @@ class CloudEngine(InferenceEngine):
         self._minimax_client: Any = None
         self._codex_client: Any = None
         # Gemini thought_signatures: tool_call_id -> signature bytes
-        self._thought_sigs: Dict[str, bytes] = {}
+        self._thought_sigs: dict[str, bytes] = {}
         self._init_clients()
 
     def _init_clients(self) -> None:
@@ -351,10 +351,10 @@ class CloudEngine(InferenceEngine):
     def _prepare_anthropic_messages(
         self,
         messages: Sequence[Message],
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> tuple[str, list[dict[str, Any]]]:
         """Extract system text and convert messages to Anthropic format."""
         system_text = ""
-        chat_msgs: List[Dict[str, Any]] = []
+        chat_msgs: list[dict[str, Any]] = []
         for m in messages:
             if m.role.value == "system":
                 system_text = m.content
@@ -380,7 +380,7 @@ class CloudEngine(InferenceEngine):
                         }
                     )
             elif m.role.value == "assistant" and m.tool_calls:
-                content_blocks: List[Dict[str, Any]] = []
+                content_blocks: list[dict[str, Any]] = []
                 if m.content:
                     content_blocks.append({"type": "text", "text": m.content})
                 for tc in m.tool_calls:
@@ -406,13 +406,13 @@ class CloudEngine(InferenceEngine):
     @staticmethod
     def _codex_build_input(
         messages: Sequence[Message],
-    ) -> tuple[str, List[Dict[str, Any]]]:
+    ) -> tuple[str, list[dict[str, Any]]]:
         """Convert Message list to Codex Responses API format.
 
         Returns (system_instructions, input_messages).
         """
         instructions = ""
-        input_msgs: List[Dict[str, Any]] = []
+        input_msgs: list[dict[str, Any]] = []
         for m in messages:
             if m.role.value == "system":
                 instructions = m.content
@@ -433,7 +433,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate via Codex Responses API (ChatGPT Plus/Pro)."""
         if self._codex_client is None:
             raise EngineConnectionError(
@@ -442,7 +442,7 @@ class CloudEngine(InferenceEngine):
         actual_model = model.removeprefix("codex/")
         instructions, input_msgs = self._codex_build_input(messages)
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": actual_model,
             "input": input_msgs,
             "store": False,
@@ -508,7 +508,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._openai_client is None:
             raise EngineConnectionError(
                 "OpenAI client not available — set "
@@ -517,7 +517,7 @@ class CloudEngine(InferenceEngine):
             )
         # Extract response_format before spreading kwargs into create_kwargs
         response_format = kwargs.pop("response_format", None)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "max_completion_tokens": max_tokens,
@@ -598,7 +598,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._anthropic_client is None:
             raise EngineConnectionError(
                 "Anthropic client not available — set "
@@ -606,7 +606,7 @@ class CloudEngine(InferenceEngine):
                 "openjarvis[inference-cloud]"
             )
         system_text, chat_msgs = self._prepare_anthropic_messages(messages)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": chat_msgs,
             "temperature": temperature,
@@ -659,9 +659,9 @@ class CloudEngine(InferenceEngine):
         # content_blocks since Anthropic already ran it server-side).
         # ``tool_results`` aggregates both result kinds.
         content_parts: list[str] = []
-        tool_calls: list[Dict[str, Any]] = []
-        tool_results: list[Dict[str, Any]] = []
-        content_blocks: list[Dict[str, Any]] = []
+        tool_calls: list[dict[str, Any]] = []
+        tool_results: list[dict[str, Any]] = []
+        content_blocks: list[dict[str, Any]] = []
         for block in resp.content:
             btype = getattr(block, "type", None) or type(block).__name__
             serialized = _serialize_anthropic_block(block)
@@ -693,7 +693,7 @@ class CloudEngine(InferenceEngine):
         prompt_tokens = resp.usage.input_tokens if resp.usage else 0
         completion_tokens = resp.usage.output_tokens if resp.usage else 0
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": content,
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -722,7 +722,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._google_client is None:
             raise EngineConnectionError(
                 "Google client not available — set "
@@ -731,7 +731,7 @@ class CloudEngine(InferenceEngine):
             )
         # Build contents from messages, converting tool roles for Gemini
         system_text = ""
-        contents: List[Dict[str, Any]] = []
+        contents: list[dict[str, Any]] = []
         for m in messages:
             if m.role.value == "system":
                 system_text = m.content
@@ -756,7 +756,7 @@ class CloudEngine(InferenceEngine):
                     contents.append({"role": "user", "parts": [fn_resp_part]})
             elif m.role.value == "assistant" and m.tool_calls:
                 # Convert assistant tool_calls to function_call parts
-                parts: List[Dict[str, Any]] = []
+                parts: list[dict[str, Any]] = []
                 if m.content:
                     parts.append({"text": m.content})
                 for tc in m.tool_calls:
@@ -766,7 +766,7 @@ class CloudEngine(InferenceEngine):
                             args = json.loads(args)
                         except (json.JSONDecodeError, TypeError):
                             args = {"input": args}
-                    fc_part: Dict[str, Any] = {
+                    fc_part: dict[str, Any] = {
                         "function_call": {
                             "name": tc.name,
                             "args": args if isinstance(args, dict) else {},
@@ -818,7 +818,7 @@ class CloudEngine(InferenceEngine):
 
         # Extract text and function_call parts from response
         text_parts: list[str] = []
-        tool_calls: list[Dict[str, Any]] = []
+        tool_calls: list[dict[str, Any]] = []
         candidates = getattr(resp, "candidates", None)
         if candidates:
             parts = getattr(candidates[0].content, "parts", [])
@@ -826,7 +826,7 @@ class CloudEngine(InferenceEngine):
                 if hasattr(part, "function_call") and part.function_call:
                     fc = part.function_call
                     fc_args = dict(fc.args) if hasattr(fc.args, "items") else {}
-                    tc_dict: Dict[str, Any] = {
+                    tc_dict: dict[str, Any] = {
                         "id": f"google_{fc.name}",
                         "name": fc.name,
                         "arguments": json.dumps(fc_args),
@@ -853,7 +853,7 @@ class CloudEngine(InferenceEngine):
         prompt_tokens = getattr(um, "prompt_token_count", 0) if um else 0
         completion_tokens = getattr(um, "candidates_token_count", 0) if um else 0
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": content,
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -879,7 +879,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._openrouter_client is None:
             raise EngineConnectionError(
                 "OpenRouter client not available — set OPENROUTER_API_KEY"
@@ -887,7 +887,7 @@ class CloudEngine(InferenceEngine):
         # Strip the "openrouter/" prefix to get the actual model ID
         actual_model = model.removeprefix("openrouter/")
         kwargs.pop("response_format", None)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": actual_model,
             "messages": messages_to_dicts(messages),
             "max_tokens": max_tokens,
@@ -920,7 +920,7 @@ class CloudEngine(InferenceEngine):
         temperature: float,
         max_tokens: int,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._minimax_client is None:
             raise EngineConnectionError(
                 "MiniMax client not available — set MINIMAX_API_KEY"
@@ -929,7 +929,7 @@ class CloudEngine(InferenceEngine):
         temperature = max(temperature, 0.01)
         temperature = min(temperature, 1.0)
         kwargs.pop("response_format", None)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "max_tokens": max_tokens,
@@ -942,7 +942,7 @@ class CloudEngine(InferenceEngine):
         usage = resp.usage
         prompt_tokens = usage.prompt_tokens if usage else 0
         completion_tokens = usage.completion_tokens if usage else 0
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": choice.message.content or "",
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -973,7 +973,7 @@ class CloudEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         kw = dict(
             model=model,
             temperature=temperature,
@@ -1041,7 +1041,7 @@ class CloudEngine(InferenceEngine):
         actual_model = model.removeprefix("codex/")
         instructions, input_msgs = self._codex_build_input(messages)
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": actual_model,
             "input": input_msgs,
             "store": False,
@@ -1093,7 +1093,7 @@ class CloudEngine(InferenceEngine):
     ) -> AsyncIterator[str]:
         if self._openai_client is None:
             raise EngineConnectionError("OpenAI client not available")
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "max_completion_tokens": max_tokens,
@@ -1120,13 +1120,13 @@ class CloudEngine(InferenceEngine):
         if self._anthropic_client is None:
             raise EngineConnectionError("Anthropic client not available")
         system_text = ""
-        chat_msgs: List[Dict[str, Any]] = []
+        chat_msgs: list[dict[str, Any]] = []
         for m in messages:
             if m.role.value == "system":
                 system_text = m.content
             else:
                 chat_msgs.append({"role": m.role.value, "content": m.content})
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": chat_msgs,
             "temperature": temperature,
@@ -1150,7 +1150,7 @@ class CloudEngine(InferenceEngine):
         if self._google_client is None:
             raise EngineConnectionError("Google client not available")
         system_text = ""
-        contents: List[Dict[str, Any]] = []
+        contents: list[dict[str, Any]] = []
         for m in messages:
             if m.role.value == "system":
                 system_text = m.content
@@ -1188,7 +1188,7 @@ class CloudEngine(InferenceEngine):
         if self._openrouter_client is None:
             raise EngineConnectionError("OpenRouter client not available")
         actual_model = model.removeprefix("openrouter/")
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": actual_model,
             "messages": messages_to_dicts(messages),
             "max_tokens": max_tokens,
@@ -1214,7 +1214,7 @@ class CloudEngine(InferenceEngine):
             raise EngineConnectionError("MiniMax client not available")
         temperature = max(temperature, 0.01)
         temperature = min(temperature, 1.0)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "max_tokens": max_tokens,
@@ -1258,7 +1258,7 @@ class CloudEngine(InferenceEngine):
             if client is None:
                 raise EngineConnectionError("OpenRouter client not available")
             actual_model = model.removeprefix("openrouter/")
-            create_kwargs: Dict[str, Any] = {
+            create_kwargs: dict[str, Any] = {
                 "model": actual_model,
                 "messages": messages_to_dicts(messages),
                 "max_tokens": max_tokens,
@@ -1336,7 +1336,7 @@ class CloudEngine(InferenceEngine):
         if self._anthropic_client is None:
             raise EngineConnectionError("Anthropic client not available")
         system_text, chat_msgs = self._prepare_anthropic_messages(messages)
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": chat_msgs,
             "temperature": temperature,
@@ -1394,8 +1394,8 @@ class CloudEngine(InferenceEngine):
                 logger.debug("Anthropic stream.get_final_message() failed: %s", exc)
                 final_msg = None
             if final_msg is not None and getattr(final_msg, "content", None):
-                content_blocks: list[Dict[str, Any]] = []
-                tool_results: list[Dict[str, Any]] = []
+                content_blocks: list[dict[str, Any]] = []
+                tool_results: list[dict[str, Any]] = []
                 for block in final_msg.content:
                     btype = getattr(block, "type", None) or type(block).__name__
                     serialized = _serialize_anthropic_block(block)
@@ -1434,8 +1434,8 @@ class CloudEngine(InferenceEngine):
             async for chunk in self._stream_full_openai(messages, **kw):
                 yield chunk
 
-    def list_models(self) -> List[str]:
-        models: List[str] = []
+    def list_models(self) -> list[str]:
+        models: list[str] = []
         if self._openai_client is not None:
             models.extend(_OPENAI_MODELS)
         if self._anthropic_client is not None:

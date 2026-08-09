@@ -7,7 +7,7 @@ results, and produces narrative answers with inline source citations.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.agents.prompt_loader import (
@@ -169,14 +169,14 @@ class DeepResearchAgent(ToolUsingAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        tools: Optional[List[BaseTool]] = None,
-        bus: Optional[EventBus] = None,
-        max_turns: Optional[int] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        tools: list[BaseTool] | None = None,
+        bus: EventBus | None = None,
+        max_turns: int | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         interactive: bool = False,
         confirm_callback=None,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -192,7 +192,7 @@ class DeepResearchAgent(ToolUsingAgent):
         )
 
     @staticmethod
-    def _extract_sources(tool_results: List[ToolResult]) -> List[str]:
+    def _extract_sources(tool_results: list[ToolResult]) -> list[str]:
         """Collect unique source references from tool results.
 
         Parses the formatted output of ``KnowledgeSearchTool`` to pull out
@@ -215,7 +215,7 @@ class DeepResearchAgent(ToolUsingAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input)

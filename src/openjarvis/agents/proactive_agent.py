@@ -39,7 +39,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.core.config import load_config
@@ -136,7 +136,7 @@ def _load_md_file(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
-def _extract_json_block(text: str) -> Optional[List[Dict[str, Any]]]:
+def _extract_json_block(text: str) -> list[dict[str, Any]] | None:
     """Extract a JSON array from LLM output.
 
     Tries (in order):
@@ -148,7 +148,7 @@ def _extract_json_block(text: str) -> Optional[List[Dict[str, Any]]]:
     """
     import re
 
-    candidates: List[str] = []
+    candidates: list[str] = []
 
     # 1. ```json ... ``` (case-insensitive)
     m = re.search(r"```(?:json|JSON)\s*(.*?)```", text, re.DOTALL)
@@ -190,7 +190,7 @@ def _extract_json_block(text: str) -> Optional[List[Dict[str, Any]]]:
     return None
 
 
-def _build_notification_channel(channel_spec: str) -> Optional[Any]:
+def _build_notification_channel(channel_spec: str) -> Any | None:
     """Parse a ``"type:identifier"`` string into a channel backend instance.
 
     Supports:
@@ -236,7 +236,7 @@ def _build_notification_channel(channel_spec: str) -> Optional[Any]:
             def status(self) -> ChannelStatus:
                 return ChannelStatus.CONNECTED
 
-            def list_channels(self) -> List[str]:
+            def list_channels(self) -> list[str]:
                 return [self._handle]
 
             def on_message(self, handler: Any) -> None:
@@ -272,7 +272,7 @@ class ProactiveAgent(ToolUsingAgent):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._notification_channel_id: str = kwargs.pop("notification_channel_id", "")
         self._hours_back: int = kwargs.pop("hours_back", 24)
-        self._approval_store: Optional[ApprovalStore] = kwargs.pop(
+        self._approval_store: ApprovalStore | None = kwargs.pop(
             "approval_store", None
         )
         self._timezone: str = kwargs.pop("timezone", "America/Los_Angeles")
@@ -320,7 +320,7 @@ class ProactiveAgent(ToolUsingAgent):
         ]
 
         # Merge with any tools passed by the caller
-        caller_tools: List[Any] = kwargs.pop("tools", None) or []
+        caller_tools: list[Any] = kwargs.pop("tools", None) or []
         kwargs["tools"] = proactive_tools + caller_tools
 
         # The agent emits a JSON array of proposals — one entry per actionable
@@ -333,7 +333,7 @@ class ProactiveAgent(ToolUsingAgent):
 
         super().__init__(*args, **kwargs)
 
-    def _get_already_seen_ids(self, store: ApprovalStore) -> Set[str]:
+    def _get_already_seen_ids(self, store: ApprovalStore) -> set[str]:
         return store.get_seen_ids()
 
     def _store(self) -> ApprovalStore:
@@ -361,7 +361,7 @@ class ProactiveAgent(ToolUsingAgent):
     def run(
         self,
         input: str = "",
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input or "proactive_run")
@@ -407,7 +407,7 @@ class ProactiveAgent(ToolUsingAgent):
         llm_result = self._generate(messages)
         raw_full = llm_result.get("content", "")
         raw_output = self._strip_think_tags(raw_full)
-        proposed: List[Dict[str, Any]] = _extract_json_block(raw_output) or []
+        proposed: list[dict[str, Any]] = _extract_json_block(raw_output) or []
 
         # Debug log — write the raw LLM output and what we parsed out so a
         # human can diagnose "Nothing to report" without re-running the
@@ -430,7 +430,7 @@ class ProactiveAgent(ToolUsingAgent):
             pass
 
         # --- Step 3: Route each proposed action ---
-        auto_approve_ids: List[str] = []
+        auto_approve_ids: list[str] = []
         pending_actions = []
 
         for item in proposed:
@@ -466,7 +466,7 @@ class ProactiveAgent(ToolUsingAgent):
                 pending_actions.append(action)
 
         # --- Step 4: Execute all auto-approved actions ---
-        executed_results: List[Dict[str, Any]] = []
+        executed_results: list[dict[str, Any]] = []
         if auto_approve_ids:
             exec_call = ToolCall(
                 id="proactive-exec-1",
@@ -510,10 +510,10 @@ class ProactiveAgent(ToolUsingAgent):
 
     def _build_notification(
         self,
-        executed: List[Dict[str, Any]],
-        pending: List[Any],
+        executed: list[dict[str, Any]],
+        pending: list[Any],
     ) -> str:
-        lines: List[str] = []
+        lines: list[str] = []
 
         if executed:
             successes = [r for r in executed if r.get("success")]

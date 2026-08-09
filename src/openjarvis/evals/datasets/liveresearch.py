@@ -14,8 +14,9 @@ import logging
 import random
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -27,9 +28,9 @@ LIVERESEARCH_REPO = "https://github.com/Ayanami0730/deep_research_bench.git"
 CACHE_DIR = Path.home() / ".cache" / "liveresearch_bench"
 
 
-def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     """Load a JSONL file into a list of dicts."""
-    records: List[Dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
     with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -39,10 +40,10 @@ def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
 
 
 def _build_criteria_index(
-    criteria_records: List[Dict[str, Any]],
-) -> Dict[int, Dict[str, Any]]:
+    criteria_records: list[dict[str, Any]],
+) -> dict[int, dict[str, Any]]:
     """Index criteria records by their integer id."""
-    index: Dict[int, Dict[str, Any]] = {}
+    index: dict[int, dict[str, Any]] = {}
     for rec in criteria_records:
         rec_id = rec.get("id")
         if rec_id is not None:
@@ -60,13 +61,13 @@ class LiveResearchBenchDataset(DatasetProvider):
     dataset_id = "liveresearch"
     dataset_name = "DeepResearchBench"
 
-    def __init__(self, path: Optional[str] = None) -> None:
+    def __init__(self, path: str | None = None) -> None:
         self._local_path = Path(path) if path else None
         self._repo_dir: Path = self._local_path or CACHE_DIR
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
-    def verify_requirements(self) -> List[str]:
-        issues: List[str] = []
+    def verify_requirements(self) -> list[str]:
+        issues: list[str] = []
         if self._local_path is None and shutil.which("git") is None:
             issues.append(
                 "git binary not found. Install git to clone DeepResearchBench."
@@ -104,9 +105,9 @@ class LiveResearchBenchDataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         repo_dir = self._ensure_repo()
 
@@ -121,7 +122,7 @@ class LiveResearchBenchDataset(DatasetProvider):
 
         # Load criteria (optional — used for rubric-based scoring)
         criteria_path = repo_dir / "data" / "criteria_data" / "criteria.jsonl"
-        criteria_index: Dict[int, Dict[str, Any]] = {}
+        criteria_index: dict[int, dict[str, Any]] = {}
         if criteria_path.exists():
             criteria_records = _load_jsonl(criteria_path)
             criteria_index = _build_criteria_index(criteria_records)
@@ -164,7 +165,7 @@ class LiveResearchBenchDataset(DatasetProvider):
 
             # Attach criteria metadata if available
             criteria = criteria_index.get(int(q_id)) if q_id is not None else None
-            metadata: Dict[str, Any] = {
+            metadata: dict[str, Any] = {
                 "topic": topic,
                 "language": language,
                 "original_id": q_id,

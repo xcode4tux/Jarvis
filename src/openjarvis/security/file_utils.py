@@ -7,6 +7,7 @@ through these helpers to ensure consistent, restrictive permissions.
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 
@@ -31,4 +32,34 @@ def secure_create(path: Path, mode: int = 0o600) -> Path:
     if not path.exists():
         path.touch()
     os.chmod(path, mode)
+    return path
+
+
+def atomic_write_text(path: Path, content: str, mode: int = 0o600) -> Path:
+    """Atomically write *content* to *path* with restrictive permissions.
+
+    Writes to a unique temp file in the same directory (same filesystem,
+    so the rename is atomic), fsyncs it, then ``os.replace``s it over the
+    target. A crash or power loss mid-write can never leave a truncated or
+    interleaved config/credentials file.
+    """
+    secure_mkdir(path.parent, mode=0o700)
+    fd, tmp = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=path.name + ".",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
     return path

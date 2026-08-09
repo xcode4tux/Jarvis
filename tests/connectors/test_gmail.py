@@ -8,7 +8,6 @@ from __future__ import annotations
 import base64
 import json
 from pathlib import Path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -137,7 +136,7 @@ def test_sync_yields_documents(
     mock_list.return_value = _LIST_RESPONSE
     mock_get.side_effect = lambda token, msg_id: _MSG1 if msg_id == "msg1" else _MSG2
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 2
 
@@ -324,7 +323,7 @@ def test_sync_emits_v1_fields(
     mock_list.return_value = {"messages": [{"id": "msg-rich-1"}]}
     mock_get.return_value = _MSG_RICH
 
-    docs: List[Document] = list(connector.sync())
+    docs: list[Document] = list(connector.sync())
     assert len(docs) == 1
     doc = docs[0]
 
@@ -764,7 +763,7 @@ def test_sync_recovers_when_list_returns_401(tmp_path: Path) -> None:
         patch.object(gmail_mod.httpx, "get", side_effect=fake_get),
         patch.object(gmail_mod.httpx, "post", side_effect=fake_post),
     ):
-        docs: List[Document] = list(connector.sync())
+        docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 1
     assert docs[0].title == "Hi"

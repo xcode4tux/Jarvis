@@ -7,8 +7,9 @@ to make them trivially mockable in tests.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -36,7 +37,7 @@ _GDRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 _DEFAULT_CREDENTIALS_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "gdrive.json")
 
 # Map from Google Workspace MIME types to export MIME types
-_EXPORT_MIME_MAP: Dict[str, str] = {
+_EXPORT_MIME_MAP: dict[str, str] = {
     "application/vnd.google-apps.document": "text/plain",
     "application/vnd.google-apps.spreadsheet": "text/csv",
     "application/vnd.google-apps.presentation": "text/plain",
@@ -50,8 +51,8 @@ _EXPORT_MIME_MAP: Dict[str, str] = {
 def _gdrive_api_list_files(
     token: str,
     *,
-    page_token: Optional[str] = None,
-) -> Dict[str, Any]:
+    page_token: str | None = None,
+) -> dict[str, Any]:
     """Call the Drive ``files.list`` endpoint.
 
     Parameters
@@ -68,7 +69,7 @@ def _gdrive_api_list_files(
         ``nextPageToken``.
     """
     _fields = "nextPageToken,files(id,name,mimeType,modifiedTime,owners,webViewLink)"
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "fields": _fields,
         "pageSize": 100,
         "orderBy": "modifiedTime desc",
@@ -142,8 +143,8 @@ class GDriveConnector(BaseConnector):
         )
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -216,8 +217,8 @@ class GDriveConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,  # noqa: ARG002 — reserved for future use
-        cursor: Optional[str] = None,
+        since: datetime | None = None,  # noqa: ARG002 — reserved for future use
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Google Drive files.
 
@@ -238,14 +239,14 @@ class GDriveConnector(BaseConnector):
         if not tokens.get("access_token") and not tokens.get("token"):
             return
 
-        page_token: Optional[str] = cursor
+        page_token: str | None = cursor
         synced = 0
 
         while True:
             list_resp = call_with_refresh(
                 _gdrive_api_list_files, self._credentials_path, page_token=page_token
             )
-            files: List[Dict[str, Any]] = list_resp.get("files", [])
+            files: list[dict[str, Any]] = list_resp.get("files", [])
 
             for file_meta in files:
                 file_id: str = file_meta.get("id", "")
@@ -254,10 +255,10 @@ class GDriveConnector(BaseConnector):
 
                 name: str = file_meta.get("name", "")
                 mime_type: str = file_meta.get("mimeType", "")
-                web_view_link: Optional[str] = file_meta.get("webViewLink")
+                web_view_link: str | None = file_meta.get("webViewLink")
 
                 # Determine author from first owner
-                owners: List[Dict[str, str]] = file_meta.get("owners", [])
+                owners: list[dict[str, str]] = file_meta.get("owners", [])
                 author: str = owners[0].get("displayName", "") if owners else ""
 
                 # Export Google Workspace types; store metadata for others
@@ -291,7 +292,7 @@ class GDriveConnector(BaseConnector):
                 synced += 1
                 yield doc
 
-            next_page: Optional[str] = list_resp.get("nextPageToken")
+            next_page: str | None = list_resp.get("nextPageToken")
             if not next_page:
                 self._last_cursor = None
                 break
@@ -314,7 +315,7 @@ class GDriveConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose three MCP tool specs for real-time Google Drive queries."""
         return [
             ToolSpec(

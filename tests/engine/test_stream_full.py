@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -71,14 +71,14 @@ class _FakeEngine(InferenceEngine):
     def __init__(self, tokens: list[str]) -> None:
         self._tokens = tokens
 
-    def generate(self, messages, *, model, **kwargs) -> Dict[str, Any]:
+    def generate(self, messages, *, model, **kwargs) -> dict[str, Any]:
         return {"content": "".join(self._tokens), "usage": {}}
 
     async def stream(self, messages, *, model, **kwargs) -> AsyncIterator[str]:
         for t in self._tokens:
             yield t
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return ["fake-model"]
 
     def health(self) -> bool:

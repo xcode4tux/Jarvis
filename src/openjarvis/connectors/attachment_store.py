@@ -16,7 +16,6 @@ import json
 import sqlite3
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -107,7 +106,7 @@ class AttachmentStore:
         ).fetchone()
 
         if existing is None:
-            source_ids: List[str] = []
+            source_ids: list[str] = []
             if source_doc_id:
                 source_ids.append(source_doc_id)
             self._conn.execute(
@@ -138,7 +137,7 @@ class AttachmentStore:
         self._conn.commit()
         return sha
 
-    def get_metadata(self, sha: str) -> Optional[Dict]:
+    def get_metadata(self, sha: str) -> dict | None:
         """Return the metadata dict for *sha*, or ``None`` if not found.
 
         Returned keys: ``sha256``, ``filename``, ``mime_type``,
@@ -158,7 +157,7 @@ class AttachmentStore:
             "created_at": row["created_at"],
         }
 
-    def get_content(self, sha: str) -> Optional[bytes]:
+    def get_content(self, sha: str) -> bytes | None:
         """Return the raw bytes for *sha*, or ``None`` if the blob is missing."""
         blob_path = self._base_dir / sha[:2] / sha
         if not blob_path.exists():

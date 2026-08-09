@@ -18,9 +18,9 @@ epoch of 2001-01-01 00:00:00 UTC.  Conversion formula::
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.registry import ConnectorRegistry
@@ -83,7 +83,7 @@ class IMessageConnector(BaseConnector):
         self._connected: bool = False
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
+        self._last_sync: datetime | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -100,8 +100,8 @@ class IMessageConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002
     ) -> Iterator[Document]:
         """Read messages from chat.db and yield one :class:`Document` each.
 
@@ -130,14 +130,14 @@ class IMessageConnector(BaseConnector):
             # ------------------------------------------------------------------
             # 1. Build handle_id → identifier map
             # ------------------------------------------------------------------
-            handle_map: Dict[int, str] = {}
+            handle_map: dict[int, str] = {}
             for row in conn.execute("SELECT ROWID, id FROM handle"):
                 handle_map[row[0]] = row[1]
 
             # ------------------------------------------------------------------
             # 2. Build message_id → chat_id map
             # ------------------------------------------------------------------
-            msg_to_chat: Dict[int, int] = {}
+            msg_to_chat: dict[int, int] = {}
             for row in conn.execute(
                 "SELECT message_id, chat_id FROM chat_message_join"
             ):
@@ -146,7 +146,7 @@ class IMessageConnector(BaseConnector):
             # ------------------------------------------------------------------
             # 3. Build chat_id → {identifier, display_name} map
             # ------------------------------------------------------------------
-            chat_map: Dict[int, Tuple[str, str]] = {}
+            chat_map: dict[int, tuple[str, str]] = {}
             for row in conn.execute(
                 "SELECT ROWID, chat_identifier, display_name FROM chat"
             ):
@@ -231,7 +231,7 @@ class IMessageConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time iMessage queries."""
         return [
             ToolSpec(

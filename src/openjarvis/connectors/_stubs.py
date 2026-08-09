@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 from openjarvis.tools._stubs import ToolSpec
 
@@ -39,16 +40,16 @@ class Document:
     content: str
     title: str = ""
     author: str = ""
-    participants: List[str] = field(default_factory=list)
+    participants: list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
-    thread_id: Optional[str] = None
-    url: Optional[str] = None
-    attachments: List[Attachment] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    thread_id: str | None = None
+    url: str | None = None
+    attachments: list[Attachment] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
     # v1 schema additions: defaulted empty so legacy connectors keep working.
     source_id: str = ""
-    participants_raw: List[str] = field(default_factory=list)
-    channel: Optional[str] = None
+    participants_raw: list[str] = field(default_factory=list)
+    channel: str | None = None
 
 
 @dataclass(slots=True)
@@ -58,9 +59,9 @@ class SyncStatus:
     state: str = "idle"
     items_synced: int = 0
     items_total: int = 0
-    last_sync: Optional[datetime] = None
-    cursor: Optional[str] = None
-    error: Optional[str] = None
+    last_sync: datetime | None = None
+    cursor: str | None = None
+    error: str | None = None
 
 
 class BaseConnector(ABC):
@@ -85,7 +86,7 @@ class BaseConnector(ABC):
 
     @abstractmethod
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield documents from the data source.
 
@@ -105,6 +106,6 @@ class BaseConnector(ABC):
         """Handle the OAuth callback.  Only relevant for auth_type='oauth'."""
         raise NotImplementedError(f"{self.connector_id} does not use OAuth")
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Return MCP tool specs for real-time agent queries.  Optional."""
         return []

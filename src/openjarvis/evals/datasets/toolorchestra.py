@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import ast
 import random
-from typing import Any, Iterable, List, MutableMapping, Optional
+from collections.abc import Iterable, MutableMapping
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -57,13 +58,13 @@ def _parse_field(raw: object) -> Any:
 
 def _extract_problem_reference(
     row: MutableMapping[str, object],
-) -> tuple[Optional[str], str]:
+) -> tuple[str | None, str]:
     """Return (problem, reference) from a ToolScale row.
 
     problem   = user_scenario.instructions.task_instructions
     reference = str(evaluation_criteria.actions) truncated to 2000 chars
     """
-    problem: Optional[str] = None
+    problem: str | None = None
     user_scenario = _parse_field(row.get("user_scenario"))
     if isinstance(user_scenario, dict):
         instructions = user_scenario.get("instructions")
@@ -102,19 +103,19 @@ class ToolOrchestraDataset(DatasetProvider):
     dataset_name = "ToolScale (nvidia) — ToolOrchestra paper"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
         ds = load_dataset(HF_DATASET_ID, split=HF_SPLIT)
-        rows: List[MutableMapping[str, object]]
+        rows: list[MutableMapping[str, object]]
         if hasattr(ds, "to_list"):
             rows = ds.to_list()
         else:
@@ -135,7 +136,7 @@ class ToolOrchestraDataset(DatasetProvider):
         if max_samples is not None:
             rows = rows[:max_samples]
 
-        records: List[EvalRecord] = []
+        records: list[EvalRecord] = []
         for i, r in enumerate(rows):
             problem, reference = _extract_problem_reference(r)
             if not problem:

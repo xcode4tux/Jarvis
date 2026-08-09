@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -55,7 +55,7 @@ class SendBlueChannel(BaseChannel):
         api_secret_key: str = "",
         from_number: str = "",
         webhook_secret: str = "",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._api_key_id = api_key_id or os.environ.get("SENDBLUE_API_KEY_ID", "")
         self._api_secret_key = api_secret_key or os.environ.get(
@@ -64,7 +64,7 @@ class SendBlueChannel(BaseChannel):
         self._from_number = from_number or os.environ.get("SENDBLUE_FROM_NUMBER", "")
         self._webhook_secret = webhook_secret
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
 
     # -- connection lifecycle ---------------------------------------------------
@@ -89,7 +89,7 @@ class SendBlueChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Send an iMessage/SMS via SendBlue.
 
@@ -107,7 +107,7 @@ class SendBlueChannel(BaseChannel):
         try:
             import httpx
 
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "number": channel,
                 "content": content,
             }
@@ -137,7 +137,7 @@ class SendBlueChannel(BaseChannel):
             logger.debug("SendBlue send failed", exc_info=True)
             return False
 
-    def handle_webhook(self, payload: Dict[str, Any]) -> None:
+    def handle_webhook(self, payload: dict[str, Any]) -> None:
         """Process an incoming webhook payload from SendBlue.
 
         Expected fields: from_number, content, to_number, message_handle,
@@ -182,7 +182,7 @@ class SendBlueChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["sendblue"]
 

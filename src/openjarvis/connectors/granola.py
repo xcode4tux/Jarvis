@@ -11,8 +11,9 @@ Settings → API (requires Business or Enterprise plan).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -39,9 +40,9 @@ _DEFAULT_CREDENTIALS_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "granola.jso
 def _granola_api_list_notes(
     api_key: str,
     *,
-    cursor: Optional[str] = None,
-    created_after: Optional[str] = None,
-) -> Dict[str, Any]:
+    cursor: str | None = None,
+    created_after: str | None = None,
+) -> dict[str, Any]:
     """Call the Granola ``GET /v1/notes`` endpoint.
 
     Parameters
@@ -60,7 +61,7 @@ def _granola_api_list_notes(
         Raw API response containing ``notes`` list, ``hasMore`` flag, and
         optional ``cursor``.
     """
-    params: Dict[str, Any] = {"page_size": 30}
+    params: dict[str, Any] = {"page_size": 30}
     if cursor:
         params["cursor"] = cursor
     if created_after:
@@ -111,7 +112,7 @@ def _granola_api_validate_key(api_key: str) -> None:
     resp.raise_for_status()
 
 
-def _granola_api_get_note(api_key: str, note_id: str) -> Dict[str, Any]:
+def _granola_api_get_note(api_key: str, note_id: str) -> dict[str, Any]:
     """Fetch a single Granola note by ID (includes transcript).
 
     Parameters
@@ -142,7 +143,7 @@ def _granola_api_get_note(api_key: str, note_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _format_note_content(note: Dict[str, Any]) -> str:
+def _format_note_content(note: dict[str, Any]) -> str:
     """Build a markdown string combining the note summary and transcript.
 
     Parameters
@@ -155,7 +156,7 @@ def _format_note_content(note: Dict[str, Any]) -> str:
     str
         Formatted markdown with ``## Summary`` and ``## Transcript`` sections.
     """
-    parts: List[str] = []
+    parts: list[str] = []
 
     # Summary section
     summary_markdown: str = (note.get("summary", {}) or {}).get("markdown", "")
@@ -163,7 +164,7 @@ def _format_note_content(note: Dict[str, Any]) -> str:
     parts.append(summary_markdown)
 
     # Transcript section
-    transcript: List[Dict[str, Any]] = note.get("transcript") or []
+    transcript: list[dict[str, Any]] = note.get("transcript") or []
     parts.append("")
     parts.append("## Transcript")
     if transcript:
@@ -235,8 +236,8 @@ class GranolaConnector(BaseConnector):
         self._credentials_path: str = credentials_path or _DEFAULT_CREDENTIALS_PATH
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # Internal key resolution
@@ -291,8 +292,8 @@ class GranolaConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Granola meeting notes.
 
@@ -313,13 +314,13 @@ class GranolaConnector(BaseConnector):
 
         # Convert since to ISO string if provided.
         # Granola API requires ISO 8601 with Z suffix (not +00:00).
-        created_after: Optional[str] = None
+        created_after: str | None = None
         if since is not None:
             if since.tzinfo is not None:
                 since = since.replace(tzinfo=None)
             created_after = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        page_cursor: Optional[str] = cursor
+        page_cursor: str | None = cursor
         synced = 0
 
         while True:
@@ -328,7 +329,7 @@ class GranolaConnector(BaseConnector):
                 cursor=page_cursor,
                 created_after=created_after,
             )
-            notes: List[Dict[str, Any]] = list_resp.get("notes", [])
+            notes: list[dict[str, Any]] = list_resp.get("notes", [])
             logger.info("Granola: Found %d notes on this page", len(notes))
 
             for note_summary in notes:
@@ -340,16 +341,16 @@ class GranolaConnector(BaseConnector):
                 note = _granola_api_get_note(api_key, note_id)
 
                 title: str = note.get("title", "")
-                owner: Dict[str, Any] = note.get("owner") or {}
+                owner: dict[str, Any] = note.get("owner") or {}
                 author: str = (owner.get("email") or "").lower()
 
-                attendees: List[Dict[str, Any]] = note.get("attendees") or []
-                participants: List[str] = [
+                attendees: list[dict[str, Any]] = note.get("attendees") or []
+                participants: list[str] = [
                     (a.get("email") or "").lower()
                     for a in attendees
                     if a.get("email")
                 ]
-                participants_raw: List[str] = [
+                participants_raw: list[str] = [
                     a.get("name") or a.get("email") or ""
                     for a in attendees
                     if a.get("name") or a.get("email")
@@ -360,14 +361,14 @@ class GranolaConnector(BaseConnector):
 
                 content = _format_note_content(note)
 
-                cal_event: Dict[str, Any] = note.get("calendar_event") or {}
+                cal_event: dict[str, Any] = note.get("calendar_event") or {}
                 channel: str = cal_event.get("event_title") or "meeting"
 
                 # ``web_url`` (e.g. https://notes.granola.ai/d/{uuid}) is the
                 # only reliable way to deep-link to a Granola note — the API
                 # ``note_id`` and the web UUID are different, so we must store
                 # what the API gives us here.
-                web_url: Optional[str] = note.get("web_url") or None
+                web_url: str | None = note.get("web_url") or None
 
                 doc = Document(
                     doc_id=f"granola:{note_id}",
@@ -415,7 +416,7 @@ class GranolaConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time Granola queries."""
         return [
             ToolSpec(

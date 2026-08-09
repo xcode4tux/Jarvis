@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Sequence
-from typing import Any, Dict
+from typing import Any
 
 from openjarvis.core.events import EventBus, EventType
 from openjarvis.core.types import Message, TelemetryRecord
@@ -20,7 +20,7 @@ def instrumented_generate(
     temperature: float = 0.7,
     max_tokens: int = 1024,
     **kwargs: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Call ``engine.generate()`` and publish telemetry events on *bus*.
 
     Returns the raw result dict from the engine.

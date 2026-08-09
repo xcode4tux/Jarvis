@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import List
 
 import pytest
 
@@ -24,7 +23,7 @@ class _Finding:
 
 @dataclass
 class _ScanResult:
-    findings: List[_Finding] = field(default_factory=list)
+    findings: list[_Finding] = field(default_factory=list)
 
 
 class _MockSecretScanner:

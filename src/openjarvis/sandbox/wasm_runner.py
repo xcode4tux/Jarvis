@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -51,7 +51,7 @@ class WasmRunner:
     def run(
         self,
         wasm_bytes: bytes,
-        input_data: Optional[Dict[str, Any]] = None,
+        input_data: dict[str, Any] | None = None,
     ) -> WasmResult:
         """Execute a WASM module with input data.
 

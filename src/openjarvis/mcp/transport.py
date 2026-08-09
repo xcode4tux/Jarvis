@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from openjarvis.mcp.protocol import MCPRequest, MCPResponse
 
@@ -58,9 +58,9 @@ class StdioTransport(MCPTransport):
     stdin/stdout.
     """
 
-    def __init__(self, command: List[str]) -> None:
+    def __init__(self, command: list[str]) -> None:
         self._command = command
-        self._process: Optional[subprocess.Popen[str]] = None
+        self._process: subprocess.Popen[str] | None = None
         self._start()
 
     def _start(self) -> None:
@@ -122,7 +122,7 @@ class StreamableHTTPTransport(MCPTransport):
         self,
         url: str,
         *,
-        token: Optional[str] = None,
+        token: str | None = None,
         connect_timeout: float = 10.0,
         request_timeout: float = 60.0,
     ) -> None:
@@ -130,7 +130,7 @@ class StreamableHTTPTransport(MCPTransport):
 
         self._url = url
         self._token = token
-        self._session_id: Optional[str] = None
+        self._session_id: str | None = None
         self._client = httpx.Client(
             timeout=httpx.Timeout(
                 connect=connect_timeout,

@@ -26,7 +26,7 @@ import threading
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.core.registry import MemoryRegistry
 from openjarvis.tools.storage._stubs import MemoryBackend, RetrievalResult
@@ -78,7 +78,7 @@ def chunk_markdown(
     max_section_tokens: int = 500,
     paragraph_overlap_tokens: int = 50,
     max_section_chars: int = 4000,
-) -> List[MdChunk]:
+) -> list[MdChunk]:
     """Split markdown into chunks using ``##``/``###`` as primary boundaries.
 
     Strategy:
@@ -106,12 +106,12 @@ def chunk_markdown(
         return []
 
     # Pass 1: parse into (h1, h2, h3, body_lines) sections
-    h1: Optional[str] = None
-    h2: Optional[str] = None
-    h3: Optional[str] = None
-    buffered: List[str] = []
+    h1: str | None = None
+    h2: str | None = None
+    h3: str | None = None
+    buffered: list[str] = []
     # Each entry: (breadcrumb, body_text, start_line)
-    sections: List[tuple[str, str, int]] = []
+    sections: list[tuple[str, str, int]] = []
     section_start_line = 0
 
     def _flush(start_line: int):
@@ -166,7 +166,7 @@ def chunk_markdown(
         sections = [(breadcrumb, text.strip(), 0)]
 
     # Pass 2: for each section, split if it's too large (token or char).
-    chunks: List[MdChunk] = []
+    chunks: list[MdChunk] = []
 
     def _over_limit(tok_count: int, char_count: int) -> bool:
         return tok_count > max_section_tokens or char_count > max_section_chars
@@ -187,21 +187,26 @@ def chunk_markdown(
         # Oversized — slide over paragraphs, with a token-level fallback
         # for single paragraphs that are themselves larger than the window.
         paragraphs = [p for p in body.split("\n\n") if p.strip()]
-        window_paragraphs: List[str] = []
+        window_paragraphs: list[str] = []
         window_tokens = 0
         window_chars = 0
 
-        def _emit_window():
+        # Bind the loop variables as defaults so the closure is safe even
+        # if it is ever invoked after this iteration (B023).
+        def _emit_window(
+            _breadcrumb: str = breadcrumb,
+            _start_line: int = start_line,
+        ):
             nonlocal window_paragraphs, window_tokens, window_chars
             if not window_paragraphs:
                 return
             chunk_body = "\n\n".join(window_paragraphs).strip()
             chunks.append(
                 MdChunk(
-                    content=f"{breadcrumb}\n\n{chunk_body}",
+                    content=f"{_breadcrumb}\n\n{chunk_body}",
                     source=source,
-                    breadcrumb=breadcrumb,
-                    start_line=start_line,
+                    breadcrumb=_breadcrumb,
+                    start_line=_start_line,
                 )
             )
             # Carry overlap tail into the next window
@@ -298,8 +303,8 @@ class DuplicateGroup:
 
     kept_index: int                   # surviving chunk's index in the input list
     kept_source: str
-    dropped_indices: List[int] = field(default_factory=list)
-    dropped_sources: List[str] = field(default_factory=list)
+    dropped_indices: list[int] = field(default_factory=list)
+    dropped_sources: list[str] = field(default_factory=list)
     distinct_files: int = 0           # # of unique source files in the group
     sample_text: str = ""             # ~120-char preview of the duplicated content
 
@@ -310,7 +315,7 @@ class DedupeReport:
 
     input_count: int = 0
     output_count: int = 0
-    groups: List[DuplicateGroup] = field(default_factory=list)
+    groups: list[DuplicateGroup] = field(default_factory=list)
 
     @property
     def removed_count(self) -> int:
@@ -377,7 +382,7 @@ class _UnionFind:
             self.parent[ra] = rb
 
 
-def _path_specificity(source: str) -> Tuple[int, int, str]:
+def _path_specificity(source: str) -> tuple[int, int, str]:
     """Sort key — bigger is more specific.
 
     Tiebreakers:
@@ -393,12 +398,12 @@ def _path_specificity(source: str) -> Tuple[int, int, str]:
 
 
 def dedupe_chunks(
-    chunks: List[MdChunk],
+    chunks: list[MdChunk],
     *,
     ngram_n: int = 5,
     similarity_threshold: float = 0.7,
     min_files_for_dup: int = 3,
-) -> Tuple[List[MdChunk], DedupeReport]:
+) -> tuple[list[MdChunk], DedupeReport]:
     """Drop near-duplicate chunks that recur across many source files.
 
     A chunk cluster is considered a duplicate (and collapsed to one
@@ -426,14 +431,14 @@ def dedupe_chunks(
         return [], DedupeReport()
 
     # 1) Compute n-gram set for each chunk (body only)
-    chunk_ngrams: List[set] = []
+    chunk_ngrams: list[set] = []
     for c in chunks:
         body = _strip_breadcrumb(c.content)
         chunk_ngrams.append(_ngrams(_normalize(body), n=ngram_n))
 
     # 2) Inverted index: ngram -> [chunk indices that contain it]
     # Lets us skip pairs that share zero n-grams without computing Jaccard.
-    inverted: Dict[tuple, List[int]] = defaultdict(list)
+    inverted: dict[tuple, list[int]] = defaultdict(list)
     for i, ngs in enumerate(chunk_ngrams):
         for ng in ngs:
             inverted[ng].append(i)
@@ -463,7 +468,7 @@ def dedupe_chunks(
             uf.union(a, b)
 
     # 5) Group by cluster root
-    cluster_to_members: Dict[int, List[int]] = defaultdict(list)
+    cluster_to_members: dict[int, list[int]] = defaultdict(list)
     for i in range(n):
         cluster_to_members[uf.find(i)].append(i)
 
@@ -551,16 +556,16 @@ class DenseMemory(MemoryBackend):
 
     backend_id = "dense"
 
-    def __init__(self, embedder: Optional[Embedder] = None) -> None:
-        self._embedder: Optional[Embedder] = embedder
+    def __init__(self, embedder: Embedder | None = None) -> None:
+        self._embedder: Embedder | None = embedder
         # Shape (n_docs, dim), L2-normalized row-wise. None until first store.
         self._matrix = None
-        self._contents: List[str] = []
-        self._sources: List[str] = []
-        self._metadatas: List[Dict[str, Any]] = []
-        self._doc_ids: List[str] = []
+        self._contents: list[str] = []
+        self._sources: list[str] = []
+        self._metadatas: list[dict[str, Any]] = []
+        self._doc_ids: list[str] = []
         # id -> index; lets us delete in O(1) for lookups
-        self._id_to_index: Dict[str, int] = {}
+        self._id_to_index: dict[str, int] = {}
         self._lock = threading.Lock()
 
     # -- embedder lifecycle ------------------------------------------------
@@ -577,7 +582,7 @@ class DenseMemory(MemoryBackend):
         content: str,
         *,
         source: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Embed and store one document. Returns its id."""
         return self.store_many(
@@ -586,11 +591,11 @@ class DenseMemory(MemoryBackend):
 
     def store_many(
         self,
-        contents: List[str],
+        contents: list[str],
         *,
-        sources: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[str]:
+        sources: list[str] | None = None,
+        metadatas: list[dict[str, Any]] | None = None,
+    ) -> list[str]:
         """Embed a batch of documents in one go. Much faster than per-doc.
 
         Accepts parallel lists; missing sources/metadatas default to empty.
@@ -628,7 +633,7 @@ class DenseMemory(MemoryBackend):
         *,
         top_k: int = 5,
         **kwargs: Any,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Return top-k documents by cosine similarity.
 
         Scores are in ``[-1, 1]`` for normalized vectors; for
@@ -667,7 +672,7 @@ class DenseMemory(MemoryBackend):
         # Sort the top-k chunk descending by score
         top_idx = top_idx[np.argsort(-scores[top_idx])]
 
-        results: List[RetrievalResult] = []
+        results: list[RetrievalResult] = []
         for i in top_idx:
             i = int(i)
             results.append(

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.agents.prompt_loader import (
@@ -110,21 +110,21 @@ class MonitorOperativeAgent(ToolUsingAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        tools: Optional[List[BaseTool]] = None,
-        bus: Optional[EventBus] = None,
-        max_turns: Optional[int] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        system_prompt: Optional[str] = None,
+        tools: list[BaseTool] | None = None,
+        bus: EventBus | None = None,
+        max_turns: int | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        system_prompt: str | None = None,
         # Strategy parameters
         memory_extraction: str = "causality_graph",
         observation_compression: str = "summarize",
         retrieval_strategy: str = "hybrid_with_self_eval",
         task_decomposition: str = "phased",
         # State persistence (OperativeAgent pattern)
-        operator_id: Optional[str] = None,
-        session_store: Optional[Any] = None,
-        memory_backend: Optional[Any] = None,
+        operator_id: str | None = None,
+        session_store: Any | None = None,
+        memory_backend: Any | None = None,
         interactive: bool = False,
         confirm_callback=None,
         **kwargs: Any,
@@ -180,7 +180,7 @@ class MonitorOperativeAgent(ToolUsingAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         """Execute the agent on *input* with the configured strategies."""
@@ -485,10 +485,10 @@ class MonitorOperativeAgent(ToolUsingAgent):
     def _build_operative_messages(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         *,
-        system_prompt: Optional[str] = None,
-        session_messages: Optional[list[Message]] = None,
+        system_prompt: str | None = None,
+        session_messages: list[Message] | None = None,
     ) -> list[Message]:
         """Build message list with system prompt, session history, and input."""
         messages: list[Message] = []

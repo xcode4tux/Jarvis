@@ -11,7 +11,6 @@ import datetime as _dt
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -55,7 +54,7 @@ class CloudProvider:
         )
 
 
-def detect_cloud_keys() -> Optional[CloudProvider]:
+def detect_cloud_keys() -> CloudProvider | None:
     """Return the first matching cloud provider per precedence order, else None.
 
     Empty-string values are treated as unset (matches shell convention).
@@ -106,7 +105,7 @@ def write_initial_config(
     hardware: HardwareInfo,
     engine: str,
     model: str,
-    cloud: Optional[CloudProvider] = None,
+    cloud: CloudProvider | None = None,
 ) -> Path:
     """Render the initial ``config.toml`` and seed memory files.
 

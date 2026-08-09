@@ -23,7 +23,7 @@ import re
 import subprocess
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import Scorer
 from openjarvis.evals.core.types import EvalRecord
@@ -65,7 +65,7 @@ class TerminalBenchV21Scorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         md = record.metadata or {}
 
         # ---- Agentic mode: container is live (from task env ctx) ----
@@ -74,7 +74,7 @@ class TerminalBenchV21Scorer(Scorer):
             verifier_timeout = float(
                 md.get("verifier_timeout_sec") or _DEFAULT_VERIFIER_TIMEOUT
             )
-            meta_a: Dict[str, Any] = {"mode": "agentic", "container": agentic_container}
+            meta_a: dict[str, Any] = {"mode": "agentic", "container": agentic_container}
             try:
                 tests = subprocess.run(
                     [
@@ -127,8 +127,8 @@ class TerminalBenchV21Scorer(Scorer):
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response", "score": 0.0}
 
-        docker_image: Optional[str] = md.get("docker_image")
-        task_dir_str: Optional[str] = md.get("task_dir")
+        docker_image: str | None = md.get("docker_image")
+        task_dir_str: str | None = md.get("task_dir")
         if not docker_image or not task_dir_str:
             return None, {"reason": "missing_metadata", "mode": "oneshot"}
         task_dir = Path(task_dir_str)

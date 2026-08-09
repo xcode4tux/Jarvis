@@ -11,7 +11,7 @@ See spec §4.1 (tier table) and §6.2.
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from openjarvis.learning.spec_search.models import Edit, EditOp, EditRiskTier
 

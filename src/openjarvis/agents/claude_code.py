@@ -15,7 +15,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, BaseAgent
 from openjarvis.core.events import EventBus
@@ -61,13 +61,13 @@ class ClaudeCodeAgent(BaseAgent):
         engine: InferenceEngine,
         model: str,
         *,
-        bus: Optional[EventBus] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        bus: EventBus | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
         api_key: str = "",
         workspace: str = "",
         session_id: str = "",
-        allowed_tools: Optional[List[str]] = None,
+        allowed_tools: list[str] | None = None,
         system_prompt: str = "",
         timeout: int = 300,
     ) -> None:
@@ -138,7 +138,7 @@ class ClaudeCodeAgent(BaseAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         """Execute a query via the Claude Agent SDK subprocess.

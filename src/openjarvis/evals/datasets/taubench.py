@@ -12,8 +12,8 @@ import logging
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -78,15 +78,15 @@ class TauBenchDataset(DatasetProvider):
 
     def __init__(
         self,
-        domains: Optional[List[str]] = None,
+        domains: list[str] | None = None,
     ) -> None:
         self._domains = domains or list(DOMAINS)
-        self._records: List[EvalRecord] = []
-        self._engine_key: Optional[str] = None
-        self._model: Optional[str] = None
+        self._records: list[EvalRecord] = []
+        self._engine_key: str | None = None
+        self._model: str | None = None
         self._temperature: float = 0.7
         self._max_tokens: int = 4096
-        self._user_model: Optional[str] = None
+        self._user_model: str | None = None
         # pass^k: best of k trials per task. Default 3, override via env var
         # OPENJARVIS_TAUBENCH_TRIALS for faster runs (e.g. =1 for 3x speedup).
         self._num_trials: int = int(os.environ.get("OPENJARVIS_TAUBENCH_TRIALS", "3"))
@@ -95,12 +95,12 @@ class TauBenchDataset(DatasetProvider):
 
     def set_engine_config(
         self,
-        engine_key: Optional[str] = None,
-        model: Optional[str] = None,
+        engine_key: str | None = None,
+        model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        user_model: Optional[str] = None,
-        num_trials: Optional[int] = None,
+        user_model: str | None = None,
+        num_trials: int | None = None,
         telemetry: bool = False,
         gpu_metrics: bool = False,
     ) -> None:
@@ -118,8 +118,8 @@ class TauBenchDataset(DatasetProvider):
         self._telemetry = telemetry
         self._gpu_metrics = gpu_metrics
 
-    def verify_requirements(self) -> List[str]:
-        issues: List[str] = []
+    def verify_requirements(self) -> list[str]:
+        issues: list[str] = []
         try:
             _ensure_tau2()
         except Exception as exc:
@@ -129,9 +129,9 @@ class TauBenchDataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         _ensure_tau2()
         from tau2.runner import get_tasks
@@ -142,7 +142,7 @@ class TauBenchDataset(DatasetProvider):
         if split and split not in ("train", "test", "all"):
             domains = [d.strip() for d in split.split(",") if d.strip()]
 
-        all_records: List[EvalRecord] = []
+        all_records: list[EvalRecord] = []
 
         for domain in domains:
             if domain not in DOMAINS:

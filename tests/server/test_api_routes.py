@@ -70,7 +70,13 @@ class TestMetricsRoute:
         client = TestClient(_make_app())
         resp = client.get("/metrics")
         assert resp.status_code == 200
-        assert "openjarvis" in resp.text or "No metrics" in resp.text
+        # Prometheus-compatible plaintext, one of three branches:
+        # metrics present, no telemetry.db, or aggregator error.
+        assert (
+            "openjarvis" in resp.text
+            or "no telemetry data" in resp.text
+            or "No metrics" in resp.text
+        )
 
 
 class TestSkillRoutes:

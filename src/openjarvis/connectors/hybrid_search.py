@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 # numpy imported lazily inside _vector_recall (see embeddings.py) so importing
 # this module never forces numpy at load time (#404, #309).
@@ -48,19 +49,19 @@ class SearchHit:
     content_snippet: str
     source: str
     timestamp: str
-    participants: List[str]
+    participants: list[str]
     score: float
     bm25_score: float
     vector_score: float
     thread_id: str = ""
-    thread_context: List[Dict[str, Any]] = field(default_factory=list)
+    thread_context: list[dict[str, Any]] = field(default_factory=list)
     # ``url`` is the connector-provided deep-link, persisted on
     # ``knowledge_chunks.url``. Empty when the source didn't supply one — in
     # that case callers may fall back to a doc_id-based reconstruction (Slack,
     # Gmail), or render the citation as non-clickable.
     url: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "title": self.title,
             "content_snippet": self.content_snippet,
@@ -80,7 +81,7 @@ class SearchHit:
 # ---------------------------------------------------------------------------
 
 
-def _iso(ts: Optional[datetime | str]) -> Optional[str]:
+def _iso(ts: datetime | str | None) -> str | None:
     if ts is None:
         return None
     if isinstance(ts, datetime):
@@ -101,7 +102,7 @@ def _quote_fts(query: str) -> str:
     return " OR ".join(f'"{t.replace(chr(34), "")}"' for t in tokens)
 
 
-def _parse_participants(raw: Any) -> List[str]:
+def _parse_participants(raw: Any) -> list[str]:
     if not raw:
         return []
     if isinstance(raw, list):
@@ -149,7 +150,7 @@ class HybridSearch:
     def __init__(
         self,
         store: KnowledgeStore,
-        embedder: Optional[OllamaEmbedder] = None,
+        embedder: OllamaEmbedder | None = None,
         *,
         bm25_weight: float = 0.5,
         vector_weight: float = 0.5,
@@ -172,11 +173,11 @@ class HybridSearch:
     def _build_filters(
         self,
         *,
-        person: Optional[str],
-        time_range: Optional[Tuple[Optional[datetime], Optional[datetime]]],
-        sources: Optional[Sequence[str]],
+        person: str | None,
+        time_range: tuple[datetime | None, datetime | None] | None,
+        sources: Sequence[str] | None,
         alias: str = "",
-    ) -> Tuple[str, List[Any]]:
+    ) -> tuple[str, list[Any]]:
         """Return ``(where_fragment, params)`` for the structured filters.
 
         ``person`` is matched against the participants_raw JSON via LIKE so a
@@ -188,8 +189,8 @@ class HybridSearch:
         columns and would otherwise produce an "ambiguous column" error).
         """
         prefix = f"{alias}." if alias else ""
-        clauses: List[str] = [f"{prefix}deleted_at IS NULL"]
-        params: List[Any] = []
+        clauses: list[str] = [f"{prefix}deleted_at IS NULL"]
+        params: list[Any] = []
 
         if person:
             clauses.append(
@@ -220,8 +221,8 @@ class HybridSearch:
     # ------------------------------------------------------------------
 
     def _bm25_recall(
-        self, query: str, filter_sql: str, filter_params: List[Any]
-    ) -> List[Tuple[str, float]]:
+        self, query: str, filter_sql: str, filter_params: list[Any]
+    ) -> list[tuple[str, float]]:
         """Return ``[(chunk_id, bm25_score), ...]`` from FTS5."""
         fts_query = _quote_fts(query)
         if not fts_query:
@@ -249,8 +250,8 @@ class HybridSearch:
     # ------------------------------------------------------------------
 
     def _vector_recall(
-        self, query: str, filter_sql: str, filter_params: List[Any]
-    ) -> List[Tuple[str, float]]:
+        self, query: str, filter_sql: str, filter_params: list[Any]
+    ) -> list[tuple[str, float]]:
         """Return ``[(chunk_id, cosine_score), ...]`` from a brute-force scan."""
         if self._embedder is None:
             return []
@@ -274,8 +275,8 @@ class HybridSearch:
         if not rows:
             return []
 
-        ids: List[str] = []
-        vecs: List[np.ndarray] = []
+        ids: list[str] = []
+        vecs: list[np.ndarray] = []
         for row in rows:
             vec = decode_embedding(row["embedding"])
             if vec is None or vec.size != q_unit.size:
@@ -304,9 +305,9 @@ class HybridSearch:
 
     def _fuse(
         self,
-        bm25: List[Tuple[str, float]],
-        vector: List[Tuple[str, float]],
-    ) -> List[Tuple[str, float, float, float]]:
+        bm25: list[tuple[str, float]],
+        vector: list[tuple[str, float]],
+    ) -> list[tuple[str, float, float, float]]:
         """Reciprocal Rank Fusion across the two rankers.
 
         Returns ``[(chunk_id, fused, bm25_score, vector_score), ...]``
@@ -318,7 +319,7 @@ class HybridSearch:
         vec_scores = {cid: s for cid, s in vector}
 
         candidates = set(bm25_rank) | set(vec_rank)
-        out: List[Tuple[str, float, float, float]] = []
+        out: list[tuple[str, float, float, float]] = []
         for cid in candidates:
             fused = 0.0
             if cid in bm25_rank:
@@ -337,7 +338,7 @@ class HybridSearch:
 
     def _thread_context(
         self, thread_id: str, anchor_chunk_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Fetch sibling chunks for ``thread_id`` (capped at ``thread_context_cap``).
 
         When the thread is longer than the cap, return a centred window around
@@ -385,11 +386,11 @@ class HybridSearch:
         self,
         query: str,
         *,
-        person: Optional[str] = None,
-        time_range: Optional[Tuple[Optional[datetime], Optional[datetime]]] = None,
-        sources: Optional[Sequence[str]] = None,
+        person: str | None = None,
+        time_range: tuple[datetime | None, datetime | None] | None = None,
+        sources: Sequence[str] | None = None,
         limit: int = 20,
-    ) -> List[SearchHit]:
+    ) -> list[SearchHit]:
         """Run the hybrid pipeline and return up to ``limit`` hits.
 
         See module docstring for ranking semantics. ``query`` may be empty
@@ -450,7 +451,7 @@ class HybridSearch:
         ).fetchall()
         by_id = {r["id"]: r for r in meta_rows}
 
-        hits: List[SearchHit] = []
+        hits: list[SearchHit] = []
         for chunk_id, fused_score, bm25_score, vec_score in top:
             r = by_id.get(chunk_id)
             if r is None:

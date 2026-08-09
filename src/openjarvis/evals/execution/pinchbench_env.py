@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Optional, Type
+from typing import Any
 
 from openjarvis.evals.core.types import EvalRecord
 
@@ -32,10 +32,10 @@ class PinchBenchTaskEnv:
         self._record = record
         self._judge_backend = judge_backend
         self._judge_model = judge_model
-        self._workspace: Optional[Path] = None
+        self._workspace: Path | None = None
         self._owns_workspace: bool = True
         self._event_recorder: Any = None
-        self._original_cwd: Optional[str] = None
+        self._original_cwd: str | None = None
 
     def set_event_recorder(self, recorder: Any) -> None:
         """Receive the EventRecorder from AgenticRunner for transcript building."""
@@ -135,9 +135,9 @@ class PinchBenchTaskEnv:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         # Restore original CWD
         if self._original_cwd:

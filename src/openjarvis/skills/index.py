@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 try:
     import tomllib
@@ -91,7 +90,7 @@ class SkillIndex:
                 results.append(entry)
         return results
 
-    def get(self, name: str) -> Optional[SkillIndexEntry]:
+    def get(self, name: str) -> SkillIndexEntry | None:
         """Look up a skill by exact name, returning ``None`` if not found."""
         return self._entries.get(name)
 

@@ -19,8 +19,9 @@ import logging
 import random
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.types import EvalRecord
@@ -37,7 +38,7 @@ _DEFAULT_CACHE = Path(
 )
 
 
-def _load_task_toml(task_dir: Path) -> Dict[str, Any]:
+def _load_task_toml(task_dir: Path) -> dict[str, Any]:
     """Parse task.toml using tomllib (3.11+) or tomli fallback."""
     task_file = task_dir / "task.toml"
     if not task_file.exists():
@@ -67,14 +68,14 @@ class TerminalBenchV21Dataset(DatasetProvider):
         self,
         repo_url: str = _DEFAULT_REPO,
         branch: str = _DEFAULT_BRANCH,
-        path: Optional[str] = None,
-        task_ids: Optional[List[str]] = None,
+        path: str | None = None,
+        task_ids: list[str] | None = None,
     ) -> None:
         self._repo_url = repo_url
         self._branch = branch
         self._repo_dir: Path = Path(path) if path else _DEFAULT_CACHE
         self._task_ids = task_ids
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def _ensure_repo(self) -> Path:
         """Clone the TB v2.1 repo once and cache it locally."""
@@ -104,9 +105,9 @@ class TerminalBenchV21Dataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         repo = self._ensure_repo()
         task_dirs = sorted(
@@ -139,7 +140,7 @@ class TerminalBenchV21Dataset(DatasetProvider):
     def size(self) -> int:
         return len(self._records)
 
-    def _convert_task(self, task_dir: Path, idx: int) -> Optional[EvalRecord]:
+    def _convert_task(self, task_dir: Path, idx: int) -> EvalRecord | None:
         task_data = _load_task_toml(task_dir)
         instruction_file = task_dir / "instruction.md"
         if not instruction_file.exists():
@@ -177,7 +178,7 @@ class TerminalBenchV21Dataset(DatasetProvider):
         task_id = task_dir.name or f"tbv21_{idx}"
         category = meta.get("category", "terminal")
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "task_id": task_id,
             "task_dir": str(task_dir),
             "category": category,
@@ -217,9 +218,9 @@ class TerminalBenchV21Dataset(DatasetProvider):
             return None
         return TerminalBenchV21TaskEnv(record.metadata)
 
-    def verify_requirements(self) -> List[str]:
+    def verify_requirements(self) -> list[str]:
         """Check runtime prerequisites (docker, git, tomllib)."""
-        issues: List[str] = []
+        issues: list[str] = []
         if shutil.which("docker") is None:
             issues.append("docker not found in PATH (required to run TB v2.1 tasks)")
         if shutil.which("git") is None:

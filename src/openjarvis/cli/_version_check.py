@@ -125,6 +125,11 @@ def _do_check() -> None:
 
     try:
         if Version(latest) > Version(current):
+            # Only nudge humans at an interactive terminal. When stderr is
+            # redirected (pipes, scripts, cron, CI) the banner would pollute
+            # captured logs and break machine-readable output, so skip it.
+            if not sys.stderr.isatty():
+                return
             from openjarvis.cli._install_detect import detect_install
 
             cmd = detect_install().upgrade_command

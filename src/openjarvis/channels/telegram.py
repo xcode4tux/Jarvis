@@ -6,7 +6,7 @@ import logging
 import os
 import textwrap
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -44,15 +44,15 @@ class TelegramChannel(BaseChannel):
         *,
         allowed_chat_ids: str = "",
         parse_mode: str = "Markdown",
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._token = bot_token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
         self._allowed_chat_ids = allowed_chat_ids
         self._parse_mode = parse_mode
         self._bus = bus
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
-        self._listener_thread: Optional[threading.Thread] = None
+        self._listener_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
     # -- connection lifecycle ---------------------------------------------------
@@ -100,7 +100,7 @@ class TelegramChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Send a message to a Telegram chat via the Bot API."""
         if not self._token:
@@ -120,7 +120,7 @@ class TelegramChannel(BaseChannel):
                 replace_whitespace=False,
             )
             for chunk in chunks:
-                payload: Dict[str, Any] = {
+                payload: dict[str, Any] = {
                     "chat_id": chat_id,
                     "text": chunk,
                 }
@@ -145,7 +145,7 @@ class TelegramChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["telegram"]
 

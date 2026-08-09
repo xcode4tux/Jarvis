@@ -13,9 +13,10 @@ import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -40,28 +41,28 @@ class SubprocessResult:
     stderr: str
     exit_code: int
     latency_seconds: float
-    energy_joules: Optional[float]
-    peak_power_w: Optional[float]
+    energy_joules: float | None
+    peak_power_w: float | None
     sampler_method: str  # "nvml" | "powermetrics" | "rocm_smi" | "rapl" | "unavailable"
-    parsed_json: Dict[str, Any] = field(default_factory=dict)
-    samples: List[EnergySample] = field(default_factory=list)
+    parsed_json: dict[str, Any] = field(default_factory=dict)
+    samples: list[EnergySample] = field(default_factory=list)
     # "subprocess_crash" | "timeout" | "malformed_runner_output" | ...
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class _RunnerOutput(BaseModel):
     """Schema the foreign-framework runner scripts must emit."""
 
     content: str
-    usage: Dict[str, int] = Field(default_factory=dict)
-    trajectory: List[Dict[str, Any]] = Field(default_factory=list)
+    usage: dict[str, int] = Field(default_factory=dict)
+    trajectory: list[dict[str, Any]] = Field(default_factory=list)
     tool_calls: int = 0
     turn_count: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 def run_one_shot(
-    cmd: List[str],
+    cmd: list[str],
     env: Mapping[str, str],
     timeout: float,
     output_json_path: Path,
@@ -100,7 +101,7 @@ def run_one_shot(
             error="subprocess_crash",
         )
 
-    error: Optional[str] = None
+    error: str | None = None
     try:
         stdout, stderr = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -119,7 +120,7 @@ def run_one_shot(
     if error is None and proc.returncode != 0:
         error = "subprocess_crash"
 
-    parsed: Dict[str, Any] = {}
+    parsed: dict[str, Any] = {}
     if error is None:
         if not output_json_path.exists():
             error = "invalid_runner_output"
@@ -158,9 +159,9 @@ class _Sampler:
     method: str = "unavailable"
 
     def __init__(self) -> None:
-        self._samples: List[EnergySample] = []
+        self._samples: list[EnergySample] = []
         self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._t0 = time.monotonic()
 
     def _read_watts(self) -> float:  # pragma: no cover (subclass override)
@@ -182,7 +183,7 @@ class _Sampler:
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
-    def stop(self) -> List[EnergySample]:
+    def stop(self) -> list[EnergySample]:
         self._stop_event.set()
         if self._thread is not None:
             self._thread.join(timeout=2.0)
@@ -195,11 +196,11 @@ class _NullSampler(_Sampler):
     def start(self) -> None:
         pass  # nothing to do
 
-    def stop(self) -> List[EnergySample]:
+    def stop(self) -> list[EnergySample]:
         return []
 
 
-def _try_start_nvml() -> Optional[_Sampler]:
+def _try_start_nvml() -> _Sampler | None:
     try:
         # Suppress legacy pynvml deprecation FutureWarning (#389).
         import warnings as _warnings
@@ -228,7 +229,7 @@ def _try_start_nvml() -> Optional[_Sampler]:
         return None
 
 
-def _try_start_powermetrics() -> Optional[_Sampler]:
+def _try_start_powermetrics() -> _Sampler | None:
     """macOS only - requires sudo or appropriate plist permissions."""
     if shutil.which("powermetrics") is None:
         return None
@@ -237,7 +238,7 @@ def _try_start_powermetrics() -> Optional[_Sampler]:
     return None
 
 
-def _try_start_rocm_smi() -> Optional[_Sampler]:
+def _try_start_rocm_smi() -> _Sampler | None:
     if shutil.which("rocm-smi") is None:
         return None
 
@@ -264,7 +265,7 @@ def _try_start_rocm_smi() -> Optional[_Sampler]:
     return s
 
 
-def _try_start_rapl() -> Optional[_Sampler]:
+def _try_start_rapl() -> _Sampler | None:
     rapl_path = Path("/sys/class/powercap/intel-rapl:0/energy_uj")
     if not rapl_path.exists():
         return None
@@ -306,8 +307,8 @@ def _start_sampler() -> _Sampler:
 
 
 def _integrate_energy(
-    samples: List[EnergySample], elapsed: float
-) -> Tuple[Optional[float], Optional[float]]:
+    samples: list[EnergySample], elapsed: float
+) -> tuple[float | None, float | None]:
     """Trapezoidal-rule integration over sampled wattage to Joules."""
     if not samples:
         return None, None

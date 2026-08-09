@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 import time
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -71,7 +70,7 @@ def feedback_score(trace_id: str, score: float) -> None:
 def feedback_thumbs(
     last: bool,
     thumbs_up: bool,
-    trace_id: Optional[str],
+    trace_id: str | None,
 ) -> None:
     """Rate a trace with thumbs up/down."""
     console = Console()

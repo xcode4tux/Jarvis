@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -104,7 +103,7 @@ def test_sync_yields_tracks(connector):
         "openjarvis.connectors.apple_music._run_osascript",
         return_value=_SAMPLE_OUTPUT,
     ):
-        docs: List[Document] = list(connector.sync())
+        docs: list[Document] = list(connector.sync())
 
     assert len(docs) == 2
     assert all(isinstance(d, Document) for d in docs)

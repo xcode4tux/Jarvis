@@ -15,7 +15,8 @@ and retries the call once. All other status codes propagate.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 
 import httpx
 
@@ -93,11 +94,11 @@ def refresh_access_token(credentials_path: str) -> str:
 
 
 def call_with_refresh(
-    api_fn: Callable[..., Dict[str, Any]],
+    api_fn: Callable[..., dict[str, Any]],
     credentials_path: str,
     *args: Any,
     **kwargs: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Invoke ``api_fn(token, *args, **kwargs)`` with one-shot 401 auto-refresh.
 
     Loads the current access token from disk, calls the helper, and if Google

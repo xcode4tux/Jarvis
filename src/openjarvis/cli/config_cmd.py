@@ -359,8 +359,10 @@ def set_config(key: str, value: str) -> None:
         current = current[part]
     current[parts[-1]] = typed_value
 
-    # Write back
-    config_path.write_text(tomlkit.dumps(doc))
+    # Write back — atomic so a crash mid-write can't corrupt config.toml
+    from openjarvis.security.file_utils import atomic_write_text
+
+    atomic_write_text(config_path, tomlkit.dumps(doc))
 
     console.print(f"[green]Set[/green] {key} = {value!r}")
 

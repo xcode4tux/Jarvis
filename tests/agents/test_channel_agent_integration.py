@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 from openjarvis.agents.channel_agent import ChannelAgent
@@ -39,8 +39,8 @@ class FakeChannel(BaseChannel):
     channel_id = "fake"
 
     def __init__(self) -> None:
-        self._handlers: List[Any] = []
-        self._sent: List[Dict[str, Any]] = []
+        self._handlers: list[Any] = []
+        self._sent: list[dict[str, Any]] = []
 
     def connect(self) -> None:
         pass
@@ -54,7 +54,7 @@ class FakeChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         self._sent.append({"content": content, "conv": conversation_id})
         return True
@@ -62,7 +62,7 @@ class FakeChannel(BaseChannel):
     def status(self) -> ChannelStatus:
         return ChannelStatus.CONNECTED
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         return ["test"]
 
     def on_message(self, handler: Any) -> None:
@@ -122,9 +122,9 @@ _DOCS = [
 
 
 def _make_engine_response(
-    content: str, tool_calls: Optional[List[Dict[str, Any]]] = None
-) -> Dict[str, Any]:
-    result: Dict[str, Any] = {
+    content: str, tool_calls: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
         "content": content,
         "usage": {
             "prompt_tokens": 50,

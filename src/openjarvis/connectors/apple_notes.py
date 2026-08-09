@@ -26,9 +26,9 @@ from __future__ import annotations
 import gzip
 import re
 import sqlite3
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterator, List, Optional
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.registry import ConnectorRegistry
@@ -127,7 +127,7 @@ class AppleNotesConnector(BaseConnector):
         self._connected: bool = False
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
+        self._last_sync: datetime | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -144,8 +144,8 @@ class AppleNotesConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002
     ) -> Iterator[Document]:
         """Read notes from NoteStore.sqlite and yield one :class:`Document` each.
 
@@ -242,7 +242,7 @@ class AppleNotesConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time Apple Notes queries."""
         return [
             ToolSpec(

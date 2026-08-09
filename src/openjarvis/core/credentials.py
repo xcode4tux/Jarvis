@@ -89,8 +89,9 @@ def save_credential(
             for k, v in kvs.items():
                 lines.append(f'{k} = "{v}"')
             lines.append("")
-        p.write_text("\n".join(lines))
-        os.chmod(p, 0o600)
+        from openjarvis.security.file_utils import atomic_write_text
+
+        atomic_write_text(p, "\n".join(lines))
 
     os.environ[key] = stripped
 

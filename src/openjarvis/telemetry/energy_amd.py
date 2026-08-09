@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, List, Tuple
 
 from openjarvis.telemetry.energy_monitor import (
     EnergyMonitor,
@@ -32,7 +32,7 @@ class AmdEnergyMonitor(EnergyMonitor):
 
     def __init__(self, poll_interval_ms: int = 50) -> None:
         self._poll_interval_ms = poll_interval_ms
-        self._handles: List = []
+        self._handles: list = []
         self._device_count = 0
         self._device_name = ""
         self._initialized = False
@@ -69,9 +69,9 @@ class AmdEnergyMonitor(EnergyMonitor):
     def energy_method(self) -> str:
         return "hw_counter"
 
-    def _read_energy_counters(self) -> List[Tuple[float, float]]:
+    def _read_energy_counters(self) -> list[tuple[float, float]]:
         """Read (accumulator, resolution) pairs from all devices."""
-        readings: List[Tuple[float, float]] = []
+        readings: list[tuple[float, float]] = []
         for handle in self._handles:
             try:
                 info = amdsmi.amdsmi_get_energy_count(handle)

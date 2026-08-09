@@ -11,7 +11,6 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Default blocked patterns
 # ---------------------------------------------------------------------------
 
-DEFAULT_BLOCKED_PATTERNS: List[str] = [
+DEFAULT_BLOCKED_PATTERNS: list[str] = [
     ".ssh",
     ".gnupg",
     ".env",
@@ -61,8 +60,8 @@ class AllowedRoot:
 class MountAllowlist:
     """Allowlist for container mounts."""
 
-    roots: List[AllowedRoot] = field(default_factory=list)
-    blocked_patterns: List[str] = field(
+    roots: list[AllowedRoot] = field(default_factory=list)
+    blocked_patterns: list[str] = field(
         default_factory=lambda: list(DEFAULT_BLOCKED_PATTERNS),
     )
 
@@ -103,7 +102,7 @@ def load_mount_allowlist(path: str) -> MountAllowlist:
     return MountAllowlist(roots=roots, blocked_patterns=blocked)
 
 
-def _is_blocked(mount_path: str, patterns: List[str]) -> bool:
+def _is_blocked(mount_path: str, patterns: list[str]) -> bool:
     """Check whether any component of *mount_path* matches a block pattern."""
     resolved = Path(mount_path).resolve()
     parts = resolved.parts
@@ -122,7 +121,7 @@ def _is_blocked(mount_path: str, patterns: List[str]) -> bool:
 
 def _is_under_allowed_root(
     mount_path: str,
-    roots: List[AllowedRoot],
+    roots: list[AllowedRoot],
 ) -> bool:
     """Check whether *mount_path* is under any allowed root."""
     if not roots:
@@ -167,14 +166,14 @@ def validate_mount(
 
 
 def validate_mounts(
-    mounts: List[str],
+    mounts: list[str],
     allowlist: MountAllowlist,
-) -> List[str]:
+) -> list[str]:
     """Validate a list of mount paths. Returns only valid mounts.
 
     Raises :class:`ValueError` for any blocked mount.
     """
-    valid: List[str] = []
+    valid: list[str] = []
     for mount in mounts:
         if _is_blocked(mount, allowlist.blocked_patterns):
             raise ValueError(f"Mount path blocked by security policy: {mount}")

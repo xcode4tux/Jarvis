@@ -2,48 +2,102 @@
 
 from __future__ import annotations
 
+import importlib
+import logging
+
 import click
 
 import openjarvis
-from openjarvis.cli._bootstrap import bootstrap_cmd
-from openjarvis.cli.add_cmd import add
-from openjarvis.cli.agent_cmd import agent
-from openjarvis.cli.ask import ask
-from openjarvis.cli.bench_cmd import bench
-from openjarvis.cli.channel_cmd import channel
-from openjarvis.cli.channels_cmd import channels
-from openjarvis.cli.chat_cmd import chat
-from openjarvis.cli.compose_cmd import compose
-from openjarvis.cli.config_cmd import config
-from openjarvis.cli.connect_cmd import connect
-from openjarvis.cli.daemon_cmd import restart, start, status, stop
-from openjarvis.cli.digest_cmd import digest
-from openjarvis.cli.doctor_cmd import doctor
-from openjarvis.cli.eval_cmd import eval_group
-from openjarvis.cli.feedback_cmd import feedback_group
-from openjarvis.cli.gateway_cmd import gateway
-from openjarvis.cli.host_cmd import host
-from openjarvis.cli.init_cmd import init
-from openjarvis.cli.memory_cmd import memory
-from openjarvis.cli.mine_cmd import mine
-from openjarvis.cli.model import model
-from openjarvis.cli.operators_cmd import operators
-from openjarvis.cli.optimize_cmd import optimize_group
-from openjarvis.cli.pearl_cmd import pearl
-from openjarvis.cli.quickstart_cmd import quickstart
-from openjarvis.cli.registry_cmd import registry
-from openjarvis.cli.scan_cmd import scan
-from openjarvis.cli.scheduler_cmd import scheduler
-from openjarvis.cli.self_update_cmd import self_update
-from openjarvis.cli.serve import serve
-from openjarvis.cli.skill_cmd import skill
-from openjarvis.cli.telemetry_cmd import telemetry
-from openjarvis.cli.tool_cmd import tool
-from openjarvis.cli.vault_cmd import vault
-from openjarvis.cli.workflow_cmd import workflow
+
+logger = logging.getLogger(__name__)
+
+# Command registry: ``name -> (module, attribute)``. Modules are imported
+# lazily on first invocation so that ``jarvis --help`` and lightweight
+# commands (config, doctor, self-update) don't pay the cost of the full
+# engine/agent stack — the openai SDK alone costs ~1.3s to import.
+_COMMANDS: dict[str, tuple[str, str]] = {
+    "init": ("openjarvis.cli.init_cmd", "init"),
+    "ask": ("openjarvis.cli.ask", "ask"),
+    "chat": ("openjarvis.cli.chat_cmd", "chat"),
+    "serve": ("openjarvis.cli.serve", "serve"),
+    "model": ("openjarvis.cli.model", "model"),
+    "memory": ("openjarvis.cli.memory_cmd", "memory"),
+    "mine": ("openjarvis.cli.mine_cmd", "mine"),
+    "pearl": ("openjarvis.cli.pearl_cmd", "pearl"),
+    "telemetry": ("openjarvis.cli.telemetry_cmd", "telemetry"),
+    "bench": ("openjarvis.cli.bench_cmd", "bench"),
+    "channel": ("openjarvis.cli.channel_cmd", "channel"),
+    "channels": ("openjarvis.cli.channels_cmd", "channels"),
+    "scheduler": ("openjarvis.cli.scheduler_cmd", "scheduler"),
+    "doctor": ("openjarvis.cli.doctor_cmd", "doctor"),
+    "agents": ("openjarvis.cli.agent_cmd", "agent"),
+    "workflow": ("openjarvis.cli.workflow_cmd", "workflow"),
+    "skill": ("openjarvis.cli.skill_cmd", "skill"),
+    "start": ("openjarvis.cli.daemon_cmd", "start"),
+    "stop": ("openjarvis.cli.daemon_cmd", "stop"),
+    "restart": ("openjarvis.cli.daemon_cmd", "restart"),
+    "status": ("openjarvis.cli.daemon_cmd", "status"),
+    "vault": ("openjarvis.cli.vault_cmd", "vault"),
+    "add": ("openjarvis.cli.add_cmd", "add"),
+    "operators": ("openjarvis.cli.operators_cmd", "operators"),
+    "eval": ("openjarvis.cli.eval_cmd", "eval_group"),
+    "host": ("openjarvis.cli.host_cmd", "host"),
+    "quickstart": ("openjarvis.cli.quickstart_cmd", "quickstart"),
+    "optimize": ("openjarvis.cli.optimize_cmd", "optimize_group"),
+    "feedback": ("openjarvis.cli.feedback_cmd", "feedback_group"),
+    "compose": ("openjarvis.cli.compose_cmd", "compose"),
+    "gateway": ("openjarvis.cli.gateway_cmd", "gateway"),
+    "tool": ("openjarvis.cli.tool_cmd", "tool"),
+    "registry": ("openjarvis.cli.registry_cmd", "registry"),
+    "config": ("openjarvis.cli.config_cmd", "config"),
+    "scan": ("openjarvis.cli.scan_cmd", "scan"),
+    "connect": ("openjarvis.cli.connect_cmd", "connect"),
+    "digest": ("openjarvis.cli.digest_cmd", "digest"),
+    "deep-research-setup": (
+        "openjarvis.cli.deep_research_setup_cmd",
+        "deep_research_setup",
+    ),
+    "research": ("openjarvis.cli.deep_research_setup_cmd", "deep_research_setup"),
+    "self-update": ("openjarvis.cli.self_update_cmd", "self_update"),
+    "_bootstrap": ("openjarvis.cli._bootstrap", "bootstrap_cmd"),
+    "auth": ("openjarvis.cli.auth_cmd", "auth"),
+    "tunnel": ("openjarvis.cli.tunnel_cmd", "tunnel"),
+}
+
+
+class _LazyGroup(click.Group):
+    """Click group that imports command modules on first use.
+
+    Defers the openai/httpx/rich stack until a command that actually needs
+    it is invoked, keeping ``jarvis --help`` and lightweight commands fast.
+    A command that fails to import (missing platform deps, broken numpy on
+    Windows) is skipped instead of taking down the whole CLI.
+    """
+
+    def list_commands(self, ctx) -> list[str]:  # noqa: ARG002
+        return sorted(_COMMANDS)
+
+    def get_command(self, ctx, cmd_name):  # noqa: ARG002
+        if cmd_name not in _COMMANDS:
+            return None
+        mod_name, attr = _COMMANDS[cmd_name]
+        try:
+            mod = importlib.import_module(mod_name)
+            cmd = getattr(mod, attr)
+        except Exception as exc:  # noqa: BLE001 — optional command, never fatal
+            logger.debug(
+                "Command %r unavailable (%s): %s",
+                cmd_name,
+                type(exc).__name__,
+                exc,
+            )
+            return None
+        self.add_command(cmd, cmd_name)
+        return cmd
 
 
 @click.group(
+    cls=_LazyGroup,
     help="OpenJarvis — modular AI assistant backend",
     invoke_without_command=True,
 )
@@ -89,76 +143,6 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
         from openjarvis.cli._first_run import check_and_route
 
         check_and_route(ctx)
-
-
-cli.add_command(init, "init")
-cli.add_command(ask, "ask")
-cli.add_command(chat, "chat")
-cli.add_command(serve, "serve")
-cli.add_command(model, "model")
-cli.add_command(memory, "memory")
-cli.add_command(mine, "mine")
-cli.add_command(pearl, "pearl")
-cli.add_command(telemetry, "telemetry")
-cli.add_command(bench, "bench")
-cli.add_command(channel, "channel")
-cli.add_command(channels, "channels")
-cli.add_command(scheduler, "scheduler")
-cli.add_command(doctor, "doctor")
-cli.add_command(agent, "agents")
-cli.add_command(workflow, "workflow")
-cli.add_command(skill, "skill")
-cli.add_command(start, "start")
-cli.add_command(stop, "stop")
-cli.add_command(restart, "restart")
-cli.add_command(status, "status")
-cli.add_command(vault, "vault")
-cli.add_command(add, "add")
-cli.add_command(operators, "operators")
-cli.add_command(eval_group, "eval")
-cli.add_command(host, "host")
-cli.add_command(quickstart, "quickstart")
-cli.add_command(optimize_group, "optimize")
-cli.add_command(feedback_group, "feedback")
-cli.add_command(compose, "compose")
-cli.add_command(gateway, "gateway")
-cli.add_command(tool, "tool")
-cli.add_command(registry, "registry")
-cli.add_command(config, "config")
-cli.add_command(scan, "scan")
-cli.add_command(connect, "connect")
-cli.add_command(digest, "digest")
-# deep-research setup pulls the ingestion pipeline (embeddings/numpy). Guard it
-# so a broken or slow numpy on Windows — which can raise at IMPORT time, not
-# just ImportError (#404) — can never take down the whole CLI, including
-# `jarvis serve`. Invoking `jarvis deep-research-setup` without the deps still
-# errors clearly on demand.
-try:
-    from openjarvis.cli.deep_research_setup_cmd import deep_research_setup
-
-    cli.add_command(deep_research_setup, "deep-research-setup")
-    cli.add_command(deep_research_setup, "research")
-except Exception as _dr_exc:
-    import logging as _logging
-
-    _logging.getLogger(__name__).debug("deep-research command unavailable: %s", _dr_exc)
-cli.add_command(self_update, "self-update")
-cli.add_command(bootstrap_cmd, "_bootstrap")
-
-# Gateway CLI commands (lazy import to avoid pulling starlette)
-try:
-    from openjarvis.cli.auth_cmd import auth
-
-    cli.add_command(auth, "auth")
-except ImportError:
-    pass
-
-try:
-    from openjarvis.cli.tunnel_cmd import tunnel
-
-    cli.add_command(tunnel, "tunnel")
-except ImportError:
-    pass
 
 
 def main() -> None:

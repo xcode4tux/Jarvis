@@ -8,7 +8,7 @@ written via AgentConfigEvolver.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.core.config import GEPAOptimizerConfig
 from openjarvis.core.registry import LearningRegistry
@@ -42,21 +42,21 @@ class OpenJarvisGEPAAdapter:
         self.trace_store = trace_store
         self.agent_name = agent_name
         self.config = config
-        self._traces: List[Any] = []
+        self._traces: list[Any] = []
 
     def load_traces(self) -> None:
         """Load traces from the store."""
-        kwargs: Dict[str, Any] = {"limit": 10_000}
+        kwargs: dict[str, Any] = {"limit": 10_000}
         if self.agent_name:
             kwargs["agent"] = self.agent_name
         self._traces = self.trace_store.list_traces(**kwargs)
 
     def assess(
         self,
-        batch: List[Any],
-        candidate: Dict[str, Any],
+        batch: list[Any],
+        candidate: dict[str, Any],
         capture_traces: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Score a candidate config against a batch of test cases.
 
         Returns a dict with at least 'scores' (list of floats) key.
@@ -91,17 +91,17 @@ class OpenJarvisGEPAAdapter:
             else:
                 scores.append(0.0)
 
-        result: Dict[str, Any] = {"scores": scores}
+        result: dict[str, Any] = {"scores": scores}
         if capture_traces:
             result["traces"] = trace_data
         return result
 
     def make_reflective_dataset(
         self,
-        candidate: Dict[str, Any],
-        assessment_batch: List[Any],
-        components_to_update: List[str],
-    ) -> List[Dict[str, Any]]:
+        candidate: dict[str, Any],
+        assessment_batch: list[Any],
+        components_to_update: list[str],
+    ) -> list[dict[str, Any]]:
         """Package trace diagnostics as Actionable Side Information for GEPA."""
         dataset = []
         for item in assessment_batch:
@@ -157,7 +157,7 @@ class GEPAAgentOptimizer:
     def __init__(self, config: GEPAOptimizerConfig) -> None:
         self.config = config
 
-    def optimize(self, trace_store: Any) -> Dict[str, Any]:
+    def optimize(self, trace_store: Any) -> dict[str, Any]:
         """Run GEPA optimization on traces from the store.
 
         1. Load traces and build the GEPA adapter
@@ -166,7 +166,7 @@ class GEPAAgentOptimizer:
         4. Extract best candidate as TOML updates
         5. Write via AgentConfigEvolver if config_dir is set
         """
-        kwargs: Dict[str, Any] = {"limit": 10_000}
+        kwargs: dict[str, Any] = {"limit": 10_000}
         if self.config.agent_filter:
             kwargs["agent"] = self.config.agent_filter
         traces = trace_store.list_traces(**kwargs)
@@ -211,8 +211,8 @@ class GEPAAgentOptimizer:
     def _run_gepa(
         self,
         adapter: OpenJarvisGEPAAdapter,
-        traces: List[Any],
-    ) -> Dict[str, Any]:
+        traces: list[Any],
+    ) -> dict[str, Any]:
         """Run the GEPA evolutionary optimization loop."""
         # Build search space from config flags
         components = []
@@ -247,11 +247,11 @@ class GEPAAgentOptimizer:
 
         return result.best_candidate if hasattr(result, "best_candidate") else result
 
-    def _build_initial_candidate(self, traces: List[Any]) -> Dict[str, Any]:
+    def _build_initial_candidate(self, traces: list[Any]) -> dict[str, Any]:
         """Build initial candidate config from trace analysis."""
         # Collect tool usage frequencies
-        tool_freq: Dict[str, int] = {}
-        turn_counts: List[int] = []
+        tool_freq: dict[str, int] = {}
+        turn_counts: list[int] = []
 
         for t in traces:
             n_tools = 0
@@ -276,9 +276,9 @@ class GEPAAgentOptimizer:
             "temperature": 0.3,
         }
 
-    def _to_config_updates(self, candidate: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_config_updates(self, candidate: dict[str, Any]) -> dict[str, Any]:
         """Convert GEPA candidate to TOML-compatible config dict."""
-        updates: Dict[str, Any] = {}
+        updates: dict[str, Any] = {}
         if self.config.optimize_system_prompt and "system_prompt" in candidate:
             updates["system_prompt"] = candidate["system_prompt"]
         if self.config.optimize_tools and "tools" in candidate:
@@ -289,7 +289,7 @@ class GEPAAgentOptimizer:
             updates["temperature"] = candidate["temperature"]
         return updates
 
-    def _write_configs(self, agent_name: str, config_updates: Dict[str, Any]) -> None:
+    def _write_configs(self, agent_name: str, config_updates: dict[str, Any]) -> None:
         """Write updated configs via AgentConfigEvolver."""
         import pathlib
 
@@ -317,7 +317,7 @@ class _GEPALearningPolicy(AgentLearningPolicy):
     def __init__(self, **kwargs: object) -> None:
         pass
 
-    def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+    def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
         config = GEPAOptimizerConfig()
         optimizer = GEPAAgentOptimizer(config)
         return optimizer.optimize(trace_store)

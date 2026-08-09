@@ -10,7 +10,7 @@ the prompt once and hand the string to the agent's ``run(input=...)``.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 GAIA_INSTRUCTION = (
     "GAIA expects a single short, exact answer. Reason as needed, then commit to "
@@ -36,11 +36,11 @@ SWEBENCH_INSTRUCTION = (
 )
 
 
-def format_gaia(task: Dict[str, Any]) -> str:
+def format_gaia(task: dict[str, Any]) -> str:
     return f"{GAIA_INSTRUCTION}\n\nQuestion:\n{task.get('question', '')}"
 
 
-def format_swebench(task: Dict[str, Any]) -> str:
+def format_swebench(task: dict[str, Any]) -> str:
     header = SWEBENCH_INSTRUCTION + "\n\n"
     if task.get("repo"):
         header += f"Repository: {task['repo']}\n"
@@ -50,7 +50,7 @@ def format_swebench(task: Dict[str, Any]) -> str:
     return header + task.get("problem_statement", "")
 
 
-def format_prompt(task: Dict[str, Any]) -> str:
+def format_prompt(task: dict[str, Any]) -> str:
     """Dispatch on task shape — same contract as ``benches.format_prompt``."""
     if task.get("question"):
         return format_gaia(task)

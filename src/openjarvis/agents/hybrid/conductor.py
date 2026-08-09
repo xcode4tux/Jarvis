@@ -37,7 +37,7 @@ import shutil
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -130,7 +130,7 @@ def _try_literal(s: str):
     return out
 
 
-def _validate_plan(plan: Any, n_workers: int) -> Optional[str]:
+def _validate_plan(plan: Any, n_workers: int) -> str | None:
     if not isinstance(plan, dict):
         return "plan is not a dict"
     for k in ("model_id", "subtasks", "access_list"):
@@ -183,7 +183,7 @@ def _vllm_alive(base_url: str) -> bool:
         return False
 
 
-def _default_pool(local_model: Optional[str], local_endpoint: Optional[str]) -> List[Dict[str, Any]]:
+def _default_pool(local_model: str | None, local_endpoint: str | None) -> list[dict[str, Any]]:
     """Default worker pool — faithful to the Sakana Conductor paper (arXiv 2512.04388).
 
     The paper composes a heterogeneous 7-worker pool spanning three frontier
@@ -203,7 +203,7 @@ def _default_pool(local_model: Optional[str], local_endpoint: Optional[str]) -> 
     only included when the user opts in via ``cfg["worker_pool"]``.
     """
     del local_model, local_endpoint  # paper default carries no local worker
-    pool: List[Dict[str, Any]] = []
+    pool: list[dict[str, Any]] = []
     if not os.environ.get("OJ_CONDUCTOR_DISABLE_GEMINI"):
         pool.append({
             "id": len(pool),
@@ -312,11 +312,11 @@ _CONDUCTOR_VALID_ENDPOINTS = ("vllm", "openai", "anthropic", "openrouter", "gemi
 
 
 def _resolve_worker_pool(
-    cfg: Dict[str, Any],
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
+    cfg: dict[str, Any],
+    local_model: str | None,
+    local_endpoint: str | None,
     cloud_model: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return the worker pool for this run.
 
     Strict replace, not merge: if ``cfg["worker_pool"]`` is set, the
@@ -346,7 +346,7 @@ def _resolve_worker_pool(
             "Invalid worker_pool entry [-]: worker_pool must be a non-empty list"
         )
 
-    resolved: List[Dict[str, Any]] = []
+    resolved: list[dict[str, Any]] = []
     seen_ids: set = set()
     has_non_search = False
     for raw in override:
@@ -450,13 +450,13 @@ def _resolve_worker_pool(
     return resolved
 
 
-def _format_worker_pool(workers: List[Dict[str, Any]]) -> str:
+def _format_worker_pool(workers: list[dict[str, Any]]) -> str:
     return "\n".join(
         f"Model {w['id']} ({w['name']}): {w['description']}" for w in workers
     )
 
 
-def _search_capable_indices(workers: List[Dict[str, Any]]) -> List[int]:
+def _search_capable_indices(workers: list[dict[str, Any]]) -> list[int]:
     """Indices of workers whose endpoint can run server-side web search."""
     return [
         w["id"] for w in workers
@@ -467,7 +467,7 @@ def _search_capable_indices(workers: List[Dict[str, Any]]) -> List[int]:
 
 def _build_conductor_prompt(
     question: str,
-    workers: List[Dict[str, Any]],
+    workers: list[dict[str, Any]],
     *,
     web_search_enabled: bool = False,
 ) -> str:
@@ -510,8 +510,8 @@ def _build_conductor_prompt(
 def _build_step_prompt(
     question: str,
     subtask: str,
-    prior_steps: List[Dict[str, Any]],
-    access: "list[int] | str",
+    prior_steps: list[dict[str, Any]],
+    access: list[int] | str,
 ) -> str:
     indices = list(range(len(prior_steps))) if access == "all" else list(access)
     pieces = [f"User question:\n{question}\n"]
@@ -544,13 +544,13 @@ def _worker_search_cost_per_call(endpoint: str) -> float:
 
 
 def _call_worker(
-    worker: Dict[str, Any],
+    worker: dict[str, Any],
     prompt: str,
-    cfg: Dict[str, Any],
+    cfg: dict[str, Any],
     *,
-    web_search_tool: Optional[Dict[str, Any]] = None,
+    web_search_tool: dict[str, Any] | None = None,
     web_search_max_uses: int = 8,
-) -> Tuple[str, int, int, bool, int]:
+) -> tuple[str, int, int, bool, int]:
     """Returns (text, p_tok, c_tok, is_local, n_web_searches).
 
     ``web_search_tool``: a truthy marker that web_search is enabled for
@@ -610,7 +610,7 @@ def _call_worker(
         return text, p, c, False, 0
     if ep == "anthropic":
         eff_temp = temp if supports_temperature(worker["model"]) else 0.0
-        anthropic_kwargs: Dict[str, Any] = dict(
+        anthropic_kwargs: dict[str, Any] = dict(
             user=prompt,
             max_tokens=max_tok,
             temperature=eff_temp,
@@ -644,13 +644,13 @@ def _call_worker(
 
 
 def _swe_worker_step(
-    worker: Dict[str, Any],
-    task: Dict[str, Any],
+    worker: dict[str, Any],
+    task: dict[str, Any],
     prompt: str,
-    cfg: Dict[str, Any],
+    cfg: dict[str, Any],
     workdir: Path,
     step_idx: int,
-) -> Tuple[str, int, int, bool, int, int]:
+) -> tuple[str, int, int, bool, int, int]:
     """Run one Conductor worker step as a mini-SWE-agent subloop on a shared
     workdir. Returns (final_summary_or_diff, tokens_in, tokens_out, is_local,
     n_web_searches, bash_turns). SWE workers don't use web_search (the bash
@@ -717,9 +717,9 @@ class ConductorAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         question = input
         cfg = self._cfg
         # Resolution order (strict replace, no merge):
@@ -812,12 +812,12 @@ class ConductorAgent(LocalCloudAgent):
         # planner constraint above) — reuse them.
         task_meta = task_meta_early
         swe_mode = swe_mode_early
-        steps: List[Dict[str, Any]] = []
+        steps: list[dict[str, Any]] = []
         tokens_local = 0
         tokens_cloud = 0
         cost = 0.0
         final_answer = ""
-        shared_workdir: Optional[Path] = None
+        shared_workdir: Path | None = None
         n_web_searches_total = 0
         # tool_calls aggregator: bash turns on SWE (per worker subloop) +
         # web_search uses on GAIA. Conductor planner is text-only.

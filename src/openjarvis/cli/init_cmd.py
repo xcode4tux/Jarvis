@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import click
 import httpx
@@ -295,14 +294,14 @@ def _do_download(engine: str, model: str, spec, console: Console) -> None:
 def init(
     ctx: click.Context,
     force: bool,
-    config: Optional[Path],
+    config: Path | None,
     full_config: bool = False,
-    engine: Optional[str] = None,
+    engine: str | None = None,
     no_download: bool = False,
     skip_scan: bool = False,
-    host: Optional[str] = None,
+    host: str | None = None,
     enable_digest: bool = False,
-    preset: Optional[str] = None,
+    preset: str | None = None,
     from_bare_jarvis: bool = False,
 ) -> None:
     """Detect hardware and generate ~/.openjarvis/config.toml."""

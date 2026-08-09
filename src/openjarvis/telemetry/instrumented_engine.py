@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import statistics
 import time
-from collections.abc import AsyncIterator
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import AsyncIterator, Sequence
+from typing import Any
 
 from openjarvis.core.events import EventBus, EventType
 from openjarvis.core.types import TOKEN_COUNTING_VERSION, Message, TelemetryRecord
@@ -67,8 +67,8 @@ class InstrumentedEngine(InferenceEngine):
         self,
         engine: InferenceEngine,
         bus: EventBus,
-        gpu_monitor: Optional[Any] = None,
-        energy_monitor: Optional[Any] = None,
+        gpu_monitor: Any | None = None,
+        energy_monitor: Any | None = None,
     ) -> None:
         self._inner = engine
         self._bus = bus
@@ -84,7 +84,7 @@ class InstrumentedEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate with telemetry recording."""
         self._bus.publish(
             EventType.INFERENCE_START,
@@ -94,8 +94,8 @@ class InstrumentedEngine(InferenceEngine):
             },
         )
 
-        gpu_sample: Optional[GpuSample] = None
-        energy_sample: Optional[Any] = None
+        gpu_sample: GpuSample | None = None
+        energy_sample: Any | None = None
         t0 = time.time()
 
         # Prefer EnergyMonitor over legacy GpuMonitor
@@ -319,8 +319,8 @@ class InstrumentedEngine(InferenceEngine):
         token_timestamps: list[float] = []
         token_count = 0
 
-        energy_sample: Optional[Any] = None
-        gpu_sample: Optional[GpuSample] = None
+        energy_sample: Any | None = None
+        gpu_sample: GpuSample | None = None
 
         if self._energy_monitor is not None:
             with self._energy_monitor.sample() as energy_sample:
@@ -490,7 +490,7 @@ class InstrumentedEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> AsyncIterator["StreamChunk"]:
+    ) -> AsyncIterator[StreamChunk]:
         """Delegate to inner engine's stream_full for tool-call support."""
         async for chunk in self._inner.stream_full(
             messages,
@@ -501,7 +501,7 @@ class InstrumentedEngine(InferenceEngine):
         ):
             yield chunk
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return self._inner.list_models()
 
     def health(self) -> bool:

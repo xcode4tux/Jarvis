@@ -14,7 +14,7 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.core import get_python_executable
 from openjarvis.evals.core.scorer import Scorer
@@ -75,7 +75,7 @@ def _run_single_test(
     test_input: str,
     expected_output: str,
     timeout: int = _TIMEOUT_SECONDS,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Run code in a subprocess with the given input, compare output.
 
     Returns (passed, detail_message).
@@ -177,12 +177,12 @@ class LiveCodeBenchScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response"}
 
-        test_inputs: List[str] = record.metadata.get("test_inputs", [])
-        test_outputs: List[str] = record.metadata.get("test_outputs", [])
+        test_inputs: list[str] = record.metadata.get("test_inputs", [])
+        test_outputs: list[str] = record.metadata.get("test_outputs", [])
 
         if not test_inputs or not test_outputs:
             return None, {"reason": "no_test_cases"}
@@ -216,7 +216,7 @@ class LiveCodeBenchScorer(Scorer):
 
         passed = 0
         total = len(test_inputs)
-        test_details: List[Dict[str, Any]] = []
+        test_details: list[dict[str, Any]] = []
 
         for i, (inp, expected) in enumerate(zip(test_inputs, test_outputs)):
             ok, detail = _run_single_test(code, inp, expected, timeout=timeout)
@@ -236,7 +236,7 @@ class LiveCodeBenchScorer(Scorer):
         pass_rate = passed / total
         is_correct = passed == total
 
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "match_type": "test_execution",
             "tests_passed": passed,
             "tests_total": total,

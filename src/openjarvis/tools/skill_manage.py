@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.core.types import ToolResult
@@ -70,7 +70,7 @@ class SkillManageTool(BaseTool):
             content=f"Unknown action: {action}",
         )
 
-    def _create(self, name: str, description: str, steps: List[dict]) -> ToolResult:
+    def _create(self, name: str, description: str, steps: list[dict]) -> ToolResult:
         if not name:
             return ToolResult(
                 tool_name=self.spec.name,

@@ -8,7 +8,7 @@ config updates written via AgentConfigEvolver.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.core.config import DSPyOptimizerConfig
 from openjarvis.core.registry import LearningRegistry
@@ -38,7 +38,7 @@ class DSPyAgentOptimizer:
     def __init__(self, config: DSPyOptimizerConfig) -> None:
         self.config = config
 
-    def optimize(self, trace_store: Any) -> Dict[str, Any]:
+    def optimize(self, trace_store: Any) -> dict[str, Any]:
         """Run DSPy optimization on traces from the store.
 
         1. Extract traces and convert to DSPy Examples
@@ -48,7 +48,7 @@ class DSPyAgentOptimizer:
         5. Write via AgentConfigEvolver if config_dir is set
         """
         # Get traces
-        kwargs: Dict[str, Any] = {"limit": 10_000}
+        kwargs: dict[str, Any] = {"limit": 10_000}
         if self.config.agent_filter:
             kwargs["agent"] = self.config.agent_filter
         traces = trace_store.list_traces(**kwargs)
@@ -87,7 +87,7 @@ class DSPyAgentOptimizer:
             "config_updates": config_updates,
         }
 
-    def _run_dspy_optimization(self, traces: List[Any]) -> Dict[str, Any]:
+    def _run_dspy_optimization(self, traces: list[Any]) -> dict[str, Any]:
         """Run the DSPy teleprompter on converted trace examples."""
         # Convert traces to dspy.Example objects
         examples = []
@@ -143,7 +143,7 @@ class DSPyAgentOptimizer:
         optimized_program = teleprompter.compile(program, trainset=train_set)
 
         # Extract optimized parameters
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         if hasattr(optimized_program, "generate") and hasattr(
             optimized_program.generate, "demos"
         ):
@@ -155,9 +155,9 @@ class DSPyAgentOptimizer:
 
         return result
 
-    def _to_config_updates(self, optimized: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_config_updates(self, optimized: dict[str, Any]) -> dict[str, Any]:
         """Convert DSPy optimization results to TOML-compatible config."""
-        updates: Dict[str, Any] = {}
+        updates: dict[str, Any] = {}
 
         if self.config.optimize_system_prompt and "system_prompt" in optimized:
             updates["system_prompt"] = optimized["system_prompt"]
@@ -170,7 +170,7 @@ class DSPyAgentOptimizer:
 
         return updates
 
-    def _write_configs(self, config_updates: Dict[str, Any]) -> None:
+    def _write_configs(self, config_updates: dict[str, Any]) -> None:
         """Write updated configs via AgentConfigEvolver."""
         import pathlib
 
@@ -199,7 +199,7 @@ class _DSPyLearningPolicy(AgentLearningPolicy):
     def __init__(self, **kwargs: object) -> None:
         pass
 
-    def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+    def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
         config = DSPyOptimizerConfig()
         optimizer = DSPyAgentOptimizer(config)
         return optimizer.optimize(trace_store)

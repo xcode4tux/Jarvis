@@ -11,7 +11,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from openjarvis.evals.backends.external._subprocess_runner import run_one_shot
 from openjarvis.evals.comparison.third_party import (
@@ -76,7 +76,7 @@ class HermesBackend(InferenceBackend):
         system: str = "",
         temperature: float = 0.0,
         max_tokens: int = 2048,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as fh:
             output_json = Path(fh.name)
 

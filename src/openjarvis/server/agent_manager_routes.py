@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re as _re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents.manager import AgentManager
 
@@ -21,14 +21,14 @@ logger = logging.getLogger("openjarvis.server.agent_manager")
 class CreateAgentRequest(BaseModel):
     name: str
     agent_type: str = "monitor_operative"
-    config: Optional[Dict[str, Any]] = None
-    template_id: Optional[str] = None
+    config: dict[str, Any] | None = None
+    template_id: str | None = None
 
 
 class UpdateAgentRequest(BaseModel):
-    name: Optional[str] = None
-    agent_type: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    agent_type: str | None = None
+    config: dict[str, Any] | None = None
 
 
 class CreateTaskRequest(BaseModel):
@@ -36,15 +36,15 @@ class CreateTaskRequest(BaseModel):
 
 
 class UpdateTaskRequest(BaseModel):
-    description: Optional[str] = None
-    status: Optional[str] = None
-    progress: Optional[Dict[str, Any]] = None
-    findings: Optional[List[Any]] = None
+    description: str | None = None
+    status: str | None = None
+    progress: dict[str, Any] | None = None
+    findings: list[Any] | None = None
 
 
 class BindChannelRequest(BaseModel):
     channel_type: str
-    config: Optional[Dict[str, Any]] = None
+    config: dict[str, Any] | None = None
     routing_mode: str = "dedicated"
 
 
@@ -56,7 +56,7 @@ class SendMessageRequest(BaseModel):
 
 class FeedbackRequest(BaseModel):
     score: float
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 _BROWSER_SUB_TOOLS = {
@@ -249,7 +249,7 @@ def _ensure_registries_populated() -> None:
                     pass
 
 
-def build_tools_list() -> List[Dict[str, Any]]:
+def build_tools_list() -> list[dict[str, Any]]:
     """Build unified tools list from ToolRegistry + ChannelRegistry."""
     import os
 
@@ -258,7 +258,7 @@ def build_tools_list() -> List[Dict[str, Any]]:
 
     _ensure_registries_populated()
 
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
 
     for name, tool_cls in ToolRegistry.items():
         if name in _BROWSER_SUB_TOOLS:
@@ -337,7 +337,7 @@ def build_tools_list() -> List[Dict[str, Any]]:
 
 def _resolve_tool_specs(
     tool_config: Any,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Convert a template's ``tools`` config into OpenAI-format function specs.
 
     The template TOML stores tools as a list of string names (e.g.
@@ -361,7 +361,7 @@ def _resolve_tool_specs(
 
     _ensure_registries_populated()
 
-    def _spec_dict_for(name: str) -> Optional[Dict[str, Any]]:
+    def _spec_dict_for(name: str) -> dict[str, Any] | None:
         try:
             spec = ToolRegistry.get(name)().spec
         except Exception as exc:
@@ -380,7 +380,7 @@ def _resolve_tool_specs(
             },
         }
 
-    resolved: List[Dict[str, Any]] = []
+    resolved: list[dict[str, Any]] = []
     seen: set = set()
 
     for entry in tool_config:
@@ -459,9 +459,9 @@ def _build_managed_system_prompt(system_prompt: str, app_config: Any) -> str:
     return builder.build()
 
 
-def _sampler_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
+def _sampler_kwargs(config: dict[str, Any]) -> dict[str, Any]:
     """Extract per-agent sampler params from a managed agent's config (#386)."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for key in _SAMPLER_PARAM_KEYS:
         val = config.get(key)
         if val is not None:
@@ -470,9 +470,9 @@ def _sampler_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _replay_history_messages(
-    history: List[Dict[str, Any]],
+    history: list[dict[str, Any]],
     exclude_id: str,
-) -> List[Any]:
+) -> list[Any]:
     """Rebuild prior-turn LLM messages from stored managed-agent history.
 
     When a stored assistant turn recorded ``tool_calls``, replay them as an
@@ -483,7 +483,7 @@ def _replay_history_messages(
     """
     from openjarvis.core.types import Message, Role, ToolCall
 
-    messages: List[Any] = []
+    messages: list[Any] = []
     for m in reversed(history):
         if m.get("id") == exclude_id:
             continue
@@ -614,8 +614,8 @@ def _build_deep_research_tools(
 
 
 def _merge_tool_call_fragments(
-    accumulated: Dict[int, Dict[str, Any]],
-    fragments: List[Dict[str, Any]],
+    accumulated: dict[int, dict[str, Any]],
+    fragments: list[dict[str, Any]],
 ) -> None:
     """Merge incremental tool_call delta fragments into accumulated state.
 
@@ -641,7 +641,7 @@ def _merge_tool_call_fragments(
             entry["function"]["arguments"] += fn["arguments"]
 
 
-def _get_mcp_tools(app_state: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+def _get_mcp_tools(app_state: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Return (openai_tools_list, mcp_adapters_by_name).
 
     Lazily discovers MCP tools from config and caches them on ``app_state``
@@ -655,8 +655,8 @@ def _get_mcp_tools(app_state: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any]
 
     from openjarvis.core.config import load_config
 
-    openai_tools: List[Dict[str, Any]] = []
-    adapters_by_name: Dict[str, Any] = {}
+    openai_tools: list[dict[str, Any]] = []
+    adapters_by_name: dict[str, Any] = {}
 
     try:
         app_config = load_config()
@@ -796,7 +796,7 @@ def _tool_progress_label(tool_name: str, args: str) -> str:
 async def _stream_managed_agent(
     *,
     manager: AgentManager,
-    agent_record: Dict[str, Any],
+    agent_record: dict[str, Any],
     user_content: str,
     message_id: str,
     engine: Any,
@@ -832,7 +832,7 @@ async def _stream_managed_agent(
     max_turns = config.get("max_turns", 10)
 
     # Build conversation messages from history + current input
-    llm_messages: List[Message] = []
+    llm_messages: list[Message] = []
 
     # Wire the SystemPromptBuilder to inject SOUL.md / MEMORY.md / USER.md
     # persona files (parity with the CLI/ask path) — see #431.
@@ -1024,8 +1024,8 @@ async def _stream_managed_agent(
                 # Collect tool calls from deep-research so we can persist them
                 # alongside the final response (and the UI can re-render them
                 # after a page reload).
-                dr_tool_calls: List[Dict[str, Any]] = []
-                _pending_dr_starts: Dict[str, str] = {}
+                dr_tool_calls: list[dict[str, Any]] = []
+                _pending_dr_starts: dict[str, str] = {}
 
                 # Stream progress events and final content
                 while True:
@@ -1156,7 +1156,7 @@ async def _stream_managed_agent(
     # Build extra kwargs for stream_full (e.g. tools from config).
     # Template stores tool names as strings; convert to OpenAI function specs
     # so the engine can actually bind them to the model.
-    stream_kwargs: Dict[str, Any] = {}
+    stream_kwargs: dict[str, Any] = {}
     resolved_tools = _resolve_tool_specs(config.get("tools"))
     if resolved_tools:
         stream_kwargs["tools"] = resolved_tools
@@ -1166,7 +1166,7 @@ async def _stream_managed_agent(
     stream_kwargs.update(_sampler_kwargs(config))
 
     # Discover MCP tools and merge into stream_kwargs
-    mcp_adapters: Dict[str, Any] = {}
+    mcp_adapters: dict[str, Any] = {}
     if app_state is not None:
         try:
             mcp_openai_tools, mcp_adapters = _get_mcp_tools(app_state)
@@ -1186,7 +1186,7 @@ async def _stream_managed_agent(
     # runs after the SSE response completes (or the client disconnects
     # mid-stream). Starlette guarantees the BackgroundTask runs in both
     # cases, so we use it as the single, reliable persistence point.
-    persist_state: Dict[str, Any] = {
+    persist_state: dict[str, Any] = {
         "content": "",
         "tool_calls": [],
         "persisted": False,
@@ -1228,7 +1228,7 @@ async def _stream_managed_agent(
         """Async generator yielding SSE-formatted chunks with real token streaming."""
 
         collected_content = ""
-        collected_tool_calls: List[Dict[str, Any]] = []
+        collected_tool_calls: list[dict[str, Any]] = []
         messages_for_llm = list(llm_messages)
         turns = 0
 
@@ -1248,7 +1248,7 @@ async def _stream_managed_agent(
         while turns < max_turns:
             turns += 1
             turn_content = ""
-            tool_call_fragments: Dict[int, Dict[str, Any]] = {}
+            tool_call_fragments: dict[int, dict[str, Any]] = {}
             current_finish_reason = None
 
             try:
@@ -1518,7 +1518,7 @@ async def _stream_managed_agent(
 
 def create_agent_manager_router(
     manager: AgentManager,
-) -> Tuple[APIRouter, APIRouter, APIRouter, APIRouter, APIRouter]:
+) -> tuple[APIRouter, APIRouter, APIRouter, APIRouter, APIRouter]:
     """Create FastAPI routers with agent management endpoints.
 
     Returns a 5-tuple:
@@ -1563,7 +1563,7 @@ def create_agent_manager_router(
     async def update_agent(agent_id: str, req: UpdateAgentRequest):
         if not manager.get_agent(agent_id):
             raise HTTPException(status_code=404, detail="Agent not found")
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if req.name is not None:
             kwargs["name"] = req.name
         if req.agent_type is not None:
@@ -1673,7 +1673,7 @@ def create_agent_manager_router(
     # ── Tasks ────────────────────────────────────────────────
 
     @agents_router.get("/{agent_id}/tasks")
-    async def list_tasks(agent_id: str, status: Optional[str] = None):
+    async def list_tasks(agent_id: str, status: str | None = None):
         return {"tasks": manager.list_tasks(agent_id, status=status)}
 
     @agents_router.post("/{agent_id}/tasks")
@@ -1691,7 +1691,7 @@ def create_agent_manager_router(
 
     @agents_router.patch("/{agent_id}/tasks/{task_id}")
     async def update_task(agent_id: str, task_id: str, req: UpdateTaskRequest):
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if req.description is not None:
             kwargs["description"] = req.description
         if req.status is not None:
@@ -2352,7 +2352,7 @@ def create_agent_manager_router(
         import httpx
 
         try:
-            payload: Dict[str, str] = {
+            payload: dict[str, str] = {
                 "number": to_number,
                 "content": (
                     "Hello from your OpenJarvis agent! "

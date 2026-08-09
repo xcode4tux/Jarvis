@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import json
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional
 
 import httpx
 
@@ -30,10 +30,10 @@ def _fetch_feed(url: str) -> str:
     return resp.text
 
 
-def _parse_rss_items(xml_text: str, max_items: int = 5) -> List[Dict[str, str]]:
+def _parse_rss_items(xml_text: str, max_items: int = 5) -> list[dict[str, str]]:
     """Parse RSS or Atom XML and return up to *max_items* entries."""
     root = ET.fromstring(xml_text)
-    items: List[Dict[str, str]] = []
+    items: list[dict[str, str]] = []
 
     # RSS 2.0: <rss><channel><item>
     for item_el in root.iter("item"):
@@ -72,7 +72,7 @@ def _parse_rss_items(xml_text: str, max_items: int = 5) -> List[Dict[str, str]]:
     return items
 
 
-def _parse_pub_date(date_str: str) -> Optional[datetime]:
+def _parse_pub_date(date_str: str) -> datetime | None:
     """Best-effort parse of an RSS pubDate or Atom updated timestamp."""
     if not date_str:
         return None
@@ -98,7 +98,7 @@ class NewsRSSConnector(BaseConnector):
         self._config_path = Path(config_path)
         self._status = SyncStatus()
 
-    def _load_config(self) -> List[Dict[str, str]]:
+    def _load_config(self) -> list[dict[str, str]]:
         """Load feed list from disk."""
         data = json.loads(self._config_path.read_text(encoding="utf-8"))
         return data.get("feeds", [])
@@ -117,7 +117,7 @@ class NewsRSSConnector(BaseConnector):
             self._config_path.unlink()
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield Documents for recent items across all configured feeds."""
         feeds = self._load_config()

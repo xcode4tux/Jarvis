@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 from openjarvis.core.events import EventBus
 from openjarvis.core.types import StepType, Trace, TraceStep
@@ -13,14 +13,14 @@ from openjarvis.skills.manager import SkillManager
 class _FakeTraceStore:
     """In-memory trace store stub for tests."""
 
-    def __init__(self, traces: List[Trace]) -> None:
+    def __init__(self, traces: list[Trace]) -> None:
         self._traces = traces
 
-    def list_traces(self, *, limit: int = 100, **_kwargs: Any) -> List[Trace]:
+    def list_traces(self, *, limit: int = 100, **_kwargs: Any) -> list[Trace]:
         return list(self._traces[:limit])
 
 
-def _make_trace(tools: List[str], outcome: str = "success") -> Trace:
+def _make_trace(tools: list[str], outcome: str = "success") -> Trace:
     steps = [
         TraceStep(
             step_type=StepType.TOOL_CALL,

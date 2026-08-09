@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from openjarvis.core.types import ToolResult
 from openjarvis.skills.executor import SkillExecutor
@@ -35,7 +35,7 @@ class SkillTool(BaseTool):
         manifest: SkillManifest,
         executor: SkillExecutor,
         *,
-        skill_manager: Optional[Any] = None,
+        skill_manager: Any | None = None,
     ) -> None:
         self._manifest = manifest
         self._executor = executor
@@ -47,7 +47,7 @@ class SkillTool(BaseTool):
     # Parameter extraction
     # ------------------------------------------------------------------
 
-    def _build_parameters(self) -> Dict[str, Any]:
+    def _build_parameters(self) -> dict[str, Any]:
         """Auto-extract input parameters from the manifest.
 
         For pipeline skills, scan each step's ``arguments_template`` for
@@ -70,9 +70,9 @@ class SkillTool(BaseTool):
                 },
             }
 
-        produced: Set[str] = set()
-        input_params: List[str] = []
-        seen: Set[str] = set()
+        produced: set[str] = set()
+        input_params: list[str] = []
+        seen: set[str] = set()
 
         for step in self._manifest.steps:
             # Find all {placeholder} tokens in this step's template
@@ -87,7 +87,7 @@ class SkillTool(BaseTool):
             if step.output_key:
                 produced.add(step.output_key)
 
-        properties: Dict[str, Any] = {}
+        properties: dict[str, Any] = {}
         for param in input_params:
             properties[param] = {
                 "type": "string",
@@ -103,7 +103,7 @@ class SkillTool(BaseTool):
     # Result metadata
     # ------------------------------------------------------------------
 
-    def _build_result_metadata(self, *, steps_run: int) -> Dict[str, Any]:
+    def _build_result_metadata(self, *, steps_run: int) -> dict[str, Any]:
         """Build the metadata dict attached to ToolResult.
 
         Includes the skill name, source provenance, and kind so downstream
@@ -141,11 +141,11 @@ class SkillTool(BaseTool):
         append it to the content.  Returns a combined :class:`ToolResult`.
         """
         tool_name = self.spec.name
-        content_parts: List[str] = []
+        content_parts: list[str] = []
 
         if self._manifest.steps:
             # Build initial context from all supplied params
-            initial_ctx: Dict[str, Any] = {k: v for k, v in params.items()}
+            initial_ctx: dict[str, Any] = {k: v for k, v in params.items()}
 
             result = self._executor.run(self._manifest, initial_context=initial_ctx)
 

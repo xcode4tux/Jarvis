@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.backend import InferenceBackend
 from openjarvis.evals.core.scorer import LLMJudgeScorer
@@ -21,7 +21,7 @@ class PersonalBenchmarkScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         """Compare *model_answer* against *record.reference* using the judge LLM.
 
         Returns ``(is_correct, metadata)`` where *is_correct* indicates whether

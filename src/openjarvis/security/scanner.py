@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
-
 from openjarvis._rust_bridge import get_rust_module, scan_result_from_json
 from openjarvis.security._stubs import BaseScanner
 from openjarvis.security.types import ScanResult, ThreatLevel
@@ -22,7 +20,7 @@ class SecretScanner(BaseScanner):
         _rust = get_rust_module()
         self._rust_impl = _rust.SecretScanner()
 
-    PATTERNS: Dict[str, Tuple[str, ThreatLevel, str]] = {
+    PATTERNS: dict[str, tuple[str, ThreatLevel, str]] = {
         "openai_key": (
             r"sk-[A-Za-z0-9_-]{20,}",
             ThreatLevel.CRITICAL,
@@ -98,7 +96,7 @@ class PIIScanner(BaseScanner):
         _rust = get_rust_module()
         self._rust_impl = _rust.PIIScanner()
 
-    PATTERNS: Dict[str, Tuple[str, ThreatLevel, str]] = {
+    PATTERNS: dict[str, tuple[str, ThreatLevel, str]] = {
         "email": (
             r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
             ThreatLevel.MEDIUM,

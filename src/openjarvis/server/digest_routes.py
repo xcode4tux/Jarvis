@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -21,7 +19,7 @@ class ScheduleUpdate(BaseModel):
     """Request body for updating the digest schedule."""
 
     enabled: bool
-    cron: Optional[str] = None
+    cron: str | None = None
 
 
 def create_digest_router(*, db_path: str = "") -> APIRouter:

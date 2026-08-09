@@ -41,7 +41,7 @@ from __future__ import annotations
 import json as _json
 import sys
 import types
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -131,7 +131,7 @@ MINIONS_PROMPT_MARKERS = (
 )
 
 
-def _looks_like_minions_call(kwargs: Dict[str, Any]) -> bool:
+def _looks_like_minions_call(kwargs: dict[str, Any]) -> bool:
     blob_parts = [str(kwargs.get("system", ""))]
     for msg in kwargs.get("messages", []) or []:
         content = msg.get("content", "") if isinstance(msg, dict) else ""
@@ -140,7 +140,7 @@ def _looks_like_minions_call(kwargs: Dict[str, Any]) -> bool:
     return any(m in blob for m in MINIONS_PROMPT_MARKERS)
 
 
-def _minions_turn_schema(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _minions_turn_schema(kwargs: dict[str, Any]) -> dict[str, Any]:
     """Pick the schema by sniffing the prompt — see module docstring."""
     blob_parts = [str(kwargs.get("system", ""))]
     for msg in kwargs.get("messages", []) or []:
@@ -362,7 +362,7 @@ def _prefetch_context(
     cloud_endpoint: str,
     cloud_model: str,
     max_uses: int = 8,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Use Anthropic web_search to fetch real source material the worker can read.
 
     Minions's premise is "worker reads a doc, asks cloud for help" — but GAIA
@@ -372,7 +372,7 @@ def _prefetch_context(
     Returns {text, tokens, cost_usd, n_searches}. On any failure: empty text
     and zeros — the protocol still runs.
     """
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "text": "", "tokens": 0, "cost_usd": 0.0, "n_searches": 0,
     }
     if cloud_endpoint != "anthropic" or not (question or "").strip():
@@ -405,10 +405,10 @@ def _prefetch_context(
 
 
 def _context_for(
-    task: Optional[Dict[str, Any]], prefetched: str = ""
-) -> List[str]:
+    task: dict[str, Any] | None, prefetched: str = ""
+) -> list[str]:
     """Minions wants a context list."""
-    bits: List[str] = []
+    bits: list[str] = []
     task = task or {}
     if task.get("hints_text"):
         bits.append(task["hints_text"])
@@ -427,7 +427,7 @@ class MinionsAgent(LocalCloudAgent):
 
     agent_id = "minions"
 
-    def _is_soft_failure(self, exc: BaseException) -> Optional[str]:
+    def _is_soft_failure(self, exc: BaseException) -> str | None:
         # Known soft-failure modes: Qwen worker JSON malformed, Anthropic
         # 400/529, KeyError on missing schema fields.
         try:
@@ -447,11 +447,11 @@ class MinionsAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
-        task_meta: Dict[str, Any] = {}
+        task_meta: dict[str, Any] = {}
         if context is not None:
             task_meta = context.metadata.get("task", {}) or {}
 
@@ -542,7 +542,7 @@ class MinionsAgent(LocalCloudAgent):
         #   - omitted          → prefetch ON (legacy default for minions GAIA)
         #   - enabled = false  → prefetch OFF
         #   - enabled = true   → prefetch ON (honors max_uses)
-        prefetch: Dict[str, Any] = {
+        prefetch: dict[str, Any] = {
             "text": "", "tokens": 0, "cost_usd": 0.0, "n_searches": 0,
         }
         ws_block = cfg.get("web_search") if isinstance(cfg.get("web_search"), dict) else None
@@ -633,9 +633,9 @@ class MinionsAgent(LocalCloudAgent):
     def _run_swe(
         self,
         input: str,
-        task: Dict[str, Any],
-        cfg: Dict[str, Any],
-    ) -> Tuple[str, Dict[str, Any]]:
+        task: dict[str, Any],
+        cfg: dict[str, Any],
+    ) -> tuple[str, dict[str, Any]]:
         if not self._local_endpoint or not self._local_model:
             raise ValueError(
                 "MinionsAgent (swe mode) still needs local_model + local_endpoint"

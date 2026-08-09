@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any
 
 # Optional imports -----------------------------------------------------------
 try:
@@ -87,7 +88,7 @@ class OrchestratorSFTConfig:
     gradient_checkpointing: bool = True
 
     # Available tools for structured prompt
-    available_tools: List[str] = field(
+    available_tools: list[str] = field(
         default_factory=lambda: [
             "calculator",
             "think",
@@ -113,7 +114,7 @@ class OrchestratorSFTDataset:
     ) -> None:
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
-        self.traces: List[Dict[str, Any]] = []
+        self.traces: list[dict[str, Any]] = []
         self._load_traces(trace_path)
 
     def _load_traces(self, trace_path: str) -> None:
@@ -129,7 +130,7 @@ class OrchestratorSFTDataset:
     def __len__(self) -> int:
         return len(self.traces)
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         trace = self.traces[idx]
         text = self._format_conversation(trace.get("conversations", []))
 
@@ -147,7 +148,7 @@ class OrchestratorSFTDataset:
             "labels": encoding["input_ids"].squeeze(0).clone(),
         }
 
-    def _format_conversation(self, conversations: List[Dict[str, str]]) -> str:
+    def _format_conversation(self, conversations: list[dict[str, str]]) -> str:
         """Format conversation turns into training text."""
         if hasattr(self.tokenizer, "apply_chat_template"):
             try:
@@ -193,8 +194,8 @@ class OrchestratorSFTDataset:
         eos = getattr(self.tokenizer, "eos_token", "") or ""
         return "\n".join(parts) + eos
 
-    def iter_batches(self, batch_size: int) -> Iterator[List[Dict[str, Any]]]:
-        batch: list[Dict[str, Any]] = []
+    def iter_batches(self, batch_size: int) -> Iterator[list[dict[str, Any]]]:
+        batch: list[dict[str, Any]] = []
         for i in range(len(self)):
             batch.append(self[i])
             if len(batch) == batch_size:
@@ -312,7 +313,7 @@ class OrchestratorSFTTrainer:
             if (epoch + 1) % self.config.save_every_n_epochs == 0:
                 self._save_checkpoint(epoch)
 
-    def _train_epoch(self, epoch: int) -> Dict[str, float]:
+    def _train_epoch(self, epoch: int) -> dict[str, float]:
         if self.policy.model is None or self.dataloader is None:
             return {"epoch": epoch, "loss": 0.0}
 
@@ -329,7 +330,7 @@ class OrchestratorSFTTrainer:
         avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
         return {"epoch": epoch, "loss": avg_loss}
 
-    def _train_step(self, batch: Dict[str, Any]) -> float:
+    def _train_step(self, batch: dict[str, Any]) -> float:
         input_ids = batch["input_ids"].to(self.device)
         attention_mask = batch["attention_mask"].to(self.device)
         labels = batch["labels"].to(self.device)
@@ -383,7 +384,7 @@ def _ensure_registered() -> None:
     class OrchestratorSFTPolicy(IntelligenceLearningPolicy):
         """Wrapper that registers the SFT trainer as a learning policy."""
 
-        def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+        def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
             config = OrchestratorSFTConfig(
                 **{
                     k: v

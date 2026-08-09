@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -44,16 +44,16 @@ _OLLAMA_MODEL = "qwen3.5:4b"
 
 def detect_local_sources(
     *,
-    notes_db_path: Optional[Path] = None,
-    imessage_db_path: Optional[Path] = None,
-    obsidian_vault_path: Optional[Path] = None,
-) -> List[Dict[str, Any]]:
+    notes_db_path: Path | None = None,
+    imessage_db_path: Path | None = None,
+    obsidian_vault_path: Path | None = None,
+) -> list[dict[str, Any]]:
     """Return a list of available local sources with their config.
 
     Each entry is a dict with keys: ``connector_id``, ``display_name``,
     ``config`` (kwargs for the connector constructor).
     """
-    sources: List[Dict[str, Any]] = []
+    sources: list[dict[str, Any]] = []
 
     notes_path = notes_db_path or _DEFAULT_NOTES_DB
     if notes_path.exists():
@@ -127,11 +127,11 @@ _TOKEN_SOURCES = [
 
 def detect_token_sources(
     *,
-    connectors_dir: Optional[Path] = None,
-) -> List[Dict[str, Any]]:
+    connectors_dir: Path | None = None,
+) -> list[dict[str, Any]]:
     """Return token-based sources that already have valid credentials."""
     cdir = connectors_dir or (DEFAULT_CONFIG_DIR / "connectors")
-    sources: List[Dict[str, Any]] = []
+    sources: list[dict[str, Any]] = []
 
     for ts in _TOKEN_SOURCES:
         creds_file = cdir / ts["creds_file"]
@@ -154,9 +154,9 @@ def detect_token_sources(
     return sources
 
 
-def _prompt_connect_sources(console: Console) -> List[Dict[str, Any]]:
+def _prompt_connect_sources(console: Console) -> list[dict[str, Any]]:
     """Interactively prompt the user to connect token-based sources."""
-    connected: List[Dict[str, Any]] = []
+    connected: list[dict[str, Any]] = []
     cdir = DEFAULT_CONFIG_DIR / "connectors"
     cdir.mkdir(parents=True, exist_ok=True)
 
@@ -205,7 +205,7 @@ def _prompt_connect_sources(console: Console) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def _instantiate_connector(connector_id: str, config: Dict[str, Any]) -> Any:
+def _instantiate_connector(connector_id: str, config: dict[str, Any]) -> Any:
     """Lazily import and instantiate a connector by ID."""
     if connector_id == "apple_notes":
         from openjarvis.connectors.apple_notes import AppleNotesConnector
@@ -245,7 +245,7 @@ def _instantiate_connector(connector_id: str, config: Dict[str, Any]) -> Any:
 
 
 def ingest_sources(
-    sources: List[Dict[str, Any]],
+    sources: list[dict[str, Any]],
     store: KnowledgeStore,
     *,
     state_db: str = "",
@@ -366,7 +366,7 @@ def _launch_chat(store: KnowledgeStore, console: Console) -> None:
     help="Path to an Obsidian vault directory.",
 )
 @click.option("--skip-chat", is_flag=True, help="Ingest only, don't launch chat.")
-def deep_research_setup(obsidian_vault: Optional[str], skip_chat: bool) -> None:
+def deep_research_setup(obsidian_vault: str | None, skip_chat: bool) -> None:
     """Auto-detect local data sources, ingest, and launch Deep Research chat."""
     console = Console()
     console.print("\n[bold]Deep Research Setup[/bold]\n")

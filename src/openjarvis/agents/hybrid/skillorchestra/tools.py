@@ -20,7 +20,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .._base import (
     GEMINI_SEARCH_COST_PER_CALL,
@@ -56,7 +56,7 @@ _ENUMS = {
 }
 
 
-def _model_prop(tool: str) -> Dict[str, Any]:
+def _model_prop(tool: str) -> dict[str, Any]:
     return {
         "type": "string",
         "description": (
@@ -67,7 +67,7 @@ def _model_prop(tool: str) -> Dict[str, Any]:
     }
 
 
-def anthropic_tools() -> List[Dict[str, Any]]:
+def anthropic_tools() -> list[dict[str, Any]]:
     """The 3 orchestrator tools in Anthropic ``input_schema`` shape."""
     out = []
     for name, desc in (
@@ -87,7 +87,7 @@ def anthropic_tools() -> List[Dict[str, Any]]:
     return out
 
 
-def openai_tools() -> List[Dict[str, Any]]:
+def openai_tools() -> list[dict[str, Any]]:
     """The 3 orchestrator tools in OpenAI ``function`` shape."""
     out = []
     for name, desc in (
@@ -121,7 +121,7 @@ def run_code(
     context_str: str,
     problem: str,
     bash_timeout_s: int = 60,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate self-contained Python with ``spec``, execute it, return stdout.
 
     Mirrors the original worker prompt and ``subprocess.run(['python', ...],
@@ -183,7 +183,7 @@ def run_answer(
     context_str: str,
     problem: str,
     max_tokens: int = 40000,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate the final answer with ``spec`` and extract the prediction.
 
     The original branches the prompt by model family: Qwen-3 / Qwen-math
@@ -194,7 +194,7 @@ def run_answer(
     """
     base = context_str.strip() + "\n\n" + problem
     model_l = spec.model.lower()
-    system: Optional[str] = None
+    system: str | None = None
     boxed = False
 
     if "qwen3" in model_l and "235" not in model_l:
@@ -253,10 +253,10 @@ def run_search(
     *,
     context_str: str,
     problem: str,
-    retriever_url: Optional[str] = None,
+    retriever_url: str | None = None,
     topk: int = 150,
     web_search_max_uses: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Write a search query with ``spec``, then retrieve documents.
 
     Query generation is the original verbatim worker prompt. Retrieval:
@@ -280,7 +280,7 @@ def run_search(
     if len(query) < 10:
         query = problem
 
-    contents: List[str] = []
+    contents: list[str] = []
     search_uses = 0
 
     if retriever_url:

@@ -12,13 +12,12 @@ tools and grows as we encounter new vendor tools.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Tuple
 
 # ---------------------------------------------------------------------------
 # Translation table — external name → OpenJarvis name
 # ---------------------------------------------------------------------------
 
-TOOL_TRANSLATION: Dict[str, str] = {
+TOOL_TRANSLATION: dict[str, str] = {
     "Bash": "shell_exec",
     "Read": "file_read",
     "Write": "file_write",
@@ -41,7 +40,7 @@ class ToolTranslator:
 
     def __init__(
         self,
-        translation_table: Dict[str, str] | None = None,
+        translation_table: dict[str, str] | None = None,
     ) -> None:
         self._table = dict(translation_table or TOOL_TRANSLATION)
         # Word-boundary pattern matching any external name
@@ -53,7 +52,7 @@ class ToolTranslator:
         else:
             self._pattern = None
 
-    def translate_markdown(self, body: str) -> Tuple[str, List[str]]:
+    def translate_markdown(self, body: str) -> tuple[str, list[str]]:
         """Translate tool references in a markdown body.
 
         Returns
@@ -73,7 +72,7 @@ class ToolTranslator:
         # like tool names but aren't in the table).  Conservative heuristic:
         # words with internal uppercase (true CamelCase) followed by ' tool'
         # or a word boundary, length 3-30, not in the translation table.
-        untranslated: List[str] = []
+        untranslated: list[str] = []
         # Require at least one uppercase letter after position 0 (true CamelCase)
         candidate_pattern = re.compile(r"\b([A-Z][a-z]+[A-Z][a-zA-Z]*)(?:\s+tool|\b)")
         for cand in candidate_pattern.findall(body):
@@ -82,7 +81,7 @@ class ToolTranslator:
                     untranslated.append(cand)
         return new_body, untranslated
 
-    def translate_allowed_tools(self, allowed: str) -> Tuple[str, List[str]]:
+    def translate_allowed_tools(self, allowed: str) -> tuple[str, list[str]]:
         """Translate the space-delimited allowed-tools field.
 
         Tokens may have parenthesized arguments like ``Bash(git:*)``.  Only
@@ -91,8 +90,8 @@ class ToolTranslator:
         if not allowed:
             return allowed, []
 
-        out_tokens: List[str] = []
-        untranslated: List[str] = []
+        out_tokens: list[str] = []
+        untranslated: list[str] = []
         for token in allowed.split():
             # Split off any (args) suffix
             if "(" in token:

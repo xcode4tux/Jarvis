@@ -12,7 +12,8 @@ from __future__ import annotations
 import json
 import logging
 import random
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, MutableMapping, Sequence
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -79,14 +80,14 @@ class LiveCodeBenchDataset(DatasetProvider):
     dataset_name = "LiveCodeBench"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
@@ -149,7 +150,7 @@ class LiveCodeBenchDataset(DatasetProvider):
         self,
         raw: MutableMapping[str, object],
         idx: int,
-    ) -> Optional[EvalRecord]:
+    ) -> EvalRecord | None:
         # Extract problem statement — field names vary across dataset versions
         problem_text = str(
             raw.get("question_content")
@@ -201,8 +202,8 @@ class LiveCodeBenchDataset(DatasetProvider):
         )
 
         # Normalize test cases into input/output lists
-        all_test_inputs: List[str] = []
-        all_test_outputs: List[str] = []
+        all_test_inputs: list[str] = []
+        all_test_outputs: list[str] = []
 
         # Process structured test cases (list of dicts with input/output keys)
         for cases in [public_test_cases, hidden_test_cases]:
@@ -250,7 +251,7 @@ class LiveCodeBenchDataset(DatasetProvider):
         starter_code = str(raw.get("starter_code", raw.get("code_stub", ""))).strip()
 
         # Metadata for scoring
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "test_inputs": all_test_inputs,
             "test_outputs": all_test_outputs,
             "difficulty": difficulty,

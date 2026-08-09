@@ -6,9 +6,10 @@ Uses OAuth2 tokens stored locally. Requires user-read-recently-played scope.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
 
 import httpx
 
@@ -22,8 +23,8 @@ _DEFAULT_TOKEN_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "spotify.json")
 
 
 def _spotify_api_get(
-    token: str, endpoint: str, params: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    token: str, endpoint: str, params: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Call a Spotify Web API endpoint."""
     resp = httpx.get(
         f"{_SPOTIFY_API_BASE}/{endpoint}",
@@ -47,7 +48,7 @@ class SpotifyConnector(BaseConnector):
         self._token_path = Path(token_path)
         self._status = SyncStatus()
 
-    def _load_tokens(self) -> Dict[str, str]:
+    def _load_tokens(self) -> dict[str, str]:
         return json.loads(self._token_path.read_text(encoding="utf-8"))
 
     def _get_access_token(self) -> str:
@@ -112,7 +113,7 @@ class SpotifyConnector(BaseConnector):
             save_tokens(str(_CONNECTORS_DIR / filename), payload)
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         token = self._get_access_token()
         after_ms = int((since or datetime.now() - timedelta(days=1)).timestamp() * 1000)

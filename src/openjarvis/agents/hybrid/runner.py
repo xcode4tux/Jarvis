@@ -28,7 +28,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import tomllib  # py3.11+
@@ -71,7 +71,7 @@ DEFAULT_TASK_TIMEOUT_S = float(
 _SWE_BENCHES = {"swebench-verified", "swebench_verified", "swebench"}
 
 
-def _validate_cells(cells: Dict[str, Dict[str, Any]]) -> None:
+def _validate_cells(cells: dict[str, dict[str, Any]]) -> None:
     """Catch registry mistakes that would silently degrade behaviour.
 
     Currently: skillorchestra on a SWE bench MUST have
@@ -80,7 +80,7 @@ def _validate_cells(cells: Dict[str, Dict[str, Any]]) -> None:
     SWE-bench tasks, which is rarely what the experimenter wants and is
     invisible at runtime (Bug 5, 2026-05-15).
     """
-    bad: List[str] = []
+    bad: list[str] = []
     for name, cell in cells.items():
         if cell.get("method") != "skillorchestra":
             continue
@@ -99,7 +99,7 @@ def _validate_cells(cells: Dict[str, Dict[str, Any]]) -> None:
         )
 
 
-def load_registry(registry_dir: Optional[Path] = None) -> Dict[str, Dict[str, Any]]:
+def load_registry(registry_dir: Path | None = None) -> dict[str, dict[str, Any]]:
     """Merge every ``<registry_dir>/*.toml``. Cell names must be unique."""
     base = registry_dir or DEFAULT_REGISTRY_DIR
     env_override = os.environ.get("OPENJARVIS_HYBRID_REGISTRY_DIR")
@@ -107,7 +107,7 @@ def load_registry(registry_dir: Optional[Path] = None) -> Dict[str, Dict[str, An
         base = Path(env_override)
     if not base.is_dir():
         return {}
-    cells: Dict[str, Dict[str, Any]] = {}
+    cells: dict[str, dict[str, Any]] = {}
     for p in sorted(base.glob("*.toml")):
         data = tomllib.loads(p.read_text())
         for name, cell in data.get("cells", {}).items():
@@ -122,13 +122,13 @@ def load_registry(registry_dir: Optional[Path] = None) -> Dict[str, Dict[str, An
 
 # ---------- Bench dispatch ----------
 
-def _load_gaia_tasks(n: Optional[int]) -> List[Dict[str, Any]]:
+def _load_gaia_tasks(n: int | None) -> list[dict[str, Any]]:
     """GAIA validation. Each task is a dict with `task_id` + `question`."""
     from openjarvis.evals.datasets.gaia import GAIADataset
 
     ds = GAIADataset()
     ds.load(max_samples=n)
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for rec in ds.iter_records():
         # rec.problem is the formatted question prompt; rec.metadata carries
         # the GAIA-specific fields including any reference answer. Prefer the
@@ -146,13 +146,13 @@ def _load_gaia_tasks(n: Optional[int]) -> List[Dict[str, Any]]:
     return out
 
 
-def _load_swebench_tasks(n: Optional[int]) -> List[Dict[str, Any]]:
+def _load_swebench_tasks(n: int | None) -> list[dict[str, Any]]:
     """SWE-bench-Verified test. Each task carries patch-evaluation fields."""
     from openjarvis.evals.datasets.swebench import SWEBenchDataset
 
     ds = SWEBenchDataset(variant="verified")
     ds.load(max_samples=n)
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for rec in ds.iter_records():
         md = rec.metadata or {}
         out.append({
@@ -171,7 +171,7 @@ def _load_swebench_tasks(n: Optional[int]) -> List[Dict[str, Any]]:
     return out
 
 
-def load_tasks(bench: str, n: Optional[int]) -> List[Dict[str, Any]]:
+def load_tasks(bench: str, n: int | None) -> list[dict[str, Any]]:
     if bench == "gaia":
         return _load_gaia_tasks(n)
     if bench in ("swebench-verified", "swebench_verified", "swebench"):
@@ -179,7 +179,7 @@ def load_tasks(bench: str, n: Optional[int]) -> List[Dict[str, Any]]:
     raise ValueError(f"unknown bench: {bench!r}")
 
 
-def _load_subset_file(subset_path: str) -> Dict[str, Any]:
+def _load_subset_file(subset_path: str) -> dict[str, Any]:
     """Resolve a cell's ``subset`` field to a parsed JSON dict.
 
     Resolution order:
@@ -210,10 +210,10 @@ def _load_subset_file(subset_path: str) -> Dict[str, Any]:
 
 
 def _apply_subset(
-    tasks: List[Dict[str, Any]],
-    subset: Dict[str, Any],
-    cell: Dict[str, Any],
-) -> List[Dict[str, Any]]:
+    tasks: list[dict[str, Any]],
+    subset: dict[str, Any],
+    cell: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Filter ``tasks`` to the subset's task IDs, preserving subset order.
 
     Hard-errors if the cell's ``n`` doesn't equal ``len(task_ids)`` so a
@@ -221,7 +221,7 @@ def _apply_subset(
     any subset ID is missing from the dataset (caller's bench wiring is
     broken).
     """
-    ids: List[str] = list(subset["task_ids"])
+    ids: list[str] = list(subset["task_ids"])
     cell_n = int(cell["n"])
     if cell_n != len(ids):
         raise ValueError(
@@ -278,7 +278,7 @@ def _get_gaia_scorer():
     return _GAIA_SCORER
 
 
-def _score_gaia(task: Dict[str, Any], answer: str) -> Dict[str, Any]:
+def _score_gaia(task: dict[str, Any], answer: str) -> dict[str, Any]:
     """GAIA scorer — normalized exact-match with an LLM-judge fallback.
 
     Uses the shared OpenJarvis :class:`GAIAScorer`. The previous version
@@ -312,10 +312,10 @@ def _score_gaia(task: Dict[str, Any], answer: str) -> Dict[str, Any]:
 
 
 def _score_swebench(
-    task: Dict[str, Any],
+    task: dict[str, Any],
     answer: str,
-    cell_name: Optional[str] = None,
-) -> Dict[str, Any]:
+    cell_name: str | None = None,
+) -> dict[str, Any]:
     """Modal-backed SWE-bench Verified harness scorer.
 
     ``cell_name`` is passed through to :class:`SWEBenchHarnessScorer` so the
@@ -355,10 +355,10 @@ def _score_swebench(
 
 def score(
     bench: str,
-    task: Dict[str, Any],
+    task: dict[str, Any],
     answer: str,
-    cell_name: Optional[str] = None,
-) -> Dict[str, Any]:
+    cell_name: str | None = None,
+) -> dict[str, Any]:
     if bench == "gaia":
         return _score_gaia(task, answer)
     if bench in ("swebench-verified", "swebench_verified", "swebench"):
@@ -408,7 +408,7 @@ def _cell_lock(out_dir: Path, cell_name: str):
             pass
 
 
-def _build_agent(cell: Dict[str, Any]):
+def _build_agent(cell: dict[str, Any]):
     """Construct the registered agent for this cell."""
     import openjarvis.agents  # noqa: F401 — populate registry
     from openjarvis.core.registry import AgentRegistry
@@ -434,7 +434,7 @@ def _build_agent(cell: Dict[str, Any]):
     )
 
 
-def _error_row(task: Dict[str, Any], t0: float, error: str) -> Dict[str, Any]:
+def _error_row(task: dict[str, Any], t0: float, error: str) -> dict[str, Any]:
     """Build a hybrid-shape error row (kept null-shaped like the catch path
     in :func:`_run_one` so the resume logic re-runs it)."""
     return {
@@ -452,8 +452,8 @@ def _error_row(task: Dict[str, Any], t0: float, error: str) -> Dict[str, Any]:
 
 
 def _run_one_inner(
-    agent, bench: str, task: Dict[str, Any], log_dir: str
-) -> Dict[str, Any]:
+    agent, bench: str, task: dict[str, Any], log_dir: str
+) -> dict[str, Any]:
     """Run the agent on one task. Returns a hybrid-shape row."""
     prompt = _format_prompt(task)
     ctx = AgentContext(metadata={
@@ -490,11 +490,11 @@ def _run_one_inner(
 def _run_one(
     agent,
     bench: str,
-    task: Dict[str, Any],
+    task: dict[str, Any],
     log_dir: str,
     *,
     task_timeout_s: float = DEFAULT_TASK_TIMEOUT_S,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run one task under a hard wall-clock cap.
 
     ``_run_one_inner`` runs on a dedicated **daemon** thread; if it doesn't
@@ -514,7 +514,7 @@ def _run_one(
     if task_timeout_s <= 0:
         return _run_one_inner(agent, bench, task, log_dir)
 
-    box: Dict[str, Any] = {}
+    box: dict[str, Any] = {}
 
     def _target() -> None:
         try:
@@ -548,7 +548,7 @@ def _run_one(
     )
 
 
-def _heartbeat(done: int, total: int, row: Dict[str, Any], t_start: float) -> None:
+def _heartbeat(done: int, total: int, row: dict[str, Any], t_start: float) -> None:
     elapsed = time.time() - t_start
     eta = (total - done) * (elapsed / max(done, 1))
     ok = "OK" if not row.get("error") else "ERR"
@@ -566,8 +566,8 @@ def _heartbeat(done: int, total: int, row: Dict[str, Any], t_start: float) -> No
 def _write_summary(
     out_dir: Path,
     cell_name: str,
-    cell: Dict[str, Any],
-    tasks: List[Dict[str, Any]],
+    cell: dict[str, Any],
+    tasks: list[dict[str, Any]],
     t_start: float,
     n_processed: int = -1,
     energy_j_session: float = 0.0,
@@ -654,11 +654,11 @@ def _write_summary(
 
 def run_cell(
     cell_name: str,
-    cell: Dict[str, Any],
+    cell: dict[str, Any],
     *,
     do_score: bool = True,
     resume: bool = True,
-    root: Optional[Path] = None,
+    root: Path | None = None,
 ) -> None:
     out_root = root or DEFAULT_RUNS_DIR
     out_dir = _cell_dir(cell_name, out_root)
@@ -671,7 +671,7 @@ def run_cell(
 
 def _run_cell_locked(
     cell_name: str,
-    cell: Dict[str, Any],
+    cell: dict[str, Any],
     out_dir: Path,
     *,
     do_score: bool,
@@ -685,7 +685,7 @@ def _run_cell_locked(
     done_ids: set = set()
     if resume and results_path.exists():
         # Keep only successful rows; drop errored rows so they retry.
-        kept: List[str] = []
+        kept: list[str] = []
         for line in results_path.read_text().splitlines():
             try:
                 row = json.loads(line)
@@ -737,12 +737,12 @@ def _run_cell_locked(
     written_ok_ids: set = set()
     log_dir = str(out_dir / "logs")
 
-    def _process(task: Dict[str, Any]) -> None:
+    def _process(task: dict[str, Any]) -> None:
         row = _run_one(
             agent, cell["bench"], task, log_dir,
             task_timeout_s=task_timeout_s,
         )
-        scored: Optional[Dict[str, Any]] = None
+        scored: dict[str, Any] | None = None
         if do_score and row.get("error") is None:
             try:
                 scored = score(
@@ -838,7 +838,7 @@ def _run_cell_locked(
 
 # ---------- CLI ----------
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="python -m openjarvis.agents.hybrid.runner",
         description="Run a hybrid paradigm experiment cell.",

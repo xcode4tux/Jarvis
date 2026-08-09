@@ -25,11 +25,11 @@ or an OpenAI-compatible base URL (``http://...``) for a local vLLM model.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Stage -> ordered alias list. Matches stage_router._get_models_for_stage
 # and orchestration/tools.json exactly.
-STAGE_ALIASES: Dict[str, List[str]] = {
+STAGE_ALIASES: dict[str, list[str]] = {
     "search": ["search-1", "search-2", "search-3"],
     "reasoning": ["reasoner-1", "reasoner-2", "reasoner-3"],
     "answer": ["answer-1", "answer-2", "answer-3", "answer-4",
@@ -37,7 +37,7 @@ STAGE_ALIASES: Dict[str, List[str]] = {
 }
 
 # Every alias the orchestrator can emit, flat.
-ALL_ALIASES: List[str] = [a for aliases in STAGE_ALIASES.values() for a in aliases]
+ALL_ALIASES: list[str] = [a for aliases in STAGE_ALIASES.values() for a in aliases]
 
 # Default tier: which aliases collapse onto the cloud model vs the local
 # model. Dearer ``-1``/``-2`` (+ answer-math-1) -> cloud; cheaper -> local.
@@ -68,18 +68,18 @@ def _endpoint_kind(endpoint: str) -> str:
 
 def build_pool(
     *,
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
+    local_model: str | None,
+    local_endpoint: str | None,
     cloud_model: str,
     cloud_endpoint: str,
-    overrides: Optional[Dict[str, Dict[str, str]]] = None,
-) -> Dict[str, ModelSpec]:
+    overrides: dict[str, dict[str, str]] | None = None,
+) -> dict[str, ModelSpec]:
     """Resolve every alias to a :class:`ModelSpec`.
 
     Default mapping collapses the alias tiers onto the cell's local/cloud
     pair; ``overrides`` (from ``method_cfg.model_pool``) wins per alias.
     """
-    pool: Dict[str, ModelSpec] = {}
+    pool: dict[str, ModelSpec] = {}
     have_local = bool(local_model and local_endpoint)
     for alias in ALL_ALIASES:
         to_cloud = alias in _CLOUD_ALIASES or not have_local
@@ -106,10 +106,10 @@ def call_alias(
     spec: ModelSpec,
     *,
     user: str,
-    system: Optional[str] = None,
+    system: str | None = None,
     max_tokens: int = 8000,
     temperature: float = 1.0,
-) -> Tuple[str, int, int, float]:
+) -> tuple[str, int, int, float]:
     """Single text-generation call through a resolved alias.
 
     Returns ``(text, tokens_in, tokens_out, cost_usd)``. Dispatches to the

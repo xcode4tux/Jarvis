@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -13,9 +13,9 @@ from openjarvis.system import QueryOrchestrator
 
 
 class _FakeEngine:
-    def __init__(self, reply: Dict[str, Any]) -> None:
+    def __init__(self, reply: dict[str, Any]) -> None:
         self._reply = reply
-        self.calls: List[Dict[str, Any]] = []
+        self.calls: list[dict[str, Any]] = []
 
     def generate(self, messages, *, model, temperature, max_tokens, **_):
         self.calls.append(
@@ -42,13 +42,13 @@ class _FakeSystem:
     engine_key: str = "fake"
     model: str = "fake-model"
     agent_name: str = ""
-    tools: List[Any] = field(default_factory=list)
-    memory_backend: Optional[Any] = None
-    capability_policy: Optional[Any] = None
-    session_store: Optional[Any] = None
-    trace_store: Optional[Any] = None
-    trace_collector: Optional[Any] = None
-    _skill_few_shot_examples: Optional[List[str]] = None
+    tools: list[Any] = field(default_factory=list)
+    memory_backend: Any | None = None
+    capability_policy: Any | None = None
+    session_store: Any | None = None
+    trace_store: Any | None = None
+    trace_collector: Any | None = None
+    _skill_few_shot_examples: list[str] | None = None
 
 
 class TestAskDirectEngineMode:

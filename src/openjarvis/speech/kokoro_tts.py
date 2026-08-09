@@ -7,7 +7,6 @@ Falls back gracefully if not installed.
 from __future__ import annotations
 
 import io
-from typing import List
 
 from openjarvis.core.registry import TTSRegistry
 from openjarvis.speech.tts import TTSBackend, TTSResult
@@ -69,7 +68,7 @@ class KokoroTTSBackend(TTSBackend):
             metadata={"backend": "kokoro"},
         )
 
-    def available_voices(self) -> List[str]:
+    def available_voices(self) -> list[str]:
         return ["af_heart", "af_bella", "am_adam", "am_michael"]
 
     def health(self) -> bool:

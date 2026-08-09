@@ -3,23 +3,24 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Module-level cache of connector instances (keyed by connector_id).
-_instances: Dict[str, Any] = {}
+_instances: dict[str, Any] = {}
 
 
 def load_custom_connectors() -> dict[str, dict]:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
     if not path.exists():
         return {}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, dict):
                 return data
@@ -30,6 +31,7 @@ def load_custom_connectors() -> dict[str, dict]:
 
 def save_custom_connector(connector_id: str, connector_data: dict) -> None:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
@@ -45,6 +47,7 @@ def save_custom_connector(connector_id: str, connector_data: dict) -> None:
 
 def delete_custom_connector_def(connector_id: str) -> None:
     import json
+
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     path = DEFAULT_CONFIG_DIR / "custom_connectors.json"
@@ -61,13 +64,14 @@ def delete_custom_connector_def(connector_id: str) -> None:
 def make_custom_connector_class(
     connector_id: str, display_name: str, auth_type: str, description: str = ""
 ) -> type:
-    from openjarvis.connectors._stubs import BaseConnector, SyncStatus, Document
-    from openjarvis.connectors.oauth import load_tokens, save_tokens, delete_tokens
-    from openjarvis.core.config import DEFAULT_CONFIG_DIR
-    from pathlib import Path
-    from datetime import datetime, timezone
     import os
-    from typing import Iterator
+    from collections.abc import Iterator
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
+    from openjarvis.connectors.oauth import delete_tokens, load_tokens, save_tokens
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
     class DynamicCustomConnector(BaseConnector):
         @property
@@ -158,8 +162,8 @@ def make_custom_connector_class(
         def sync(
             self,
             *,
-            since: Optional[datetime] = None,
-            cursor: Optional[str] = None,
+            since: datetime | None = None,
+            cursor: str | None = None,
         ) -> Iterator[Document]:
             config = self._resolve_config()
             if self.auth_type == "filesystem":
@@ -171,7 +175,11 @@ def make_custom_connector_class(
                 skip = {".git", "__pycache__", "node_modules", ".venv"}
                 allowed_exts = {".txt", ".md", ".markdown", ".csv"}
                 for r, dirs, files in os.walk(root_path):
-                    dirs[:] = [d for d in dirs if d not in skip and not d.startswith(".")]
+                    dirs[:] = [
+                        d
+                        for d in dirs
+                        if d not in skip and not d.startswith(".")
+                    ]
                     for fname in files:
                         fp = Path(r) / fname
                         if fp.suffix.lower() in allowed_exts:
@@ -283,11 +291,11 @@ try:
     class ConnectRequest(_BaseModel):
         """Credentials / connection parameters for a connector."""
 
-        path: Optional[str] = None
-        token: Optional[str] = None
-        code: Optional[str] = None
-        email: Optional[str] = None
-        password: Optional[str] = None
+        path: str | None = None
+        token: str | None = None
+        code: str | None = None
+        email: str | None = None
+        password: str | None = None
 
     class CustomConnectorRequest(_BaseModel):
         """Request model for creating a custom data source connector."""
@@ -334,7 +342,7 @@ def create_connectors_router():
             _instances[connector_id] = cls()
         return _instances[connector_id]
 
-    def _connector_summary(connector_id: str, instance: Any) -> Dict[str, Any]:
+    def _connector_summary(connector_id: str, instance: Any) -> dict[str, Any]:
         """Build the dict returned by GET /connectors."""
         chunks = 0
         try:
@@ -367,8 +375,8 @@ def create_connectors_router():
     # currently syncing", baseline_items, and error translation.
     # ------------------------------------------------------------------
 
-    _sync_threads: Dict[str, Any] = {}
-    _sync_state: Dict[str, Dict[str, Any]] = {}
+    _sync_threads: dict[str, Any] = {}
+    _sync_state: dict[str, dict[str, Any]] = {}
 
     def _translate_sync_error(raw: str) -> str:
         """Map common backend exceptions to a short user-facing message."""
@@ -489,7 +497,7 @@ def create_connectors_router():
 
         # Try to get an OAuth URL if applicable; ignore errors for non-OAuth
         # connectors.
-        auth_url: Optional[str] = None
+        auth_url: str | None = None
         try:
             auth_url = instance.auth_url()
         except (NotImplementedError, Exception):
@@ -590,7 +598,7 @@ def create_connectors_router():
         # through the same _start_sync helper that POST /sync uses so the
         # connection's progress is visible to GET /{id}/sync polling
         # immediately — the user shouldn't have to click "Sync Now".
-        sync_status: Optional[str] = None
+        sync_status: str | None = None
         if instance.is_connected():
             sync_status = _start_sync(connector_id, instance)
 
@@ -759,7 +767,7 @@ def create_connectors_router():
         )
 
     @router.post("/{connector_id}/sync")
-    def trigger_sync(connector_id: str) -> Dict[str, Any]:
+    def trigger_sync(connector_id: str) -> dict[str, Any]:
         """Trigger a sync in the background and return immediately."""
         _ensure_connectors_registered()
         if not ConnectorRegistry.contains(connector_id):
@@ -802,8 +810,8 @@ def create_connectors_router():
         # fresh process / fresh `_get_or_create` flips back to zeros even when
         # tens of thousands of items have already been ingested historically.
         # The checkpoint table is the source of truth.
-        checkpoint: Optional[Dict[str, Any]] = None
-        oldest_item_date: Optional[str] = None
+        checkpoint: dict[str, Any] | None = None
+        oldest_item_date: str | None = None
         try:
             from openjarvis.connectors.pipeline import IngestionPipeline
             from openjarvis.connectors.store import KnowledgeStore
@@ -850,7 +858,7 @@ def create_connectors_router():
         # the "complete inbox" signal, which would spuriously fire on every
         # page load if we masked the zero with items_synced as a fallback.
         items_total = status.items_total
-        last_sync_str: Optional[str]
+        last_sync_str: str | None
         if status.last_sync:
             last_sync_str = status.last_sync.isoformat()
         elif checkpoint and checkpoint.get("last_sync"):
@@ -878,7 +886,7 @@ def create_connectors_router():
         # lets the UI surface "30 new emails (8,623 total indexed)" without
         # the client having to track its own baseline.
         baseline_items = bg.get("baseline_items")
-        new_items_synced: Optional[int] = None
+        new_items_synced: int | None = None
         if isinstance(baseline_items, int):
             new_items_synced = max(0, items_synced - baseline_items)
 
@@ -902,12 +910,18 @@ def create_connectors_router():
             raise HTTPException(status_code=400, detail="connector_id cannot be empty")
         import re
         if not re.match(r"^[a-zA-Z0-9_]+$", cid):
-            raise HTTPException(status_code=400, detail="connector_id must be alphanumeric or underscore only")
+            raise HTTPException(
+                status_code=400,
+                detail="connector_id must be alphanumeric or underscore only",
+            )
 
         from openjarvis.core.registry import ConnectorRegistry
         customs = load_custom_connectors()
         if ConnectorRegistry.contains(cid) and cid not in customs:
-            raise HTTPException(status_code=400, detail=f"'{cid}' is a reserved system connector ID")
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{cid}' is a reserved system connector ID",
+            )
 
         save_custom_connector(
             cid,
@@ -937,7 +951,10 @@ def create_connectors_router():
         """Remove a custom data source connector."""
         customs = load_custom_connectors()
         if connector_id not in customs:
-            raise HTTPException(status_code=404, detail=f"Custom connector '{connector_id}' not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Custom connector '{connector_id}' not found",
+            )
 
         try:
             instance = _get_or_create(connector_id)

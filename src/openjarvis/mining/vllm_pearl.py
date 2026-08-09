@@ -7,7 +7,7 @@ See spec ``docs/design/2026-05-05-vllm-pearl-mining-integration-design.md``.
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -40,7 +40,7 @@ class VllmPearlProvider(MiningProvider):
 
     provider_id = "vllm-pearl"
 
-    def __init__(self, docker_client: Optional[Any] = None):
+    def __init__(self, docker_client: Any | None = None):
         if docker_client is None:
             import docker
 

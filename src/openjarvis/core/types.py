@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence  # noqa: I001
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence  # noqa: I001
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -64,18 +65,18 @@ class Message:
 
     role: Role
     content: str = ""
-    name: Optional[str] = None
-    tool_calls: Optional[List[ToolCall]] = None
-    tool_call_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    name: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    tool_call_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
 class Conversation:
     """Ordered list of messages with an optional sliding-window cap."""
 
-    messages: List[Message] = field(default_factory=list)
-    max_messages: Optional[int] = None
+    messages: list[Message] = field(default_factory=list)
+    max_messages: int | None = None
 
     def add(self, message: Message) -> None:
         """Append a message, trimming oldest if *max_messages* is set."""
@@ -83,7 +84,7 @@ class Conversation:
         if self.max_messages is not None and len(self.messages) > self.max_messages:
             self.messages = self.messages[-self.max_messages :]
 
-    def window(self, n: int) -> List[Message]:
+    def window(self, n: int) -> list[Message]:
         """Return the last *n* messages."""
         if n <= 0:
             return []
@@ -103,13 +104,13 @@ class ModelSpec:
     name: str
     parameter_count_b: float
     context_length: int
-    active_parameter_count_b: Optional[float] = None  # MoE active params
+    active_parameter_count_b: float | None = None  # MoE active params
     quantization: Quantization = Quantization.NONE
     min_vram_gb: float = 0.0
     supported_engines: Sequence[str] = ()
     provider: str = ""
     requires_api_key: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -119,10 +120,10 @@ class ToolResult:
     tool_name: str
     content: str
     success: bool = True
-    usage: Dict[str, Any] = field(default_factory=dict)
+    usage: dict[str, Any] = field(default_factory=dict)
     cost_usd: float = 0.0
     latency_seconds: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # Bump when token-counting methodology changes so the leaderboard can
@@ -184,9 +185,9 @@ class TelemetryRecord:
     # metric — they were the dominant source of the bimodal Wh/token
     # distribution on the public leaderboard. New records always write
     # `TOKEN_COUNTING_VERSION` from `server/savings.py`.
-    token_counting_version: Optional[int] = None
-    mining_session_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    token_counting_version: int | None = None
+    mining_session_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -198,9 +199,9 @@ def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
 
 
-def _message_to_dict(msg: "Message") -> Dict[str, Any]:
+def _message_to_dict(msg: Message) -> dict[str, Any]:
     """Serialize a Message to a JSON-safe dict."""
-    d: Dict[str, Any] = {"role": msg.role.value, "content": msg.content}
+    d: dict[str, Any] = {"role": msg.role.value, "content": msg.content}
     if msg.name:
         d["name"] = msg.name
     if msg.tool_calls:
@@ -224,9 +225,9 @@ class TraceStep:
     step_type: StepType
     timestamp: float
     duration_seconds: float = 0.0
-    input: Dict[str, Any] = field(default_factory=dict)
-    output: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    input: dict[str, Any] = field(default_factory=dict)
+    output: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -245,16 +246,16 @@ class Trace:
     agent: str = ""
     model: str = ""
     engine: str = ""
-    steps: List[TraceStep] = field(default_factory=list)
+    steps: list[TraceStep] = field(default_factory=list)
     result: str = ""
-    outcome: Optional[str] = None  # None=unknown, "success", "failure"
-    feedback: Optional[float] = None  # user quality score [0, 1]
+    outcome: str | None = None  # None=unknown, "success", "failure"
+    feedback: float | None = None  # user quality score [0, 1]
     started_at: float = 0.0
     ended_at: float = 0.0
     total_tokens: int = 0
     total_latency_seconds: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    messages: List[Dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    messages: list[dict[str, Any]] = field(default_factory=list)
 
     def add_step(self, step: TraceStep) -> None:
         """Append a step and update running totals."""
@@ -276,7 +277,7 @@ class RoutingContext:
     urgency: float = 0.5
     complexity_score: float = 0.0  # 0.0 (trivial) to 1.0 (very complex)
     suggested_max_tokens: int = 1024
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 __all__ = [

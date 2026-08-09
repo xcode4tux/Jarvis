@@ -17,9 +17,10 @@ import logging
 import sqlite3
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.config import DEFAULT_CONFIG_DIR
@@ -101,7 +102,7 @@ class AppleHealthConnector(BaseConnector):
         pass
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield health Documents, preferring HealthKit DB over export XML."""
         self._status.state = "syncing"
@@ -138,7 +139,7 @@ class AppleHealthConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def _sync_healthkit_db(
-        self, *, since: Optional[datetime] = None
+        self, *, since: datetime | None = None
     ) -> Iterator[Document]:
         """Read health data from the local HealthKit SQLite database."""
         conn = sqlite3.connect(str(self._healthkit_db_path))
@@ -159,7 +160,7 @@ class AppleHealthConnector(BaseConnector):
             )
 
             # Steps
-            steps_by_day: Dict[str, float] = defaultdict(float)
+            steps_by_day: dict[str, float] = defaultdict(float)
             rows = conn.execute(
                 """
                 SELECT s.start_date, qs.quantity
@@ -193,14 +194,14 @@ class AppleHealthConnector(BaseConnector):
     # ------------------------------------------------------------------
 
     def _sync_export_xml(
-        self, *, since: Optional[datetime] = None
+        self, *, since: datetime | None = None
     ) -> Iterator[Document]:
         """Stream-parse the Apple Health export XML and yield Documents."""
-        steps_by_day: Dict[str, float] = defaultdict(float)
-        sleep_by_day: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        hr_by_day: Dict[str, List[float]] = defaultdict(list)
-        energy_by_day: Dict[str, float] = defaultdict(float)
-        workouts: List[Dict[str, Any]] = []
+        steps_by_day: dict[str, float] = defaultdict(float)
+        sleep_by_day: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        hr_by_day: dict[str, list[float]] = defaultdict(list)
+        energy_by_day: dict[str, float] = defaultdict(float)
+        workouts: list[dict[str, Any]] = []
 
         for event, elem in ET.iterparse(str(self._export_path), events=("end",)):
             tag = elem.tag
@@ -302,7 +303,7 @@ class AppleHealthConnector(BaseConnector):
 
     @staticmethod
     def _yield_step_docs(
-        steps_by_day: Dict[str, float],
+        steps_by_day: dict[str, float],
     ) -> Iterator[Document]:
         for day in sorted(steps_by_day):
             total = int(steps_by_day[day])
@@ -318,7 +319,7 @@ class AppleHealthConnector(BaseConnector):
 
     @staticmethod
     def _yield_sleep_docs(
-        sleep_by_day: Dict[str, List[Dict[str, Any]]],
+        sleep_by_day: dict[str, list[dict[str, Any]]],
     ) -> Iterator[Document]:
         for day in sorted(sleep_by_day):
             entries = sleep_by_day[day]
@@ -337,7 +338,7 @@ class AppleHealthConnector(BaseConnector):
 
     @staticmethod
     def _yield_hr_docs(
-        hr_by_day: Dict[str, List[float]],
+        hr_by_day: dict[str, list[float]],
     ) -> Iterator[Document]:
         for day in sorted(hr_by_day):
             values = hr_by_day[day]
@@ -362,7 +363,7 @@ class AppleHealthConnector(BaseConnector):
 
     @staticmethod
     def _yield_energy_docs(
-        energy_by_day: Dict[str, float],
+        energy_by_day: dict[str, float],
     ) -> Iterator[Document]:
         for day in sorted(energy_by_day):
             total = round(energy_by_day[day], 1)
@@ -378,7 +379,7 @@ class AppleHealthConnector(BaseConnector):
 
     @staticmethod
     def _yield_workout_docs(
-        workouts: List[Dict[str, Any]],
+        workouts: list[dict[str, Any]],
     ) -> Iterator[Document]:
         for w in workouts:
             # Friendly activity name

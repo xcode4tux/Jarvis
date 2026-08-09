@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 
@@ -11,10 +11,10 @@ from unittest.mock import MagicMock
 class _StubTrace:
     trace_id: str = "t1"
     query: str = "test"
-    feedback: Optional[float] = 0.8
+    feedback: float | None = 0.8
     agent: str = "simple"
     model: str = "qwen"
-    outcome: Optional[str] = "success"
+    outcome: str | None = "success"
     result: str = "answer"
     started_at: float = 1712534400.0
     ended_at: float = 1712534401.0
@@ -22,7 +22,7 @@ class _StubTrace:
     messages: list = field(default_factory=list)
     total_tokens: int = 100
     total_latency_seconds: float = 1.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     engine: str = "ollama"
 
 

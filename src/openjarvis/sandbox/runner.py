@@ -12,7 +12,7 @@ import logging
 import shutil
 import subprocess
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, BaseAgent
 from openjarvis.core.events import EventBus
@@ -91,8 +91,8 @@ class ContainerRunner:
 
     def _validate_mounts(
         self,
-        mounts: Optional[List[str]],
-    ) -> List[str]:
+        mounts: list[str] | None,
+    ) -> list[str]:
         """Validate mounts against the allowlist."""
         if not mounts:
             return []
@@ -105,9 +105,9 @@ class ContainerRunner:
     def _build_docker_args(
         self,
         container_name: str,
-        mounts: List[str],
-        env: Optional[Dict[str, str]],
-    ) -> List[str]:
+        mounts: list[str],
+        env: dict[str, str] | None,
+    ) -> list[str]:
         """Build the ``docker run`` argument list."""
         runtime = self._check_runtime()
         args = [
@@ -135,13 +135,13 @@ class ContainerRunner:
 
     def run(
         self,
-        input_data: Dict[str, Any],
+        input_data: dict[str, Any],
         *,
         workspace: str = "",
-        mounts: Optional[List[str]] = None,
-        secrets: Optional[Dict[str, str]] = None,
-        env: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        mounts: list[str] | None = None,
+        secrets: dict[str, str] | None = None,
+        env: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """Spawn a container, send input, parse output.
 
         Parameters
@@ -213,7 +213,7 @@ class ContainerRunner:
         return self._parse_output(proc.stdout)
 
     @staticmethod
-    def _parse_output(stdout: str) -> Dict[str, Any]:
+    def _parse_output(stdout: str) -> dict[str, Any]:
         """Extract sentinel-wrapped JSON from container stdout."""
         start = stdout.find(_OUTPUT_START)
         end = stdout.find(_OUTPUT_END)
@@ -292,12 +292,12 @@ class SandboxedAgent(BaseAgent):
         agent: BaseAgent,
         runner: ContainerRunner,
         *,
-        engine: Optional[InferenceEngine] = None,
+        engine: InferenceEngine | None = None,
         model: str = "",
         workspace: str = "",
-        mounts: Optional[List[str]] = None,
-        secrets: Optional[Dict[str, str]] = None,
-        bus: Optional[EventBus] = None,
+        mounts: list[str] | None = None,
+        secrets: dict[str, str] | None = None,
+        bus: EventBus | None = None,
     ) -> None:
         # Use the wrapped agent's engine/model for BaseAgent init
         _engine = engine or getattr(agent, "_engine", None)
@@ -316,7 +316,7 @@ class SandboxedAgent(BaseAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         """Delegate execution to the container runner."""

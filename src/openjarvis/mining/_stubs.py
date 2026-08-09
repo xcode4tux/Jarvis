@@ -13,7 +13,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from openjarvis.core.config import HardwareInfo
 
@@ -31,8 +31,8 @@ class MiningCapabilities:
     """
 
     supported: bool
-    reason: Optional[str] = None
-    estimated_hashrate: Optional[float] = None  # shares/sec, best-effort
+    reason: str | None = None
+    estimated_hashrate: float | None = None  # shares/sec, best-effort
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ class PoolTarget:
     """Mine through an OJ-operated pool. v2 — raises NotImplementedError in v1."""
 
     url: str
-    worker_id: Optional[str] = None
+    worker_id: str | None = None
 
 
 SubmitTarget = Union[SoloTarget, PoolTarget]
@@ -74,7 +74,7 @@ class MiningConfig:
     wallet_address: str
     submit_target: SubmitTarget
     fee_bps: int = 0  # v1: 0; v2: 2000 (=20%)
-    fee_payout_address: Optional[str] = None  # v1: ignored; v2: OJ's address
+    fee_payout_address: str | None = None  # v1: ignored; v2: OJ's address
     extra: dict[str, Any] = field(default_factory=dict)
 
 
@@ -91,8 +91,8 @@ class MiningStats:
     blocks_found: int = 0
     hashrate: float = 0.0
     uptime_seconds: float = 0.0
-    last_share_at: Optional[float] = None
-    last_error: Optional[str] = None
+    last_share_at: float | None = None
+    last_error: str | None = None
     payout_target: str = "solo"  # v1: always "solo"; v2: "pool:<url>"
     fees_owed: int = 0  # v2 accounting hook; 0 in v1
 
@@ -161,7 +161,7 @@ class Sidecar:
             raise
 
     @staticmethod
-    def read(path: Path) -> Optional[dict[str, Any]]:
+    def read(path: Path) -> dict[str, Any] | None:
         if not path.exists():
             return None
         try:

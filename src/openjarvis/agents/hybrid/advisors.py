@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 import urllib.request
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -115,9 +115,9 @@ class AdvisorsAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         question = input
         cfg = self._cfg
         task_meta = (context.metadata.get("task") if context is not None else {}) or {}
@@ -218,7 +218,7 @@ class AdvisorsAgent(LocalCloudAgent):
         cost = self.cost_usd(self._cloud_model, e1_in + e2_in, e1_out + e2_out)
         cost += n_searches_total * _search_cost_per_call(self._cloud_endpoint)
 
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "tokens_local": tokens_local,
             "tokens_cloud": tokens_cloud,
             "cost_usd": cost,
@@ -251,7 +251,7 @@ class AdvisorsAgent(LocalCloudAgent):
         max_tokens: int,
         ws_max_uses: int,
         max_turns: int,
-    ) -> Tuple[str, int, int, int, int]:
+    ) -> tuple[str, int, int, int, int]:
         """Run a search-capable executor pass for the configured cloud.
 
         Dispatches by ``self._cloud_endpoint`` to the matching ``_base``
@@ -301,9 +301,9 @@ class AdvisorsAgent(LocalCloudAgent):
     def _run_swe(
         self,
         question: str,
-        task: Dict[str, Any],
-        cfg: Dict[str, Any],
-    ) -> Tuple[str, Dict[str, Any]]:
+        task: dict[str, Any],
+        cfg: dict[str, Any],
+    ) -> tuple[str, dict[str, Any]]:
         if not self._local_endpoint or not self._local_model:
             raise ValueError(
                 "AdvisorsAgent (swe mode) still needs local_model + local_endpoint "
@@ -383,7 +383,7 @@ class AdvisorsAgent(LocalCloudAgent):
             + final_out["tokens_in"] + final_out["tokens_out"]
         )
         cost = initial_out["cost_usd"] + final_out["cost_usd"]
-        meta: Dict[str, Any] = {
+        meta: dict[str, Any] = {
             "tokens_local": tokens_local,
             "tokens_cloud": tokens_cloud,
             "cost_usd": cost,

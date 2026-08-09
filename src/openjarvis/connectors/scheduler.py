@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Dict, List, Optional
 
 from openjarvis.connectors._stubs import BaseConnector
 from openjarvis.connectors.sync_engine import SyncEngine
@@ -47,9 +46,9 @@ class SyncScheduler:
     def __init__(self, sync_engine: SyncEngine, interval_seconds: int = 3600) -> None:
         self._engine = sync_engine
         self._interval = interval_seconds
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._stop = threading.Event()
-        self._connectors: List[BaseConnector] = []
+        self._connectors: list[BaseConnector] = []
 
     # ------------------------------------------------------------------
     # Public API
@@ -101,7 +100,7 @@ class SyncScheduler:
         self._thread = None
         logger.info("SyncScheduler stopped")
 
-    def run_once(self) -> Dict[str, int]:
+    def run_once(self) -> dict[str, int]:
         """Sync all connected connectors once (synchronous, non-blocking test helper).
 
         Returns
@@ -110,7 +109,7 @@ class SyncScheduler:
             Mapping of ``connector_id`` → number of new chunks ingested.
             Only connectors that are currently connected are included.
         """
-        results: Dict[str, int] = {}
+        results: dict[str, int] = {}
         for conn in self._connectors:
             if conn.is_connected():
                 try:

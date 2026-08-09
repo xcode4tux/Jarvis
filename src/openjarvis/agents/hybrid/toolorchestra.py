@@ -54,7 +54,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -106,7 +106,7 @@ FORCE_FINAL_PROMPT = (
 
 RL_ORCHESTRATOR_SYS = "You are good at using tools."
 
-RL_TOOLS_SPEC: List[Dict[str, Any]] = [
+RL_TOOLS_SPEC: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
@@ -164,7 +164,7 @@ RL_TOOLS_SPEC: List[Dict[str, Any]] = [
 ]
 
 # RL_ALL_TOOLS: argument-validation schema (mirrors eval_hle.py:104).
-RL_ALL_TOOLS: Dict[str, Dict[str, List[str]]] = {
+RL_ALL_TOOLS: dict[str, dict[str, list[str]]] = {
     "enhance_reasoning": {"model": ["reasoner-1", "reasoner-2", "reasoner-3"]},
     "answer": {
         "model": [
@@ -184,10 +184,10 @@ RL_ALL_TOOLS: Dict[str, Dict[str, List[str]]] = {
 # so the substitution is deferred until we know the cell's resolved local/cloud
 # pair. Worker dicts share the schema validated by `_resolve_worker_pool`.
 
-def _expert_for(slot: str, local_model: Optional[str],
-                local_endpoint: Optional[str],
+def _expert_for(slot: str, local_model: str | None,
+                local_endpoint: str | None,
                 cloud_model: str,
-                cloud_endpoint: str = "anthropic") -> Dict[str, Any]:
+                cloud_endpoint: str = "anthropic") -> dict[str, Any]:
     """Map an upstream model slot (`answer-1`, `search-3`, …) to a worker spec.
 
     Routing policy:
@@ -276,11 +276,11 @@ _PAPER_GENERALIST_TIER3_OPENROUTER = "meta-llama/llama-3.3-70b-instruct"
 
 def _paper_expert_for(
     slot: str,
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
+    local_model: str | None,
+    local_endpoint: str | None,
     cloud_model: str,
     cloud_endpoint: str = "openai",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Paper-match counterpart of ``_expert_for``.
 
     Differs from ``_expert_for``:
@@ -340,7 +340,7 @@ def _paper_expert_for(
 
 # ---- Tavily + Modal helpers -------------------------------------------------
 
-def _call_tavily_search(query: str, max_results: int = 5) -> Tuple[str, int, int]:
+def _call_tavily_search(query: str, max_results: int = 5) -> tuple[str, int, int]:
     """One-shot Tavily search. Returns (text, p_tok=0, c_tok=0).
 
     Token counts are reported as zero (no LLM was billed); the OpenJarvis
@@ -360,7 +360,7 @@ def _call_tavily_search(query: str, max_results: int = 5) -> Tuple[str, int, int
 _MODAL_APP_NAME = "openjarvis-toolorchestra-sandbox"
 
 
-def _call_modal_python(code: str, timeout_s: int = 60) -> Tuple[str, int]:
+def _call_modal_python(code: str, timeout_s: int = 60) -> tuple[str, int]:
     """Execute a single Python snippet in a fresh Modal Sandbox.
 
     Returns ``(combined_stdout_stderr, returncode)``. Logs are capped at 8 KiB.
@@ -406,7 +406,7 @@ def _call_modal_python(code: str, timeout_s: int = 60) -> Tuple[str, int]:
 _PY_CODE_RE = re.compile(r"```(?:python|py)?\s*\n(.*?)```", re.DOTALL)
 
 
-def _extract_first_python_block(text: str) -> Optional[str]:
+def _extract_first_python_block(text: str) -> str | None:
     """Return the first ```python ... ``` block (or ```...```), or None."""
     m = _PY_CODE_RE.search(text or "")
     return m.group(1).strip() if m else None
@@ -420,9 +420,9 @@ def _call_orchestrator_with_tool_calls(
     system: str,
     max_tokens: int,
     temperature: float,
-    tools: List[Dict[str, Any]],
+    tools: list[dict[str, Any]],
     timeout: float = 600.0,
-) -> Tuple[str, int, int, Any]:
+) -> tuple[str, int, int, Any]:
     """Orchestrator-aware vLLM call. Returns (text, p_tok, c_tok, tool_calls).
 
     Mirrors ``LocalCloudAgent._call_vllm`` but ALSO surfaces the SDK-level
@@ -459,9 +459,9 @@ def _call_orchestrator_with_tool_calls(
 
 
 def _paper_pool(
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
-) -> List[Dict[str, Any]]:
+    local_model: str | None,
+    local_endpoint: str | None,
+) -> list[dict[str, Any]]:
     """Paper-match worker pool (registered for traces / inspection).
 
     NOTE: in RL mode the orchestrator dispatches via tool/slot rather than
@@ -469,7 +469,7 @@ def _paper_pool(
     is the actual routing function. We still return a list here so the
     paradigm's trace metadata has something concrete to log.
     """
-    pool: List[Dict[str, Any]] = []
+    pool: list[dict[str, Any]] = []
     if local_model and local_endpoint:
         pool.append({
             "id": len(pool),
@@ -520,7 +520,7 @@ _TOOL_CALL_TAG_RE = re.compile(
 )
 
 
-def _parse_rl_tool_call(content: str, sdk_tool_calls: Any) -> Optional[Dict[str, Any]]:
+def _parse_rl_tool_call(content: str, sdk_tool_calls: Any) -> dict[str, Any] | None:
     """Return ``{"name": str, "arguments": dict}`` or None.
 
     Prefers the SDK-level ``tool_calls`` (when vLLM's parser matched), falls
@@ -558,7 +558,7 @@ def _parse_rl_tool_call(content: str, sdk_tool_calls: Any) -> Optional[Dict[str,
     return {"name": name, "arguments": args}
 
 
-def _build_pool_block(workers: List[Dict[str, Any]]) -> str:
+def _build_pool_block(workers: list[dict[str, Any]]) -> str:
     return "\n".join(
         f"Worker {w['id']} ({w['name']}): {w['description']}" for w in workers
     )
@@ -566,8 +566,8 @@ def _build_pool_block(workers: List[Dict[str, Any]]) -> str:
 
 def _build_user_prompt(
     question: str,
-    workers: List[Dict[str, Any]],
-    history: List[Dict[str, Any]],
+    workers: list[dict[str, Any]],
+    history: list[dict[str, Any]],
 ) -> str:
     pieces = [
         f"Worker pool:\n{_build_pool_block(workers)}",
@@ -601,7 +601,7 @@ def _strip_fences(s: str) -> str:
     return s
 
 
-def _parse_action(text: str) -> Optional[Dict[str, Any]]:
+def _parse_action(text: str) -> dict[str, Any] | None:
     s = _strip_fences(text)
     # First try direct parse, then balanced-brace extraction.
     try:
@@ -647,11 +647,11 @@ def _extract_final_answer_text(text: str) -> str:
 # ---------- Worker pool ----------
 
 def _default_pool(
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
+    local_model: str | None,
+    local_endpoint: str | None,
     cloud_model: str = "claude-opus-4-7",
     cloud_endpoint: str = "anthropic",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Default heterogeneous worker pool.
 
     The frontier worker's ``type`` + ``model`` track the cell's resolved
@@ -661,7 +661,7 @@ def _default_pool(
     ep = (cloud_endpoint or "anthropic").lower()
     if ep not in ("anthropic", "openai", "gemini"):
         ep = "anthropic"
-    pool: List[Dict[str, Any]] = []
+    pool: list[dict[str, Any]] = []
     if local_model and local_endpoint:
         pool.append({
             "id": len(pool),
@@ -726,12 +726,12 @@ _DEFAULT_WEB_SEARCH_MODEL = "claude-haiku-4-5"
 
 
 def _resolve_worker_pool(
-    cfg: Dict[str, Any],
-    local_model: Optional[str],
-    local_endpoint: Optional[str],
+    cfg: dict[str, Any],
+    local_model: str | None,
+    local_endpoint: str | None,
     cloud_model: str,
     cloud_endpoint: str = "anthropic",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return the worker pool for this run.
 
     Strict replace, not merge: if ``cfg["worker_pool"]`` is set, the
@@ -759,7 +759,7 @@ def _resolve_worker_pool(
             "Invalid worker_pool entry [-]: worker_pool must be a non-empty list"
         )
 
-    resolved: List[Dict[str, Any]] = []
+    resolved: list[dict[str, Any]] = []
     seen_ids: set = set()
     has_non_search = False
     for raw in override:
@@ -849,8 +849,8 @@ def _resolve_worker_pool(
 
 
 def _call_worker(
-    worker: Dict[str, Any], prompt: str, cfg: Dict[str, Any]
-) -> Tuple[str, int, int, bool, float, int]:
+    worker: dict[str, Any], prompt: str, cfg: dict[str, Any]
+) -> tuple[str, int, int, bool, float, int]:
     """Returns (text, p_tok, c_tok, is_local, extra_cost, n_web_searches)."""
     wtype = worker.get("type", "openai")
     max_tok = int(cfg.get("worker_max_tokens", 4096))
@@ -936,13 +936,13 @@ def _call_worker(
 
 
 def _swe_call_worker(
-    worker: Dict[str, Any],
+    worker: dict[str, Any],
     prompt: str,
-    cfg: Dict[str, Any],
-    task: Dict[str, Any],
+    cfg: dict[str, Any],
+    task: dict[str, Any],
     workdir: Path,
     turn: int,
-) -> Tuple[str, int, int, bool, float, int, int]:
+) -> tuple[str, int, int, bool, float, int, int]:
     """SWE-bench worker dispatch: route solver workers through
     run_swe_agent_loop on a shared workdir. Web-search workers fall back
     to the regular one-shot dispatch (search isn't an agent loop).
@@ -1024,9 +1024,9 @@ class ToolOrchestraAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         mode = str(self._cfg.get("orchestrator_mode", "prompted")).lower()
         if mode == "rl":
             return self._run_rl(input, context, **kwargs)
@@ -1038,9 +1038,9 @@ class ToolOrchestraAgent(LocalCloudAgent):
     def _run_prompted(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
         question = input
         # Resolution order (strict replace, no merge):
@@ -1071,7 +1071,7 @@ class ToolOrchestraAgent(LocalCloudAgent):
             and bool(task_meta.get("repo"))
             and bool(task_meta.get("base_commit"))
         )
-        shared_workdir: Optional[Path] = None
+        shared_workdir: Path | None = None
         if swe_mode:
             shared_workdir = Path(tempfile.mkdtemp(
                 prefix=f"toolorch-swe-{task_meta.get('task_id','x')}-"
@@ -1093,7 +1093,7 @@ class ToolOrchestraAgent(LocalCloudAgent):
         # the diff-extraction step. Without this, at n=500 SWE-bench an
         # exception leaves hundreds of MB of cloned repos in tempdir.
         try:
-            history: List[Dict[str, Any]] = []
+            history: list[dict[str, Any]] = []
             tokens_local = 0
             tokens_cloud = 0
             cost = 0.0
@@ -1103,7 +1103,7 @@ class ToolOrchestraAgent(LocalCloudAgent):
             # produce text only — calling a worker is one tool call's worth
             # of "delegation" but the actual tool action happens inside).
             tool_calls = 0
-            final_answer: Optional[str] = None
+            final_answer: str | None = None
             forced_final = False
             parse_failures = 0
 
@@ -1272,9 +1272,9 @@ class ToolOrchestraAgent(LocalCloudAgent):
     def _run_rl(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         cfg = self._cfg
         question = input
 
@@ -1307,7 +1307,7 @@ class ToolOrchestraAgent(LocalCloudAgent):
             and bool(task_meta.get("repo"))
             and bool(task_meta.get("base_commit"))
         )
-        shared_workdir: Optional[Path] = None
+        shared_workdir: Path | None = None
         if swe_mode:
             shared_workdir = Path(tempfile.mkdtemp(
                 prefix=f"toolorch-rl-swe-{task_meta.get('task_id','x')}-"
@@ -1329,14 +1329,14 @@ class ToolOrchestraAgent(LocalCloudAgent):
         # as a single string for prompt simplicity; the upstream uses
         # tokenized cutoffs (we cap at ~24k chars instead).
         context_str = ""
-        doc_list: List[str] = []
-        history: List[Dict[str, Any]] = []
+        doc_list: list[str] = []
+        history: list[dict[str, Any]] = []
         tokens_local = 0
         tokens_cloud = 0
         cost = 0.0
         n_web_searches_total = 0
         tool_calls = 0
-        final_answer: Optional[str] = None
+        final_answer: str | None = None
         parse_failures = 0
 
         # Single outer try/finally guards `shared_workdir` against any
@@ -1533,8 +1533,8 @@ class ToolOrchestraAgent(LocalCloudAgent):
                 # `enhance_reasoning` actually executes the code the coder
                 # wrote. Append the exec output to the worker's text. No-op
                 # when no python block is found.
-                modal_exec_output: Optional[str] = None
-                modal_exec_rc: Optional[int] = None
+                modal_exec_output: str | None = None
+                modal_exec_rc: int | None = None
                 if (paper_mode and name == "enhance_reasoning"
                         and not swe_mode):
                     code = _extract_first_python_block(w_text)

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 try:
     import tomllib
@@ -20,7 +19,7 @@ class AgentTemplate:
     description: str = ""
     system_prompt: str = ""
     agent_type: str = "simple"
-    tools: List[str] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
     max_turns: int = 10
     temperature: float = 0.7
 
@@ -51,8 +50,8 @@ def load_template(path: str | Path) -> AgentTemplate:
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
 
-    template_data: Dict = data.get("template", {})
-    agent_data: Dict = data.get("agent", {})
+    template_data: dict = data.get("template", {})
+    agent_data: dict = data.get("agent", {})
 
     return AgentTemplate(
         name=template_data.get("name", path.stem),
@@ -76,8 +75,8 @@ def _user_templates_dir() -> Path:
 
 
 def discover_templates(
-    extra_dirs: Optional[List[str | Path]] = None,
-) -> List[AgentTemplate]:
+    extra_dirs: list[str | Path] | None = None,
+) -> list[AgentTemplate]:
     """Discover and load all agent templates from known directories.
 
     Search order:
@@ -87,11 +86,11 @@ def discover_templates(
 
     Returns a list of :class:`AgentTemplate` instances sorted by name.
     """
-    dirs: List[Path] = [_builtin_templates_dir(), _user_templates_dir()]
+    dirs: list[Path] = [_builtin_templates_dir(), _user_templates_dir()]
     if extra_dirs:
         dirs.extend(Path(d) for d in extra_dirs)
 
-    seen: Dict[str, AgentTemplate] = {}
+    seen: dict[str, AgentTemplate] = {}
     for directory in dirs:
         if not directory.is_dir():
             continue

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
 
 from openjarvis.core import config
 
@@ -20,7 +19,7 @@ class BgStatus:
 
     rust_extension: str = "pending"  # pending | ready | failed
     rust_error: str = ""
-    models: Dict[str, str] = field(
+    models: dict[str, str] = field(
         default_factory=dict
     )  # id -> pending|downloading|ready|failed
 
@@ -32,7 +31,7 @@ class BgStatus:
         return True
 
 
-def _safe_read(path: Path) -> Optional[str]:
+def _safe_read(path: Path) -> str | None:
     """Read a file, returning None if it disappears mid-read (race)."""
     try:
         return path.read_text()
@@ -40,7 +39,7 @@ def _safe_read(path: Path) -> Optional[str]:
         return None
 
 
-def get_status(home: Optional[Path] = None) -> BgStatus:
+def get_status(home: Path | None = None) -> BgStatus:
     """Snapshot the background-work state from the state directory."""
     home = home or config.DEFAULT_CONFIG_DIR
     state_dir = home / ".state"
@@ -60,7 +59,7 @@ def get_status(home: Optional[Path] = None) -> BgStatus:
     # Models: parse files in models_dir; .ready supersedes .downloading and .failed.
     if models_dir.is_dir():
         # First pass: capture every model id we see.
-        seen: Dict[str, str] = {}
+        seen: dict[str, str] = {}
         for f in models_dir.iterdir():
             if f.suffix not in (".downloading", ".ready", ".failed"):
                 continue

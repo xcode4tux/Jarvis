@@ -11,10 +11,10 @@ from __future__ import annotations
 import email as email_lib
 import imaplib
 import logging
+from collections.abc import Iterator
 from datetime import datetime
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
-from typing import Iterator, List, Optional
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.connectors.oauth import delete_tokens, load_tokens, save_tokens
@@ -92,7 +92,7 @@ class GmailIMAPConnector(BaseConnector):
         credentials_path: str = "",
         *,
         imap_host: str = "",
-        max_messages: Optional[int] = None,
+        max_messages: int | None = None,
     ) -> None:
         self._email = email_address
         self._password = app_password
@@ -142,8 +142,8 @@ class GmailIMAPConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         em, pw = self._resolve_credentials()
         if not em or not pw:
@@ -220,7 +220,7 @@ class GmailIMAPConnector(BaseConnector):
             items_total=self._items_total,
         )
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         return [
             ToolSpec(
                 name="gmail_search_emails",

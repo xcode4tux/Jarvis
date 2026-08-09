@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from typing import List, Literal, TypeVar
+from typing import Literal, TypeVar
 
 SplitName = Literal["train", "test", "all"]
 
@@ -11,12 +11,12 @@ T = TypeVar("T")
 
 
 def apply_split(
-    items: List[T],
+    items: list[T],
     *,
     split: SplitName,
     seed: int,
     train_frac: float,
-) -> List[T]:
+) -> list[T]:
     """Return a deterministic slice of ``items`` according to ``split``.
 
     The underlying permutation is ``random.Random(seed).shuffle(items_copy)``.

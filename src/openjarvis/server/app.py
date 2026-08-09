@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import pathlib
 import time
+from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -157,6 +159,7 @@ def create_app(
     api_key: str = "",
     webhook_config: dict | None = None,
     cors_origins: list[str] | None = None,
+    bind_host: str = "",
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -175,10 +178,25 @@ def create_app(
     config:
         Optional JarvisConfig for other settings.
     """
+    # Lifespan hooks: the analytics bridge/client (and any future cleanup)
+    # are registered into ``_shutdown_tasks`` and awaited on shutdown. Using
+    # the lifespan API instead of the deprecated ``@app.on_event`` hook.
+    _shutdown_tasks: list[Callable[[], Awaitable[None]]] = []
+
+    @asynccontextmanager
+    async def _lifespan(_app: FastAPI):
+        yield
+        for task in _shutdown_tasks:
+            try:
+                await task()
+            except Exception:
+                pass
+
     app = FastAPI(
         title="OpenJarvis API",
         description="OpenAI-compatible API server for OpenJarvis",
         version="0.1.0",
+        lifespan=_lifespan,
     )
 
     from fastapi.middleware.cors import CORSMiddleware
@@ -270,7 +288,6 @@ def create_app(
                 _bridge.start()
                 app.state.analytics_bridge = _bridge
 
-            @app.on_event("shutdown")
             async def _shutdown_analytics() -> None:
                 bridge = getattr(app.state, "analytics_bridge", None)
                 if bridge is not None:
@@ -284,6 +301,8 @@ def create_app(
                         client.shutdown()
                     except Exception:
                         pass
+
+            _shutdown_tasks.append(_shutdown_analytics)
     except Exception as _exc:
         logger.debug("Analytics init skipped: %s", _exc)
 
@@ -322,9 +341,20 @@ def create_app(
     # Mount webhook routes (always — SendBlue may be configured dynamically)
     if webhook_config:
         try:
+            import ipaddress
+
             from openjarvis.server.webhook_routes import (
                 create_webhook_router,
             )
+
+            # Fail closed on non-loopback binds: webhook endpoints reject
+            # unauthenticated requests unless their verification secret is
+            # configured. Loopback keeps the legacy permissive behavior
+            # (local-only exposure is the default).
+            try:
+                _is_loop = ipaddress.ip_address(bind_host).is_loopback
+            except ValueError:
+                _is_loop = bind_host in ("", "localhost")
 
             webhook_router = create_webhook_router(
                 bridge=channel_bridge,
@@ -332,6 +362,7 @@ def create_app(
                 bluebubbles_password=webhook_config.get("bluebubbles_password", ""),
                 whatsapp_verify_token=webhook_config.get("whatsapp_verify_token", ""),
                 whatsapp_app_secret=webhook_config.get("whatsapp_app_secret", ""),
+                require_secrets=not _is_loop,
             )
             app.include_router(webhook_router)
         except Exception as exc:

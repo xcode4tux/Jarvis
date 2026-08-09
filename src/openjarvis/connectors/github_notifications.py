@@ -7,9 +7,10 @@ All API calls are in module-level functions for easy mocking in tests.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -21,8 +22,8 @@ _DEFAULT_TOKEN_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "github.json")
 
 
 def _github_api_get(
-    token: str, params: Optional[Dict[str, str]] = None
-) -> List[Dict[str, Any]]:
+    token: str, params: dict[str, str] | None = None
+) -> list[dict[str, Any]]:
     """Fetch notifications from the GitHub API."""
     resp = httpx.get(
         "https://api.github.com/notifications",
@@ -76,14 +77,17 @@ class GitHubNotificationsConnector(BaseConnector):
             raise ValueError(f"Failed to connect to GitHub: {exc}")
 
         self._token_path.parent.mkdir(parents=True, exist_ok=True)
-        self._token_path.write_text(json.dumps({"token": code}, indent=2), encoding="utf-8")
+        self._token_path.write_text(
+            json.dumps({"token": code}, indent=2),
+            encoding="utf-8",
+        )
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield Documents for each GitHub notification."""
         token = self._load_token()
-        params: Dict[str, str] = {}
+        params: dict[str, str] = {}
         if since is not None:
             params["since"] = f"{since.isoformat()}Z"
 

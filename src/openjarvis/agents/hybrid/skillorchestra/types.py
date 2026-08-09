@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # BetaCompetence
@@ -68,11 +68,11 @@ class BetaCompetence:
         self.alpha += successes
         self.beta += failures
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         return {"alpha": self.alpha, "beta": self.beta}
 
     @classmethod
-    def from_dict(cls, d: Dict[str, float]) -> BetaCompetence:
+    def from_dict(cls, d: dict[str, float]) -> BetaCompetence:
         return cls(alpha=d["alpha"], beta=d["beta"])
 
 
@@ -117,7 +117,7 @@ class CostStats:
         self.avg_prompt_cost_usd = (self.avg_prompt_cost_usd * n + prompt_cost_usd) / (n + 1)
         self.total_executions = n + 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "avg_prompt_tokens": self.avg_prompt_tokens,
             "avg_completion_tokens": self.avg_completion_tokens,
@@ -129,7 +129,7 @@ class CostStats:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> CostStats:
+    def from_dict(cls, d: dict[str, Any]) -> CostStats:
         return cls(**{k: d[k] for k in cls.__dataclass_fields__ if k in d})
 
 
@@ -144,10 +144,10 @@ class RoutingInsight:
     insight_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     content: str = ""
     insight_type: str = ""  # "transition", "usage", "constraint", "agent_preference"
-    evidence_query_ids: List[str] = field(default_factory=list)
+    evidence_query_ids: list[str] = field(default_factory=list)
     confidence: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "insight_id": self.insight_id,
             "content": self.content,
@@ -157,7 +157,7 @@ class RoutingInsight:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> RoutingInsight:
+    def from_dict(cls, d: dict[str, Any]) -> RoutingInsight:
         return cls(**{k: d[k] for k in cls.__dataclass_fields__ if k in d})
 
 
@@ -171,12 +171,12 @@ class ModeMetadata:
 
     mode: str = ""
     description: str = ""
-    insights: List[RoutingInsight] = field(default_factory=list)
+    insights: list[RoutingInsight] = field(default_factory=list)
 
     def add_insight(self, insight: RoutingInsight) -> None:
         self.insights.append(insight)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "mode": self.mode,
             "description": self.description,
@@ -184,7 +184,7 @@ class ModeMetadata:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> ModeMetadata:
+    def from_dict(cls, d: dict[str, Any]) -> ModeMetadata:
         insights = [RoutingInsight.from_dict(i) for i in d.get("insights", [])]
         return cls(
             mode=d.get("mode", ""),
@@ -201,13 +201,13 @@ class ModeMetadata:
 class SkillProvenance:
     """Tracks how and why a skill was discovered."""
 
-    discovered_from_queries: List[str] = field(default_factory=list)
-    positive_trajectories: List[str] = field(default_factory=list)
-    negative_trajectories: List[str] = field(default_factory=list)
+    discovered_from_queries: list[str] = field(default_factory=list)
+    positive_trajectories: list[str] = field(default_factory=list)
+    negative_trajectories: list[str] = field(default_factory=list)
     discovery_round: int = 0
-    refinement_history: List[Dict[str, Any]] = field(default_factory=list)
+    refinement_history: list[dict[str, Any]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "discovered_from_queries": self.discovered_from_queries,
             "positive_trajectories": self.positive_trajectories,
@@ -217,7 +217,7 @@ class SkillProvenance:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> SkillProvenance:
+    def from_dict(cls, d: dict[str, Any]) -> SkillProvenance:
         return cls(**{k: d[k] for k in cls.__dataclass_fields__ if k in d})
 
 
@@ -228,13 +228,13 @@ class Skill:
     skill_id: str = ""
     name: str = ""
     description: str = ""
-    indicators: List[str] = field(default_factory=list)
-    examples: List[str] = field(default_factory=list)
+    indicators: list[str] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
     mode: str = ""
-    parent_skill_id: Optional[str] = None # for hierarchical skills
+    parent_skill_id: str | None = None # for hierarchical skills
     provenance: SkillProvenance = field(default_factory=SkillProvenance)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "skill_id": self.skill_id,
             "name": self.name,
@@ -247,7 +247,7 @@ class Skill:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> Skill:
+    def from_dict(cls, d: dict[str, Any]) -> Skill:
         provenance = SkillProvenance.from_dict(d.get("provenance", {}))
         return cls(
             skill_id=d.get("skill_id", ""),
@@ -260,11 +260,11 @@ class Skill:
             provenance=provenance,
         )
 
-    def get_children(self, all_skills: Dict[str, Skill]) -> List[Skill]:
+    def get_children(self, all_skills: dict[str, Skill]) -> list[Skill]:
         """Get child skills in the hierarchy."""
         return [s for s in all_skills.values() if s.parent_skill_id == self.skill_id]
 
-    def is_leaf(self, all_skills: Dict[str, Skill]) -> bool:
+    def is_leaf(self, all_skills: dict[str, Skill]) -> bool:
         """True if this skill has no children."""
         return len(self.get_children(all_skills)) == 0
 
@@ -280,18 +280,18 @@ class AgentProfile:
     agent_id: str = ""
     mode: str = ""
     model_name: str = ""
-    tools: List[str] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
 
-    skill_competence: Dict[str, BetaCompetence] = field(default_factory=dict)
+    skill_competence: dict[str, BetaCompetence] = field(default_factory=dict)
 
     total_attempts: int = 0
     total_successes: int = 0
 
     cost_stats: CostStats = field(default_factory=CostStats)
 
-    routing_signals: List[str] = field(default_factory=list)
-    strengths: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
+    routing_signals: list[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
 
     def get_competence(self, skill_id: str) -> float:
         """Get empirical success rate for a skill. Returns 0 if unseen."""
@@ -310,7 +310,7 @@ class AgentProfile:
         self.get_competence_dist(skill_id).update(success)
 
     def weighted_competence(
-        self, skill_weights: Dict[str, float]
+        self, skill_weights: dict[str, float]
     ) -> float:
         """Compute weighted competence: sum w_{t,sigma} * alpha/(alpha+beta)."""
         if not skill_weights:
@@ -335,7 +335,7 @@ class AgentProfile:
         return sum(scores) / len(scores) if scores else 0.0
 
     def category_competence_for_skills(
-        self, active_skill_ids: List[str]
+        self, active_skill_ids: list[str]
     ) -> float:
         """Category-level competence for hierarchical tie-breaking.
 
@@ -365,7 +365,7 @@ class AgentProfile:
             total_successes += s
         return total_successes / total_attempts if total_attempts > 0 else 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         skill_scores = {}
         skill_attempts = {}
         skill_successes = {}
@@ -399,7 +399,7 @@ class AgentProfile:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> AgentProfile:
+    def from_dict(cls, d: dict[str, Any]) -> AgentProfile:
         skill_competence = {
             sid: BetaCompetence.from_dict(bc)
             for sid, bc in d.get("skill_competence", {}).items()

@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -17,7 +17,7 @@ class TTSResult:
     duration_seconds: float = 0.0
     voice_id: str = ""
     sample_rate: int = 24000
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def save(self, path: Path) -> Path:
         """Write audio bytes to a file and return the path."""
@@ -42,7 +42,7 @@ class TTSBackend(ABC):
         """Synthesize text to audio."""
 
     @abstractmethod
-    def available_voices(self) -> List[str]:
+    def available_voices(self) -> list[str]:
         """Return list of available voice IDs."""
 
     @abstractmethod

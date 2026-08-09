@@ -17,7 +17,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Decision constants
@@ -47,16 +47,16 @@ class PendingAction:
     id: str
     action_type: str
     description: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     permission_key: str
     tier: str
     status: str = STATUS_PENDING
     created_at: str = ""
     expires_at: str = ""
     notification_sent: bool = False
-    decision_at: Optional[str] = None
+    decision_at: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "action_type": self.action_type,
@@ -112,7 +112,7 @@ class PermissionRule:
     last_updated: str = ""
     notes: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "permission_key": self.permission_key,
             "decision": self.decision,
@@ -187,7 +187,7 @@ class ApprovalStore:
         self,
         action_type: str,
         description: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         permission_key: str,
         tier: str,
         ttl_hours: int = 24,
@@ -229,7 +229,7 @@ class ApprovalStore:
         self._conn.commit()
         return action
 
-    def get_action(self, action_id: str) -> Optional[PendingAction]:
+    def get_action(self, action_id: str) -> PendingAction | None:
         row = self._conn.execute(
             "SELECT id, action_type, description, payload, permission_key, "
             "tier, status, created_at, expires_at, notification_sent, decision_at "
@@ -238,7 +238,7 @@ class ApprovalStore:
         ).fetchone()
         return PendingAction.from_row(row) if row else None
 
-    def list_pending(self) -> List[PendingAction]:
+    def list_pending(self) -> list[PendingAction]:
         """Return all non-expired pending actions."""
         now = datetime.now(timezone.utc).isoformat()
         rows = self._conn.execute(
@@ -250,7 +250,7 @@ class ApprovalStore:
         ).fetchall()
         return [PendingAction.from_row(r) for r in rows]
 
-    def list_approved(self) -> List[PendingAction]:
+    def list_approved(self) -> list[PendingAction]:
         """Return approved-but-not-yet-executed actions."""
         rows = self._conn.execute(
             "SELECT id, action_type, description, payload, permission_key, "
@@ -265,7 +265,7 @@ class ApprovalStore:
         action_id: str,
         status: str,
         *,
-        notification_sent: Optional[bool] = None,
+        notification_sent: bool | None = None,
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         if notification_sent is not None:
@@ -294,7 +294,7 @@ class ApprovalStore:
 
     # -- Permission memory -----------------------------------------------------
 
-    def get_permission(self, permission_key: str) -> Optional[PermissionRule]:
+    def get_permission(self, permission_key: str) -> PermissionRule | None:
         row = self._conn.execute(
             "SELECT permission_key, decision, times_approved, times_denied, "
             "last_updated, notes FROM permission_memory WHERE permission_key = ?",
@@ -353,7 +353,7 @@ class ApprovalStore:
         )
         self._conn.commit()
 
-    def list_permissions(self) -> List[PermissionRule]:
+    def list_permissions(self) -> list[PermissionRule]:
         rows = self._conn.execute(
             "SELECT permission_key, decision, times_approved, times_denied, "
             "last_updated, notes FROM permission_memory ORDER BY last_updated DESC"

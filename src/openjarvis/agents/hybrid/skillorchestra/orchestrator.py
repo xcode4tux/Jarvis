@@ -21,7 +21,7 @@ needs the parsed ``tool_use`` blocks back — the same thing
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .._prices import is_gpt5_family, supports_temperature
 from .pool import ModelSpec, build_pool
@@ -58,7 +58,7 @@ def _orchestrate_step(
     model: str,
     endpoint: str,
     max_tokens: int,
-) -> Tuple[str, List[Dict[str, Any]], int, int, float]:
+) -> tuple[str, list[dict[str, Any]], int, int, float]:
     """One orchestrator turn. Returns (text, tool_calls, p_tok, c_tok, cost).
 
     ``tool_calls`` is a list of ``{"name", "input"}`` dicts.
@@ -68,7 +68,7 @@ def _orchestrate_step(
         import anthropic
 
         client = anthropic.Anthropic(timeout=600.0, max_retries=12)
-        kwargs: Dict[str, Any] = dict(
+        kwargs: dict[str, Any] = dict(
             model=model,
             max_tokens=max_tokens,
             messages=[{"role": "user", "content": user}],
@@ -141,13 +141,13 @@ def _orchestrate_step(
 # ---------------------------------------------------------------------------
 
 def _build_context(
-    doc_list: List[Tuple[str, str]],
-    code_list: List[Tuple[str, str]],
-    attempt_list: List[Tuple[str, str]],
+    doc_list: list[tuple[str, str]],
+    code_list: list[tuple[str, str]],
+    attempt_list: list[tuple[str, str]],
     *,
     char_cap: int,
 ) -> str:
-    parts: List[str] = []
+    parts: list[str] = []
     if doc_list:
         blk = ["## Retrieved Information"]
         for i, (query, txt) in enumerate(doc_list):
@@ -181,10 +181,10 @@ def run_orchestrator(
     agent: Any,
     problem: str,
     *,
-    cfg: Dict[str, Any],
-    handbook: Optional[StageSkillHandbook],
+    cfg: dict[str, Any],
+    handbook: StageSkillHandbook | None,
     strategy: str,
-) -> Tuple[str, Dict[str, Any]]:
+) -> tuple[str, dict[str, Any]]:
     """Run the eval orchestrator on one problem. Returns (answer, metadata)."""
     max_rounds = int(cfg.get("max_rounds", 6))
     char_cap = int(cfg.get("context_char_cap", 24000))
@@ -215,10 +215,10 @@ def run_orchestrator(
         overrides=cfg.get("model_pool"),
     )
 
-    doc_list: List[Tuple[str, str]] = []
-    code_list: List[Tuple[str, str]] = []
-    attempt_list: List[Tuple[str, str]] = []
-    route_log: List[Dict[str, Any]] = []
+    doc_list: list[tuple[str, str]] = []
+    code_list: list[tuple[str, str]] = []
+    attempt_list: list[tuple[str, str]] = []
+    route_log: list[dict[str, Any]] = []
 
     tokens_local = 0
     tokens_cloud = 0
@@ -228,7 +228,7 @@ def run_orchestrator(
     final_pred = ""
     used_rounds = 0
 
-    def _route(stage: str, tool_alias: Optional[str], orch_text: str) -> str:
+    def _route(stage: str, tool_alias: str | None, orch_text: str) -> str:
         """Resolve the worker alias for ``stage`` via the routing strategy."""
         if handbook is not None and strategy != "none":
             sa = parse_skill_analysis(orch_text)

@@ -6,7 +6,6 @@ import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 from openjarvis.core.config import DEFAULT_CONFIG_DIR
 from openjarvis.core.events import Event, EventBus, EventType
@@ -32,8 +31,8 @@ class AuditLogger:
 
     def __init__(
         self,
-        db_path: Union[str, Path] = DEFAULT_CONFIG_DIR / "audit.db",
-        bus: Optional[EventBus] = None,
+        db_path: str | Path = DEFAULT_CONFIG_DIR / "audit.db",
+        bus: EventBus | None = None,
     ) -> None:
         self._db_path = Path(db_path)
         from openjarvis.security.file_utils import secure_create
@@ -128,10 +127,10 @@ class AuditLogger:
     def query(
         self,
         *,
-        event_type: Optional[str] = None,
-        since: Optional[float] = None,
+        event_type: str | None = None,
+        since: float | None = None,
         limit: int = 100,
-    ) -> List[SecurityEvent]:
+    ) -> list[SecurityEvent]:
         """Query logged security events with optional filters."""
         sql = (
             "SELECT timestamp, event_type, findings_json,"
@@ -151,7 +150,7 @@ class AuditLogger:
         params.append(limit)
 
         rows = self._conn.execute(sql, params).fetchall()
-        events: List[SecurityEvent] = []
+        events: list[SecurityEvent] = []
         for row in rows:
             ts, etype, findings_json, preview, action = row
             findings_raw = json.loads(findings_json) if findings_json else []
@@ -184,7 +183,7 @@ class AuditLogger:
         ).fetchone()
         return row[0] if row and row[0] else ""
 
-    def verify_chain(self) -> Tuple[bool, Optional[int]]:
+    def verify_chain(self) -> tuple[bool, int | None]:
         """Verify the Merkle hash chain integrity.
 
         Returns
@@ -240,7 +239,7 @@ class AuditLogger:
         event_type = mapping.get(event.event_type, SecurityEventType.SECRET_DETECTED)
 
         # Extract findings from event data if present
-        findings: List[ScanFinding] = []
+        findings: list[ScanFinding] = []
         for f in data.get("findings", []):
             findings.append(
                 ScanFinding(

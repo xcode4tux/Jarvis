@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import subprocess
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -43,11 +42,11 @@ class GitHubResolver(SourceResolver):
                 check=True,
             )
 
-    def list_skills(self) -> List[ResolvedSkill]:
+    def list_skills(self) -> list[ResolvedSkill]:
         if not self._cache_root.exists():
             return []
 
-        results: List[ResolvedSkill] = []
+        results: list[ResolvedSkill] = []
         commit = self._read_commit()
         seen_dirs: set[Path] = set()
 

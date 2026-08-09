@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import textwrap
 from pathlib import Path
-from typing import List
 
 from openjarvis.skills.sources.base import ResolvedSkill, SourceResolver
 
@@ -14,7 +13,7 @@ class _FakeResolver(SourceResolver):
 
     name = "fake"
 
-    def __init__(self, skills: List[ResolvedSkill]) -> None:
+    def __init__(self, skills: list[ResolvedSkill]) -> None:
         self._skills = skills
 
     def cache_dir(self) -> Path:
@@ -23,7 +22,7 @@ class _FakeResolver(SourceResolver):
     def sync(self) -> None:
         pass
 
-    def list_skills(self) -> List[ResolvedSkill]:
+    def list_skills(self) -> list[ResolvedSkill]:
         return list(self._skills)
 
 

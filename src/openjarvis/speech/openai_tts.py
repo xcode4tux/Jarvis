@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import List
 
 import httpx
 
@@ -75,7 +74,7 @@ class OpenAITTSBackend(TTSBackend):
             metadata={"backend": "openai_tts", "model": self._model},
         )
 
-    def available_voices(self) -> List[str]:
+    def available_voices(self) -> list[str]:
         return ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 
     def health(self) -> bool:

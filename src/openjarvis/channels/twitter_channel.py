@@ -11,7 +11,7 @@ import threading
 import time
 import urllib.parse
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import (
     BaseChannel,
@@ -139,7 +139,7 @@ class TwitterChannel(BaseChannel):
         access_secret: str = "",
         bot_user_id: str = "",
         poll_interval: int = 60,
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._bearer = bearer_token or os.environ.get("TWITTER_BEARER_TOKEN", "")
         self._api_key = api_key or os.environ.get("TWITTER_API_KEY", "")
@@ -152,11 +152,11 @@ class TwitterChannel(BaseChannel):
         self._poll_interval = poll_interval
         self._bus = bus
 
-        self._handlers: List[ChannelHandler] = []
+        self._handlers: list[ChannelHandler] = []
         self._status = ChannelStatus.DISCONNECTED
-        self._listener_thread: Optional[threading.Thread] = None
+        self._listener_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
-        self._since_id: Optional[str] = None
+        self._since_id: str | None = None
 
     # -- OAuth helper -------------------------------------------------------
 
@@ -201,7 +201,7 @@ class TwitterChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Post a tweet, optionally as a reply.
 
@@ -218,7 +218,7 @@ class TwitterChannel(BaseChannel):
         try:
             import httpx
 
-            payload: Dict[str, Any] = {"text": text}
+            payload: dict[str, Any] = {"text": text}
             if conversation_id:
                 payload["reply"] = {"in_reply_to_tweet_id": conversation_id}
 
@@ -245,7 +245,7 @@ class TwitterChannel(BaseChannel):
         """Return the current connection status."""
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         """Return available channel identifiers."""
         return ["twitter"]
 
@@ -269,7 +269,7 @@ class TwitterChannel(BaseChannel):
 
         while not self._stop_event.is_set():
             try:
-                params: Dict[str, str] = {
+                params: dict[str, str] = {
                     "tweet.fields": "author_id,conversation_id,created_at",
                 }
                 if self._since_id:

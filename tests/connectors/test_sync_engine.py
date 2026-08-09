@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator, List, Optional
 
 import pytest
 
@@ -25,7 +25,7 @@ class StubConnector(BaseConnector):
     display_name = "Stub"
     auth_type = "filesystem"
 
-    def __init__(self, docs: List[Document]) -> None:
+    def __init__(self, docs: list[Document]) -> None:
         self._docs = docs
 
     # BaseConnector abstract methods
@@ -39,8 +39,8 @@ class StubConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         yield from self._docs
 

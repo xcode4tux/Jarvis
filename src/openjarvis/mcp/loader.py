@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from openjarvis.core.types import ToolSpec  # noqa: F401
@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 def load_mcp_tools_from_config(
     mcp_cfg: Any,
     *,
-    allowed_names: Optional[set[str]] = None,
-) -> tuple[list["BaseTool"], list["MCPClient"]]:
+    allowed_names: set[str] | None = None,
+) -> tuple[list[BaseTool], list[MCPClient]]:
     """Load tools from every server in ``mcp_cfg.servers``.
 
     Returns ``(tools, clients)``. ``clients`` is the list of live
@@ -77,8 +77,8 @@ def load_mcp_tools_from_config(
     from openjarvis.mcp.transport import StdioTransport, StreamableHTTPTransport
     from openjarvis.tools.mcp_adapter import MCPToolProvider
 
-    tools: list["BaseTool"] = []
-    clients: list["MCPClient"] = []
+    tools: list[BaseTool] = []
+    clients: list[MCPClient] = []
 
     for server_cfg in server_list:
         try:

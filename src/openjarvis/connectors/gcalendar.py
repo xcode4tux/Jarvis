@@ -7,8 +7,9 @@ to make them trivially mockable in tests.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -54,7 +55,7 @@ def _gcal_api_user_email(token: str) -> str:
         return ""
 
 
-def _gcal_api_event_get(token: str, calendar_id: str, event_id: str) -> Dict[str, Any]:
+def _gcal_api_event_get(token: str, calendar_id: str, event_id: str) -> dict[str, Any]:
     """Fetch a single calendar event resource."""
     resp = httpx.get(
         f"{_GCAL_API_BASE}/calendars/{calendar_id}/events/{event_id}",
@@ -69,8 +70,8 @@ def _gcal_api_event_patch(
     token: str,
     calendar_id: str,
     event_id: str,
-    body: Dict[str, Any],
-) -> Dict[str, Any]:
+    body: dict[str, Any],
+) -> dict[str, Any]:
     """Patch a calendar event with a partial update body."""
     resp = httpx.patch(
         f"{_GCAL_API_BASE}/calendars/{calendar_id}/events/{event_id}",
@@ -82,7 +83,7 @@ def _gcal_api_event_patch(
     return resp.json()
 
 
-def _gcal_api_calendars_list(token: str) -> Dict[str, Any]:
+def _gcal_api_calendars_list(token: str) -> dict[str, Any]:
     """Call the Calendar ``calendarList.list`` endpoint.
 
     Parameters
@@ -108,9 +109,9 @@ def _gcal_api_events_list(
     token: str,
     calendar_id: str,
     *,
-    page_token: Optional[str] = None,
-    time_min: Optional[str] = None,
-) -> Dict[str, Any]:
+    page_token: str | None = None,
+    time_min: str | None = None,
+) -> dict[str, Any]:
     """Call the Calendar ``events.list`` endpoint for a single calendar.
 
     Parameters
@@ -131,7 +132,7 @@ def _gcal_api_events_list(
         Raw API response containing an ``items`` list and optional
         ``nextPageToken``.
     """
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "singleEvents": "true",
         "orderBy": "startTime",
         "maxResults": 250,
@@ -156,7 +157,7 @@ def _gcal_api_events_list(
 # ---------------------------------------------------------------------------
 
 
-def _format_event(event: Dict[str, Any]) -> str:
+def _format_event(event: dict[str, Any]) -> str:
     """Return a human-readable text representation of a calendar event.
 
     Parameters
@@ -169,7 +170,7 @@ def _format_event(event: Dict[str, Any]) -> str:
     str
         Multi-line formatted text suitable for indexing.
     """
-    lines: List[str] = []
+    lines: list[str] = []
 
     summary = event.get("summary", "(No title)")
     lines.append(f"Title: {summary}")
@@ -194,7 +195,7 @@ def _format_event(event: Dict[str, Any]) -> str:
         lines.append(f"Organizer: {organizer_name}")
 
     # Attendees
-    attendees: List[Dict[str, Any]] = event.get("attendees", [])
+    attendees: list[dict[str, Any]] = event.get("attendees", [])
     if attendees:
         attendee_names = [a.get("displayName") or a.get("email", "") for a in attendees]
         lines.append(f"Attendees: {', '.join(attendee_names)}")
@@ -207,7 +208,7 @@ def _format_event(event: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _parse_event_timestamp(event: Dict[str, Any]) -> datetime:
+def _parse_event_timestamp(event: dict[str, Any]) -> datetime:
     """Extract the start datetime from an event resource.
 
     Falls back to :func:`datetime.now` if the field is missing or unparseable.
@@ -254,8 +255,8 @@ class GCalendarConnector(BaseConnector):
         )
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -326,8 +327,8 @@ class GCalendarConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Google Calendar events.
 
@@ -354,7 +355,7 @@ class GCalendarConnector(BaseConnector):
         calendars_resp = call_with_refresh(
             _gcal_api_calendars_list, self._credentials_path
         )
-        calendars: List[Dict[str, Any]] = calendars_resp.get("items", [])
+        calendars: list[dict[str, Any]] = calendars_resp.get("items", [])
 
         # Default to 24 hours ago so we don't dump the entire calendar history
         if since is None:
@@ -368,7 +369,7 @@ class GCalendarConnector(BaseConnector):
             if not calendar_id:
                 continue
 
-            page_token: Optional[str] = cursor
+            page_token: str | None = cursor
 
             while True:
                 try:
@@ -381,7 +382,7 @@ class GCalendarConnector(BaseConnector):
                     )
                 except httpx.HTTPStatusError:
                     break
-                events: List[Dict[str, Any]] = events_resp.get("items", [])
+                events: list[dict[str, Any]] = events_resp.get("items", [])
 
                 for event in events:
                     evt_id: str = event.get("id", "")
@@ -389,14 +390,14 @@ class GCalendarConnector(BaseConnector):
                         continue
 
                     summary: str = event.get("summary", "")
-                    organizer: Dict[str, Any] = event.get("organizer", {})
+                    organizer: dict[str, Any] = event.get("organizer", {})
                     organizer_email: str = organizer.get("email", "")
-                    attendees: List[Dict[str, Any]] = event.get("attendees", [])
-                    participant_emails: List[str] = [
+                    attendees: list[dict[str, Any]] = event.get("attendees", [])
+                    participant_emails: list[str] = [
                         a.get("email", "") for a in attendees if a.get("email")
                     ]
                     timestamp = _parse_event_timestamp(event)
-                    html_link: Optional[str] = event.get("htmlLink")
+                    html_link: str | None = event.get("htmlLink")
 
                     content = _format_event(event)
 
@@ -426,7 +427,7 @@ class GCalendarConnector(BaseConnector):
                     synced += 1
                     yield doc
 
-                next_page: Optional[str] = events_resp.get("nextPageToken")
+                next_page: str | None = events_resp.get("nextPageToken")
                 if not next_page:
                     self._last_cursor = None
                     break
@@ -492,7 +493,7 @@ class GCalendarConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose three MCP tool specs for real-time Google Calendar queries."""
         return [
             ToolSpec(

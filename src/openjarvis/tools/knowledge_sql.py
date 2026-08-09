@@ -7,7 +7,7 @@ and filtering operations that BM25 search cannot handle.
 from __future__ import annotations
 
 import sqlite3
-from typing import Any, Optional
+from typing import Any
 
 from openjarvis.connectors.store import KnowledgeStore
 from openjarvis.core.registry import ToolRegistry
@@ -29,7 +29,7 @@ class KnowledgeSQLTool(BaseTool):
 
     tool_id = "knowledge_sql"
 
-    def __init__(self, store: Optional[KnowledgeStore] = None) -> None:
+    def __init__(self, store: KnowledgeStore | None = None) -> None:
         self._store = store
 
     @property

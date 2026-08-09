@@ -3,7 +3,7 @@ and _prepare_anthropic_messages."""
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -82,7 +82,7 @@ async def test_stream_full_openai_content():
     engine = _make_cloud_engine(openai_client=mock_client)
     msgs = [Message(role=Role.USER, content="hi")]
 
-    result: List[StreamChunk] = []
+    result: list[StreamChunk] = []
     async for sc in engine._stream_full_openai(
         msgs,
         model="gpt-4o",
@@ -113,7 +113,7 @@ async def test_stream_full_openai_tool_calls():
     engine = _make_cloud_engine(openai_client=mock_client)
     msgs = [Message(role=Role.USER, content="calc")]
 
-    result: List[StreamChunk] = []
+    result: list[StreamChunk] = []
     async for sc in engine._stream_full_openai(
         msgs,
         model="gpt-4o",
@@ -219,7 +219,7 @@ async def test_stream_full_anthropic_content():
     engine = _make_cloud_engine(anthropic_client=mock_anthropic)
     msgs = [Message(role=Role.USER, content="hi")]
 
-    result: List[StreamChunk] = []
+    result: list[StreamChunk] = []
     async for sc in engine._stream_full_anthropic(
         msgs,
         model="claude-sonnet-4-20250514",
@@ -272,7 +272,7 @@ async def test_stream_full_anthropic_tool_calls():
     engine = _make_cloud_engine(anthropic_client=mock_anthropic)
     msgs = [Message(role=Role.USER, content="weather?")]
 
-    result: List[StreamChunk] = []
+    result: list[StreamChunk] = []
     async for sc in engine._stream_full_anthropic(
         msgs,
         model="claude-sonnet-4-20250514",

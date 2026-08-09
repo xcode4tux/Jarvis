@@ -13,7 +13,6 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import click
 
@@ -54,7 +53,7 @@ class _SummarySchema(BaseModel):
     model: str
     benchmark: str
     n_tasks: int
-    metrics: Dict[str, _MetricStats]
+    metrics: dict[str, _MetricStats]
 
 
 @dataclass(slots=True)
@@ -68,7 +67,7 @@ class ResultsFrame:
 def load_results(glob_pattern: str) -> ResultsFrame:
     """Glob summary.json files, validate, return long-format ResultsFrame."""
     paths = glob.glob(glob_pattern, recursive=True)
-    rows: List[Dict[str, object]] = []
+    rows: list[dict[str, object]] = []
     unloadable = 0
 
     for p in paths:
@@ -129,7 +128,7 @@ def load_results(glob_pattern: str) -> ResultsFrame:
     return ResultsFrame(df=df, unloadable_count=unloadable)
 
 
-def _format_cell(value: Optional[float], precision: int = 2) -> str:
+def _format_cell(value: float | None, precision: int = 2) -> str:
     """Format a single numeric cell; em-dash for missing values."""
     if value is None or (
         isinstance(value, float) and value != value  # NaN check
@@ -146,7 +145,7 @@ def _render_booktabs(
     caption: str,
     label: str,
     precision: int = 2,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """Render a polars DataFrame as a (fragment, standalone) LaTeX tuple.
 
     The first column is treated as the row label. All other columns are
@@ -156,7 +155,7 @@ def _render_booktabs(
     cols = df.columns
     data_cols = [c for c in cols if c != row_col]
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(r"\begin{tabular}{l" + "r" * len(data_cols) + "}")
     lines.append(r"\toprule")
     lines.append(" & ".join([row_col] + data_cols) + r" \\")
@@ -188,7 +187,7 @@ T1_FRAMEWORKS_ORDER = [
 ]
 
 
-def _build_t1(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t1(frame: ResultsFrame) -> tuple[str, str]:
     """T1: Portability triangulation.
 
     Rows: 4 frameworks (in T1_FRAMEWORKS_ORDER).
@@ -225,7 +224,7 @@ T2_METRICS = [
 ]
 
 
-def _build_t2(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t2(frame: ResultsFrame) -> tuple[str, str]:
     """T2: Master efficiency comparison (mean across all benchmarks)."""
     df = frame.df.filter(pl.col("metric_name").is_in([m for m, _ in T2_METRICS]))
     pivot = (
@@ -251,7 +250,7 @@ def _build_t2(frame: ResultsFrame) -> Tuple[str, str]:
     )
 
 
-def _build_t3(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t3(frame: ResultsFrame) -> tuple[str, str]:
     """T3: Per-benchmark efficiency (one detail panel — pick PinchBench)."""
     df = frame.df.filter(pl.col("benchmark") == "pinchbench")
     df = df.filter(
@@ -282,7 +281,7 @@ def _build_t3(frame: ResultsFrame) -> Tuple[str, str]:
     )
 
 
-def _build_t4(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t4(frame: ResultsFrame) -> tuple[str, str]:
     """T4: 4-framework x all-model accuracy matrix (avg across benchmarks)."""
     df = frame.df.filter(pl.col("metric_name") == "accuracy")
     pivot = (
@@ -298,7 +297,7 @@ def _build_t4(frame: ResultsFrame) -> Tuple[str, str]:
     )
 
 
-def _build_t5(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t5(frame: ResultsFrame) -> tuple[str, str]:
     """T5: Hardware x framework efficiency (placeholder until per-hw data lands).
 
     Requires `hardware` field on the source summary.json (not yet wired into
@@ -314,7 +313,7 @@ def _build_t5(frame: ResultsFrame) -> Tuple[str, str]:
     return _build_t2(frame)
 
 
-def _build_t6(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t6(frame: ResultsFrame) -> tuple[str, str]:
     """T6: Token economy decomposition (preliminary; total in/out only).
 
     Spec §6.3 envisions per-section breakdown (system_prompt, tool_descs,
@@ -336,7 +335,7 @@ def _build_t6(frame: ResultsFrame) -> Tuple[str, str]:
     )
 
 
-def _build_t7(frame: ResultsFrame) -> Tuple[str, str]:
+def _build_t7(frame: ResultsFrame) -> tuple[str, str]:
     """T7: Edit category x framework — preliminary (raw deltas).
 
     Spec §10 says richer edit-attribution data needs the LLM-guided
@@ -357,7 +356,7 @@ def _build_t7(frame: ResultsFrame) -> Tuple[str, str]:
     )
 
 
-_TABLE_BUILDERS: Dict[str, "object"] = {
+_TABLE_BUILDERS: dict[str, object] = {
     "T1": _build_t1,
     "T2": _build_t2,
     "T3": _build_t3,
@@ -389,7 +388,7 @@ def _table_gen_default_output_dir() -> Path:
     default=None,
     help="Output directory (default: experiments/framework_comparison/tables/)",
 )
-def main(results_glob: str, tables: str, output_dir: Optional[Path]) -> None:
+def main(results_glob: str, tables: str, output_dir: Path | None) -> None:
     """Build LaTeX tables from framework-comparison evaluation results."""
     out = output_dir or _table_gen_default_output_dir()
     out.mkdir(parents=True, exist_ok=True)

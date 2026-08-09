@@ -10,7 +10,8 @@ happy-path EvalResult construction.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.runner import EvalRunner
@@ -27,7 +28,7 @@ class _FailingBackend:
     def generate(self, *args: Any, **kwargs: Any) -> str:
         raise RuntimeError("simulated backend failure")
 
-    def generate_full(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def generate_full(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("simulated backend failure")
 
     def close(self) -> None:
@@ -44,7 +45,7 @@ class _PeakOnlyBackend:
     def generate(self, *args: Any, **kwargs: Any) -> str:
         return "hi"
 
-    def generate_full(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def generate_full(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return {
             "content": "hi",
             "usage": {},
@@ -69,7 +70,7 @@ class _BackendErrorPayload:
     def generate(self, *args: Any, **kwargs: Any) -> str:
         return ""
 
-    def generate_full(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def generate_full(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return {
             "content": "",
             "usage": {"prompt_tokens": 3, "completion_tokens": 0},
@@ -92,9 +93,9 @@ class _SingleRecordDataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         pass
 
@@ -117,7 +118,7 @@ class _NoopScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         return False, {}
 
 
@@ -141,7 +142,7 @@ class TestErrorPathFrameworkPropagation:
         )
         runner.run()
 
-        results: List[Any] = runner.results
+        results: list[Any] = runner.results
         assert len(results) == 1
         result = results[0]
         # The KEY assertion: framework must come from backend.framework_name,
@@ -163,7 +164,7 @@ class TestErrorPathFrameworkPropagation:
             def generate(self, *a: Any, **kw: Any) -> str:
                 raise RuntimeError("boom")
 
-            def generate_full(self, *a: Any, **kw: Any) -> Dict[str, Any]:
+            def generate_full(self, *a: Any, **kw: Any) -> dict[str, Any]:
                 raise RuntimeError("boom")
 
             def close(self) -> None:
@@ -267,7 +268,7 @@ class _MockBackendWithCommit:
     def generate(self, *args: Any, **kwargs: Any) -> str:
         raise RuntimeError("simulated")
 
-    def generate_full(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def generate_full(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("simulated")
 
     def close(self) -> None:

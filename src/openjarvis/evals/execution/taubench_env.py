@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 from types import TracebackType
-from typing import Any, Optional, Type
+from typing import Any
 
 from openjarvis.evals.core.types import EvalRecord
 
@@ -249,11 +249,11 @@ class TauBenchTaskEnv:
     def __init__(
         self,
         record: EvalRecord,
-        engine_key: Optional[str] = None,
-        model: Optional[str] = None,
+        engine_key: str | None = None,
+        model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        user_model: Optional[str] = None,
+        user_model: str | None = None,
         num_trials: int = 1,
         telemetry: bool = False,
         gpu_metrics: bool = False,
@@ -394,9 +394,9 @@ class TauBenchTaskEnv:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         if self._system:
             try:

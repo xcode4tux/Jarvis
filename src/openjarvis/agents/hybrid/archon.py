@@ -39,7 +39,7 @@ import os
 import sys
 import threading
 import types
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext
 from openjarvis.agents.hybrid._base import (
@@ -124,7 +124,7 @@ def _patch_anthropic_for_opus() -> None:
 _TALLY_LOCAL = threading.local()
 
 
-def _tally() -> Dict[str, int]:
+def _tally() -> dict[str, int]:
     """Return the calling thread's token tally, creating it on first touch."""
     counts = getattr(_TALLY_LOCAL, "counts", None)
     if counts is None:
@@ -153,11 +153,11 @@ def _reset_tally() -> None:
 _WS_LOCAL = threading.local()
 
 
-def _set_anthropic_web_search(tool: Optional[Dict[str, Any]]) -> None:
+def _set_anthropic_web_search(tool: dict[str, Any] | None) -> None:
     _WS_LOCAL.tool = tool
 
 
-def _get_anthropic_web_search() -> Optional[Dict[str, Any]]:
+def _get_anthropic_web_search() -> dict[str, Any] | None:
     return getattr(_WS_LOCAL, "tool", None)
 
 
@@ -219,7 +219,7 @@ def _wrap_archon_cloud_generators() -> None:
     def gen_openai(model, messages, max_tokens=2048, temperature=0.7, **_kw):  # type: ignore[no-untyped-def]
         import time as _time
         client = _OAI()
-        kwargs: Dict[str, Any] = dict(
+        kwargs: dict[str, Any] = dict(
             model=model, messages=messages,
             max_tokens=max_tokens, temperature=temperature,
         )
@@ -258,7 +258,7 @@ def _wrap_archon_cloud_generators() -> None:
                 system = m["content"]
             else:
                 msgs.append(m)
-        kwargs: Dict[str, Any] = dict(
+        kwargs: dict[str, Any] = dict(
             model=model, system=system, messages=msgs, max_tokens=max_tokens,
         )
         if not model.startswith(NO_TEMP_PREFIXES):
@@ -417,9 +417,9 @@ class ArchonAgent(LocalCloudAgent):
     def _run_paradigm(
         self,
         input: str,
-        context: Optional[AgentContext],
+        context: AgentContext | None,
         **kwargs: Any,
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         if "OPENAI_API_KEY" not in os.environ and "ANTHROPIC_API_KEY" not in os.environ:
             raise RuntimeError("Archon needs OPENAI_API_KEY and/or ANTHROPIC_API_KEY")
 
@@ -536,9 +536,9 @@ class ArchonAgent(LocalCloudAgent):
     def _run_swe(
         self,
         input: str,
-        task: Dict[str, Any],
-        cfg: Dict[str, Any],
-    ) -> Tuple[str, Dict[str, Any]]:
+        task: dict[str, Any],
+        cfg: dict[str, Any],
+    ) -> tuple[str, dict[str, Any]]:
         if not self._local_endpoint or not self._local_model:
             raise ValueError(
                 "ArchonAgent (swe mode) needs local_model + local_endpoint"
@@ -551,7 +551,7 @@ class ArchonAgent(LocalCloudAgent):
         turn_max_tokens = int(cfg.get("swe_turn_max_tokens", 4096))
 
         # K independent runs, each on a FRESH workdir → K diverse patches.
-        candidates: List[Dict[str, Any]] = []
+        candidates: list[dict[str, Any]] = []
         total_tokens_local = 0
         total_tokens_cloud = 0
         total_cost = 0.0

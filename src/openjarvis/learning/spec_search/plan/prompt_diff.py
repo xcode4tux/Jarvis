@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from openjarvis.learning.spec_search.models import Edit, EditOp
 
@@ -47,7 +47,7 @@ def changed_line_ratio(original: str, modified: str) -> float:
     return changed / max_len
 
 
-def apply_unified_diff(original: str, diff: str) -> Optional[str]:
+def apply_unified_diff(original: str, diff: str) -> str | None:
     """Apply a unified diff to the original string.
 
     Returns the patched string, or None if the diff cannot be applied.

@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable  # noqa: I001
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional  # noqa: I001
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Event taxonomy
@@ -85,7 +86,7 @@ class Event:
 
     event_type: EventType
     timestamp: float
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 # Type alias for subscriber callbacks
@@ -106,10 +107,10 @@ class EventBus:
     """
 
     def __init__(self, *, record_history: bool = False) -> None:
-        self._subscribers: Dict[EventType, List[Subscriber]] = {}
+        self._subscribers: dict[EventType, list[Subscriber]] = {}
         self._lock = threading.Lock()
         self._record_history = record_history
-        self._history: List[Event] = []
+        self._history: list[Event] = []
 
     # -- subscribe / unsubscribe --------------------------------------------
 
@@ -132,7 +133,7 @@ class EventBus:
     def publish(
         self,
         event_type: EventType,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> Event:
         """Create and dispatch an event to all subscribers.
 
@@ -153,7 +154,7 @@ class EventBus:
     # -- history ------------------------------------------------------------
 
     @property
-    def history(self) -> List[Event]:
+    def history(self) -> list[Event]:
         """Return a copy of all recorded events (empty if recording is off)."""
         with self._lock:
             return list(self._history)
@@ -168,7 +169,7 @@ class EventBus:
 # Module-level singleton
 # ---------------------------------------------------------------------------
 
-_bus: Optional[EventBus] = None
+_bus: EventBus | None = None
 _bus_lock = threading.Lock()
 
 

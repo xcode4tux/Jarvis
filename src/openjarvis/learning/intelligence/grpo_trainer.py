@@ -8,7 +8,7 @@ gradient with KL penalty vs a frozen reference model.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from openjarvis.core.config import GRPOConfig
 from openjarvis.core.registry import LearningRegistry
@@ -87,7 +87,7 @@ class GRPOTrainer:
         self.config = config
         self.reward_fn: RewardFn = reward_fn or DefaultRewardFn()
 
-    def train(self, trace_store: Any) -> Dict[str, Any]:
+    def train(self, trace_store: Any) -> dict[str, Any]:
         """End-to-end: mine prompts from traces, then train.
 
         Parameters
@@ -100,9 +100,9 @@ class GRPOTrainer:
 
     def train_on_prompts(
         self,
-        prompts: List[str],
-        ground_truths: List[str | None] | None = None,
-    ) -> Dict[str, Any]:
+        prompts: list[str],
+        ground_truths: list[str | None] | None = None,
+    ) -> dict[str, Any]:
         """Run GRPO training on a set of prompts.
 
         Parameters
@@ -136,7 +136,7 @@ class GRPOTrainer:
             logger.warning("GRPO training failed: %s", exc)
             return {"status": "error", "reason": str(exc)}
 
-    def _mine_prompts(self, trace_store: Any) -> List[str]:
+    def _mine_prompts(self, trace_store: Any) -> list[str]:
         """Extract unique prompts from the trace store."""
         from openjarvis.learning.training.data import TrainingDataMiner
 
@@ -145,7 +145,7 @@ class GRPOTrainer:
         pairs = miner.extract_sft_pairs(agent=agent_filter)
         # Deduplicate prompts
         seen: set[str] = set()
-        prompts: List[str] = []
+        prompts: list[str] = []
         for pair in pairs:
             q = pair.get("input", "")
             if q and q not in seen:
@@ -155,9 +155,9 @@ class GRPOTrainer:
 
     def _run_grpo(
         self,
-        prompts: List[str],
-        ground_truths: List[str | None] | None,
-    ) -> Dict[str, Any]:
+        prompts: list[str],
+        ground_truths: list[str | None] | None,
+    ) -> dict[str, Any]:
         """Execute the GRPO training loop.
 
         1. Load policy model and frozen reference model
@@ -190,7 +190,7 @@ class GRPOTrainer:
             )
 
         # Frozen reference model
-        ref_kwargs: Dict[str, Any] = {
+        ref_kwargs: dict[str, Any] = {
             "torch_dtype": torch.bfloat16,
             "device_map": "auto",
         }
@@ -262,13 +262,13 @@ class GRPOTrainer:
         ref_model: Any,
         tokenizer: Any,
         optimizer: Any,
-        prompts: List[str],
-        ground_truths: List[str | None],
+        prompts: list[str],
+        ground_truths: list[str | None],
     ) -> float:
         """Execute one GRPO gradient step on a batch of prompts."""
-        all_rewards: List[List[float]] = []
-        all_log_probs: List[List[Any]] = []
-        all_ref_log_probs: List[List[Any]] = []
+        all_rewards: list[list[float]] = []
+        all_log_probs: list[list[Any]] = []
+        all_ref_log_probs: list[list[Any]] = []
 
         for prompt, gt in zip(prompts, ground_truths):
             rewards = []
@@ -362,7 +362,7 @@ class _GRPOLearningPolicy(IntelligenceLearningPolicy):
     def __init__(self, **kwargs: object) -> None:
         pass
 
-    def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+    def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
         from openjarvis.core.config import GRPOConfig
 
         config = GRPOConfig()

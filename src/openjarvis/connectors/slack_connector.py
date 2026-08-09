@@ -13,8 +13,9 @@ All network calls are isolated in module-level functions
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
@@ -51,7 +52,7 @@ def _slack_api_conversations_list(
     token: str,
     *,
     cursor: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Call the Slack ``conversations.list`` endpoint.
 
     Parameters
@@ -70,7 +71,7 @@ def _slack_api_conversations_list(
     # channels, multi-person DMs, and 1:1 DMs — so a "connect and sync"
     # flow indexes everything the token has access to without the user
     # picking channels (matches Gmail's connect-and-go behavior).
-    params: Dict[str, str] = {
+    params: dict[str, str] = {
         "types": "public_channel,private_channel,mpim,im",
         "exclude_archived": "true",
     }
@@ -85,7 +86,7 @@ def _slack_api_conversations_history(
     channel_id: str,
     *,
     cursor: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Call the Slack ``conversations.history`` endpoint.
 
     Parameters
@@ -102,14 +103,14 @@ def _slack_api_conversations_history(
     dict
         Raw API response containing ``messages`` list and ``has_more`` flag.
     """
-    params: Dict[str, str] = {"channel": channel_id}
+    params: dict[str, str] = {"channel": channel_id}
     if cursor:
         params["cursor"] = cursor
 
     return _slack_api_with_retry("conversations.history", token, params)
 
 
-def _slack_api_users_list(token: str) -> Dict[str, Any]:
+def _slack_api_users_list(token: str) -> dict[str, Any]:
     """Call the Slack ``users.list`` endpoint.
 
     Parameters
@@ -125,7 +126,7 @@ def _slack_api_users_list(token: str) -> Dict[str, Any]:
     return _slack_api_with_retry("users.list", token)
 
 
-def _slack_api_auth_test(token: str) -> Dict[str, Any]:
+def _slack_api_auth_test(token: str) -> dict[str, Any]:
     """Call the Slack ``auth.test`` endpoint.
 
     Returns workspace context (``team_id``, ``team``, ``url``) used to
@@ -138,10 +139,10 @@ def _slack_api_auth_test(token: str) -> Dict[str, Any]:
 def _slack_api_with_retry(
     method: str,
     token: str,
-    params: Optional[Dict[str, str]] = None,
+    params: dict[str, str] | None = None,
     max_retries: int = 3,
     http_method: str = "GET",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Call a Slack API method with automatic retry on rate limits."""
     import time as _time
 
@@ -215,9 +216,9 @@ def _validate_user_token(token: str) -> None:
         )
 
 
-def _build_user_map(members: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
+def _build_user_map(members: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
     """Build a user_id → {name, email} map from a ``users.list`` members list."""
-    user_map: Dict[str, Dict[str, str]] = {}
+    user_map: dict[str, dict[str, str]] = {}
     for member in members:
         uid = member.get("id", "")
         if not uid:
@@ -240,7 +241,7 @@ def _ts_to_datetime(ts: str) -> datetime:
         return datetime.now()
 
 
-def _team_domain_from_auth(auth_resp: Dict[str, Any]) -> str:
+def _team_domain_from_auth(auth_resp: dict[str, Any]) -> str:
     """Derive the workspace subdomain ('acme' from 'https://acme.slack.com/').
 
     Falls back to the ``team_id`` so doc_ids stay non-empty when the
@@ -296,12 +297,12 @@ class SlackConnector(BaseConnector):
         self._credentials_path = credentials_path or _DEFAULT_CREDENTIALS_PATH
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
         # Surfaced via sync_status().error so the UI can render the actual
         # failure reason (typically a bot-token-rejection) instead of a
         # silent "synced 0 messages".
-        self._last_error: Optional[str] = None
+        self._last_error: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -368,8 +369,8 @@ class SlackConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,  # noqa: ARG002 — reserved for future use
-        cursor: Optional[str] = None,  # noqa: ARG002 — reserved for future use
+        since: datetime | None = None,  # noqa: ARG002 — reserved for future use
+        cursor: str | None = None,  # noqa: ARG002 — reserved for future use
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for every accessible Slack message.
 
@@ -425,7 +426,7 @@ class SlackConnector(BaseConnector):
 
         # Step 1: build user map (so DMs render with peer names, not IDs)
         users_resp = _slack_api_users_list(token)
-        members: List[Dict[str, Any]] = users_resp.get("members", [])
+        members: list[dict[str, Any]] = users_resp.get("members", [])
         user_map = _build_user_map(members)
 
         # Step 2: enumerate every conversation up front so we can log a
@@ -433,7 +434,7 @@ class SlackConnector(BaseConnector):
         # conversations.list is cheap relative to history fetch and gives
         # the user (and the logs) immediate signal about what the token
         # can actually see.
-        all_channels: List[Dict[str, Any]] = []
+        all_channels: list[dict[str, Any]] = []
         channels_cursor = ""
         while True:
             channels_resp = _slack_api_conversations_list(
@@ -527,7 +528,7 @@ class SlackConnector(BaseConnector):
                         history_resp.get("error"),
                     )
                     break
-                messages: List[Dict[str, Any]] = history_resp.get("messages", [])
+                messages: list[dict[str, Any]] = history_resp.get("messages", [])
 
                 for msg in messages:
                     # Skip bot messages and non-content subtypes
@@ -543,7 +544,7 @@ class SlackConnector(BaseConnector):
                     ts: str = msg.get("ts", "")
                     user_id: str = msg.get("user", "")
                     text: str = msg.get("text", "")
-                    thread_ts: Optional[str] = msg.get("thread_ts")
+                    thread_ts: str | None = msg.get("thread_ts")
 
                     user_info = user_map.get(user_id, {})
                     author_name: str = user_info.get("name", user_id)
@@ -628,7 +629,7 @@ class SlackConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose three MCP tool specs for real-time Slack queries."""
         return [
             ToolSpec(

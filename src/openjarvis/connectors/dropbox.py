@@ -7,8 +7,9 @@ to make them trivially mockable in tests.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -58,8 +59,8 @@ def _dropbox_api_list_folder(
     token: str,
     *,
     path: str = "",
-    cursor: Optional[str] = None,
-) -> Dict[str, Any]:
+    cursor: str | None = None,
+) -> dict[str, Any]:
     """Call the Dropbox ``files/list_folder`` (or ``/continue``) endpoint.
 
     Parameters
@@ -158,8 +159,8 @@ class DropboxConnector(BaseConnector):
         self._credentials_path = credentials_path or _DEFAULT_CREDENTIALS_PATH
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -199,8 +200,8 @@ class DropboxConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,  # noqa: ARG002 — reserved for future use
-        cursor: Optional[str] = None,
+        since: datetime | None = None,  # noqa: ARG002 — reserved for future use
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Dropbox files.
 
@@ -224,13 +225,13 @@ class DropboxConnector(BaseConnector):
         if not token:
             return
 
-        list_cursor: Optional[str] = cursor
+        list_cursor: str | None = cursor
         synced = 0
         entries_seen: int = 0
 
         while True:
             list_resp = _dropbox_api_list_folder(token, path="", cursor=list_cursor)
-            entries: List[Dict[str, Any]] = list_resp.get("entries", [])
+            entries: list[dict[str, Any]] = list_resp.get("entries", [])
             entries_seen += len(entries)
 
             for entry in entries:
@@ -278,7 +279,7 @@ class DropboxConnector(BaseConnector):
                 yield doc
 
             has_more: bool = list_resp.get("has_more", False)
-            next_cursor: Optional[str] = list_resp.get("cursor")
+            next_cursor: str | None = list_resp.get("cursor")
             if not has_more:
                 self._last_cursor = next_cursor
                 break
@@ -302,7 +303,7 @@ class DropboxConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose three MCP tool specs for real-time Dropbox queries."""
         return [
             ToolSpec(

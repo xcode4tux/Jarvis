@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-from typing import Optional
 
 # Cloud metadata endpoints to block
 _BLOCKED_HOSTS = frozenset(
@@ -69,7 +68,7 @@ def is_private_ip(ip_str: str) -> bool:
     return any(addr in net for net in _BLOCKED_CIDR)
 
 
-def check_ssrf(url: str) -> Optional[str]:
+def check_ssrf(url: str) -> str | None:
     """Check a URL for SSRF vulnerabilities.
 
     Prefers the Rust backend, but falls back to the pure-Python
@@ -84,7 +83,7 @@ def check_ssrf(url: str) -> Optional[str]:
     return _check_ssrf_python(url)
 
 
-def _check_ssrf_python(url: str) -> Optional[str]:
+def _check_ssrf_python(url: str) -> str | None:
     """Pure-Python SSRF check — fallback used when the Rust extension is
     unavailable (e.g. an install without the compiled backend)."""
     from urllib.parse import urlparse

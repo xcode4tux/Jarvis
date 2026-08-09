@@ -13,7 +13,7 @@ Reference: https://github.com/stevibe/ToolCall-15
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import LLMJudgeScorer
 from openjarvis.evals.core.types import EvalRecord
@@ -24,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 def _extract_tool_calls(
     record: EvalRecord,
     model_answer: str = "",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Extract tool calls from traces, metadata, or model text output.
 
     Returns a list of dicts with keys: name, arguments.
@@ -32,7 +32,7 @@ def _extract_tool_calls(
     import json
     import re
 
-    tool_calls: List[Dict[str, Any]] = []
+    tool_calls: list[dict[str, Any]] = []
 
     # Try query trace first (from EvalRunner)
     trace = record.metadata.get("query_trace")
@@ -105,17 +105,17 @@ def _extract_tool_calls(
     return tool_calls
 
 
-def _tools_called(tool_calls: List[Dict[str, Any]], name: str) -> List[Dict[str, Any]]:
+def _tools_called(tool_calls: list[dict[str, Any]], name: str) -> list[dict[str, Any]]:
     """Filter tool calls by tool name (case-insensitive)."""
     return [tc for tc in tool_calls if tc["name"].lower() == name.lower()]
 
 
-def _has_tool(tool_calls: List[Dict[str, Any]], name: str) -> bool:
+def _has_tool(tool_calls: list[dict[str, Any]], name: str) -> bool:
     """Check if a specific tool was called."""
     return len(_tools_called(tool_calls, name)) > 0
 
 
-def _arg_contains(tc: Dict[str, Any], key: str, substring: str) -> bool:
+def _arg_contains(tc: dict[str, Any], key: str, substring: str) -> bool:
     """Check if a tool call argument contains a substring (case-insensitive)."""
     val = tc.get("arguments", {}).get(key, "")
     if isinstance(val, str):
@@ -123,7 +123,7 @@ def _arg_contains(tc: Dict[str, Any], key: str, substring: str) -> bool:
     return str(val).lower().find(substring.lower()) >= 0
 
 
-def _arg_equals(tc: Dict[str, Any], key: str, value: str) -> bool:
+def _arg_equals(tc: dict[str, Any], key: str, value: str) -> bool:
     """Check if a tool call argument equals a value (case-insensitive)."""
     val = tc.get("arguments", {}).get(key, "")
     if isinstance(val, str):
@@ -137,9 +137,9 @@ def _arg_equals(tc: Dict[str, Any], key: str, value: str) -> bool:
 
 
 def _score_tc01(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-01: Direct Specialist Match — get_weather for Berlin."""
     weather = _tools_called(tool_calls, "get_weather")
     web = _tools_called(tool_calls, "web_search")
@@ -156,9 +156,9 @@ def _score_tc01(
 
 
 def _score_tc02(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-02: Distractor Resistance — get_stock_price for AAPL only."""
     stock = _tools_called(tool_calls, "get_stock_price")
     web = _tools_called(tool_calls, "web_search")
@@ -175,9 +175,9 @@ def _score_tc02(
 
 
 def _score_tc03(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-03: Implicit Tool Need — get_contacts then send_email."""
     contacts = _tools_called(tool_calls, "get_contacts")
     email = _tools_called(tool_calls, "send_email")
@@ -202,9 +202,9 @@ def _score_tc03(
 
 
 def _score_tc04(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-04: Unit Handling — get_weather(Tokyo, units=fahrenheit)."""
     weather = _tools_called(tool_calls, "get_weather")
 
@@ -225,9 +225,9 @@ def _score_tc04(
 
 
 def _score_tc05(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-05: Date and Time Parsing — create_calendar_event with correct fields."""
     events = _tools_called(tool_calls, "create_calendar_event")
 
@@ -261,9 +261,9 @@ def _score_tc05(
 
 
 def _score_tc06(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-06: Multi-Value Extraction — two translate_text calls."""
     translates = _tools_called(tool_calls, "translate_text")
 
@@ -288,9 +288,9 @@ def _score_tc06(
 
 
 def _score_tc07(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-07: Search -> Read -> Act — 4-step chain."""
     search = _tools_called(tool_calls, "search_files")
     read = _tools_called(tool_calls, "read_file")
@@ -324,9 +324,9 @@ def _score_tc07(
 
 
 def _score_tc08(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-08: Conditional Branching — weather check then conditional reminder."""
     weather = _tools_called(tool_calls, "get_weather")
     reminder = _tools_called(tool_calls, "set_reminder")
@@ -351,9 +351,9 @@ def _score_tc08(
 
 
 def _score_tc09(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-09: Parallel Independence — weather AND stock price."""
     weather = _tools_called(tool_calls, "get_weather")
     stock = _tools_called(tool_calls, "get_stock_price")
@@ -373,9 +373,9 @@ def _score_tc09(
 
 
 def _score_tc10(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-10: Trivial Knowledge — answer without tools."""
     if not tool_calls and "1945" in answer:
         return 2, "PASS: direct answer with no tool calls"
@@ -385,9 +385,9 @@ def _score_tc10(
 
 
 def _score_tc11(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-11: Simple Math — answer without tools."""
     if not tool_calls and "30" in answer:
         return 2, "PASS: direct answer with no tool calls"
@@ -405,9 +405,9 @@ def _score_tc11(
 
 
 def _score_tc12(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-12: Impossible Request — refuse without tool calls."""
     lower = answer.lower()
     refusal_phrases = [
@@ -435,9 +435,9 @@ def _score_tc12(
 
 
 def _score_tc13(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-13: Empty Results — retry or ask for clarification."""
     search = _tools_called(tool_calls, "search_files")
 
@@ -462,9 +462,9 @@ def _score_tc13(
 
 
 def _score_tc14(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-14: Malformed Response — surface error, offer fallback."""
     stock = _tools_called(tool_calls, "get_stock_price")
     web = _tools_called(tool_calls, "web_search")
@@ -493,9 +493,9 @@ def _score_tc14(
 
 
 def _score_tc15(
-    tool_calls: List[Dict[str, Any]],
+    tool_calls: list[dict[str, Any]],
     answer: str,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """TC-15: Conflicting Information — use search result in calculator."""
     web = _tools_called(tool_calls, "web_search")
     calc = _tools_called(tool_calls, "calculator")
@@ -566,7 +566,7 @@ class ToolCall15Scorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         scenario_id = record.metadata.get("scenario_id", record.record_id)
         scorer_fn = _SCORERS.get(scenario_id)
 
@@ -581,7 +581,7 @@ class ToolCall15Scorer(LLMJudgeScorer):
 
         points, reason = scorer_fn(tool_calls, model_answer)
 
-        is_correct: Optional[bool]
+        is_correct: bool | None
         if points == 2:
             is_correct = True
         elif points == 1:

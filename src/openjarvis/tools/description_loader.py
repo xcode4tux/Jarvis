@@ -18,14 +18,13 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-_cache: Optional[Dict[str, str]] = None
+_cache: dict[str, str] | None = None
 
 
-def _load_overrides() -> Dict[str, str]:
+def _load_overrides() -> dict[str, str]:
     """Parse descriptions.toml and return {tool_name: description}."""
     home = Path(os.environ.get("OPENJARVIS_HOME", "~/.openjarvis")).expanduser()
     desc_path = home / "tools" / "descriptions.toml"
@@ -41,8 +40,8 @@ def _load_overrides() -> Dict[str, str]:
         )
         return {}
 
-    overrides: Dict[str, str] = {}
-    current_tool: Optional[str] = None
+    overrides: dict[str, str] = {}
+    current_tool: str | None = None
     for line in content.splitlines():
         stripped = line.strip()
         if stripped.startswith("[") and stripped.endswith("]"):
@@ -62,7 +61,7 @@ def _load_overrides() -> Dict[str, str]:
     return overrides
 
 
-def get_tool_description_override(tool_name: str) -> Optional[str]:
+def get_tool_description_override(tool_name: str) -> str | None:
     """Return the override description for *tool_name*, or ``None``.
 
     Results are cached for the lifetime of the process.

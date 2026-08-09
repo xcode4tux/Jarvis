@@ -19,7 +19,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from openjarvis.connectors._stubs import BaseConnector
 from openjarvis.connectors.pipeline import IngestionPipeline
@@ -90,10 +90,10 @@ class SyncEngine:
 
         # Load any previous checkpoint so we can resume.
         checkpoint = self.get_checkpoint(connector_id)
-        prior_cursor: Optional[str] = checkpoint["cursor"] if checkpoint else None
+        prior_cursor: str | None = checkpoint["cursor"] if checkpoint else None
         prior_items: int = checkpoint["items_synced"] if checkpoint else 0
 
-        since: Optional[datetime] = None
+        since: datetime | None = None
         if checkpoint and checkpoint.get("last_sync"):
             try:
                 since = datetime.fromisoformat(checkpoint["last_sync"])
@@ -101,7 +101,7 @@ class SyncEngine:
                 pass
 
         items_ingested = 0
-        current_cursor: Optional[str] = prior_cursor
+        current_cursor: str | None = prior_cursor
 
         try:
             doc_iter = connector.sync(since=since, cursor=prior_cursor)
@@ -141,7 +141,7 @@ class SyncEngine:
         )
         return items_ingested
 
-    def get_checkpoint(self, connector_id: str) -> Optional[Dict[str, Any]]:
+    def get_checkpoint(self, connector_id: str) -> dict[str, Any] | None:
         """Return the last checkpoint, or ``None`` if never synced."""
         sql = (
             "SELECT items_synced, cursor, last_sync, error"
@@ -168,8 +168,8 @@ class SyncEngine:
         connector_id: str,
         items_synced: int,
         *,
-        cursor: Optional[str] = None,
-        error: Optional[str] = None,
+        cursor: str | None = None,
+        error: str | None = None,
     ) -> None:
         """UPSERT a checkpoint row into the state database."""
         now = datetime.now(tz=timezone.utc).isoformat()

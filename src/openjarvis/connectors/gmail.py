@@ -11,9 +11,10 @@ import base64
 import email.utils
 import logging
 import re
+from collections.abc import Iterator
 from datetime import datetime
 from html.parser import HTMLParser
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any
 
 import httpx
 
@@ -62,9 +63,9 @@ GmailAuthError = GoogleAuthError
 def _gmail_api_list_messages(
     token: str,
     *,
-    page_token: Optional[str] = None,
+    page_token: str | None = None,
     query: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Call the Gmail ``messages.list`` endpoint.
 
     Parameters
@@ -82,7 +83,7 @@ def _gmail_api_list_messages(
         Raw API response containing ``messages`` list and optional
         ``nextPageToken``.
     """
-    params: Dict[str, str] = {}
+    params: dict[str, str] = {}
     if page_token:
         params["pageToken"] = page_token
     if query:
@@ -112,11 +113,11 @@ def _gmail_api_modify_message(
     token: str,
     msg_id: str,
     *,
-    add_labels: Optional[List[str]] = None,
-    remove_labels: Optional[List[str]] = None,
+    add_labels: list[str] | None = None,
+    remove_labels: list[str] | None = None,
 ) -> None:
     """Modify labels on a Gmail message via the ``messages.modify`` endpoint."""
-    body: Dict[str, Any] = {}
+    body: dict[str, Any] = {}
     if add_labels:
         body["addLabelIds"] = add_labels
     if remove_labels:
@@ -130,7 +131,7 @@ def _gmail_api_modify_message(
     resp.raise_for_status()
 
 
-def _gmail_api_get_message(token: str, msg_id: str) -> Dict[str, Any]:
+def _gmail_api_get_message(token: str, msg_id: str) -> dict[str, Any]:
     """Fetch a single Gmail message by ID (``full`` format).
 
     Parameters
@@ -160,7 +161,7 @@ def _gmail_api_get_message(token: str, msg_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _extract_header(headers: List[Dict[str, str]], name: str) -> str:
+def _extract_header(headers: list[dict[str, str]], name: str) -> str:
     """Return the value of the first header matching *name* (case-insensitive)."""
     name_lower = name.lower()
     for h in headers:
@@ -207,10 +208,10 @@ class _HTMLTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self._parts: List[str] = []
+        self._parts: list[str] = []
         self._skip_depth = 0
 
-    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in self._SKIP_TAGS:
             self._skip_depth += 1
         elif tag in self._BLOCK_TAGS and self._skip_depth == 0:
@@ -246,7 +247,7 @@ def _html_to_text(html: str) -> str:
     return extractor.get_text()
 
 
-def _decode_body(payload: Dict[str, Any]) -> str:
+def _decode_body(payload: dict[str, Any]) -> str:
     """Decode the message body from a Gmail payload dict.
 
     Multipart messages prefer text/plain. When only text/html is available
@@ -256,7 +257,7 @@ def _decode_body(payload: Dict[str, Any]) -> str:
     mime_type: str = payload.get("mimeType", "")
 
     if mime_type.startswith("multipart/"):
-        parts: List[Dict[str, Any]] = payload.get("parts", [])
+        parts: list[dict[str, Any]] = payload.get("parts", [])
         # Prefer text/plain when both alternatives are present.
         for part in parts:
             if part.get("mimeType", "").startswith("text/plain"):
@@ -299,7 +300,7 @@ def _parse_date(date_str: str) -> datetime:
         return datetime.now()
 
 
-def _normalize_addresses(raw: str) -> List[str]:
+def _normalize_addresses(raw: str) -> list[str]:
     """Extract lowercase email addresses from a comma-separated header value.
 
     Uses :func:`email.utils.getaddresses` so multi-recipient ``To``/``Cc``
@@ -315,7 +316,7 @@ def _normalize_addresses(raw: str) -> List[str]:
 _PRIMARY_LABELS = ("SENT", "DRAFT", "SPAM", "TRASH", "INBOX")
 
 
-def _select_channel(label_ids: List[str]) -> Optional[str]:
+def _select_channel(label_ids: list[str]) -> str | None:
     """Pick the most specific Gmail system folder this message lives in."""
     label_set = set(label_ids)
     for label in _PRIMARY_LABELS:
@@ -353,8 +354,8 @@ class GmailConnector(BaseConnector):
         )
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -395,8 +396,8 @@ class GmailConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
         query_extra: str = "",
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Gmail messages.
@@ -426,7 +427,7 @@ class GmailConnector(BaseConnector):
         # all flow in. The previous "category:primary" default excluded
         # ~95% of a typical mailbox (sent mail, Promotions, Updates, etc.)
         # which made any C2-style "what did I say to X" query impossible.
-        query_parts: List[str] = []
+        query_parts: list[str] = []
         if since is not None:
             # Gmail's after: operator accepts Unix epoch seconds.
             query_parts.append(f"after:{int(since.timestamp())}")
@@ -434,7 +435,7 @@ class GmailConnector(BaseConnector):
             query_parts.append(query_extra)
         query = " ".join(query_parts)
 
-        page_token: Optional[str] = cursor
+        page_token: str | None = cursor
         synced = 0
 
         while True:
@@ -444,7 +445,7 @@ class GmailConnector(BaseConnector):
                 page_token=page_token,
                 query=query,
             )
-            messages: List[Dict[str, Any]] = list_resp.get("messages", [])
+            messages: list[dict[str, Any]] = list_resp.get("messages", [])
 
             for msg_stub in messages:
                 msg_id: str = msg_stub.get("id", "")
@@ -456,8 +457,8 @@ class GmailConnector(BaseConnector):
                     self._credentials_path,
                     msg_id,
                 )
-                payload: Dict[str, Any] = msg.get("payload", {})
-                headers: List[Dict[str, str]] = payload.get("headers", [])
+                payload: dict[str, Any] = msg.get("payload", {})
+                headers: list[dict[str, str]] = payload.get("headers", [])
 
                 from_header = _extract_header(headers, "From")
                 to_header = _extract_header(headers, "To")
@@ -472,17 +473,17 @@ class GmailConnector(BaseConnector):
                 # Raw header values, exactly as Gmail returned them — preserved
                 # so re-normalisation against an updated alias map doesn't need
                 # a re-fetch from the API.
-                participants_raw: List[str] = [
+                participants_raw: list[str] = [
                     h for h in (from_header, to_header, cc_header) if h
                 ]
                 # Lowercase email addresses, multi-recipient-aware.
-                participants: List[str] = []
+                participants: list[str] = []
                 for header in (from_header, to_header, cc_header):
                     participants.extend(_normalize_addresses(header))
 
-                label_ids: List[str] = msg.get("labelIds", [])
+                label_ids: list[str] = msg.get("labelIds", [])
                 channel = _select_channel(label_ids)
-                thread_id: Optional[str] = msg.get("threadId")
+                thread_id: str | None = msg.get("threadId")
 
                 doc = Document(
                     doc_id=f"gmail:{msg_id}",
@@ -514,7 +515,7 @@ class GmailConnector(BaseConnector):
                 synced += 1
                 yield doc
 
-            next_page: Optional[str] = list_resp.get("nextPageToken")
+            next_page: str | None = list_resp.get("nextPageToken")
             if not next_page:
                 self._last_cursor = None
                 break
@@ -585,7 +586,7 @@ class GmailConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose three MCP tool specs for real-time Gmail queries."""
         return [
             ToolSpec(

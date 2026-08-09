@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from openjarvis.core.events import EventBus, EventType
 from openjarvis.core.types import ToolCall, ToolResult
@@ -17,12 +18,12 @@ from openjarvis.tools._stubs import ToolExecutor
 class SkillResult:
     skill_name: str = ""
     success: bool = True
-    step_results: List[ToolResult] = field(default_factory=list)
-    context: Dict[str, Any] = field(default_factory=dict)
+    step_results: list[ToolResult] = field(default_factory=list)
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 # Resolver callback: given a skill name and the current context, returns a SkillResult.
-SkillResolver = Callable[[str, Dict[str, Any]], SkillResult]
+SkillResolver = Callable[[str, dict[str, Any]], SkillResult]
 
 
 class SkillExecutor:
@@ -36,11 +37,11 @@ class SkillExecutor:
         self,
         tool_executor: ToolExecutor,
         *,
-        bus: Optional[EventBus] = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._tool_executor = tool_executor
         self._bus = bus
-        self._skill_resolver: Optional[SkillResolver] = None
+        self._skill_resolver: SkillResolver | None = None
 
     def set_skill_resolver(self, resolver: SkillResolver) -> None:
         """Register a callback used to delegate ``skill_name`` steps."""
@@ -50,11 +51,11 @@ class SkillExecutor:
         self,
         manifest: SkillManifest,
         *,
-        initial_context: Optional[Dict[str, Any]] = None,
+        initial_context: dict[str, Any] | None = None,
     ) -> SkillResult:
         """Execute all steps in a skill manifest."""
-        ctx: Dict[str, Any] = dict(initial_context or {})
-        all_results: List[ToolResult] = []
+        ctx: dict[str, Any] = dict(initial_context or {})
+        all_results: list[ToolResult] = []
 
         if self._bus:
             self._bus.publish(
@@ -119,7 +120,7 @@ class SkillExecutor:
         self,
         skill_name: str,
         rendered_args: str,
-        parent_ctx: Dict[str, Any],
+        parent_ctx: dict[str, Any],
         parent_skill: str,
         step_index: int,
     ) -> ToolResult:
@@ -133,7 +134,7 @@ class SkillExecutor:
 
         # Parse rendered args and merge into a copy of the parent context
         try:
-            args: Dict[str, Any] = json.loads(rendered_args)
+            args: dict[str, Any] = json.loads(rendered_args)
         except json.JSONDecodeError:
             args = {}
 
@@ -164,7 +165,7 @@ class SkillExecutor:
         )
 
     @staticmethod
-    def _render_template(template: str, ctx: Dict[str, Any]) -> str:
+    def _render_template(template: str, ctx: dict[str, Any]) -> str:
         """Simple {key} placeholder rendering."""
 
         def _replace(match: re.Match) -> str:

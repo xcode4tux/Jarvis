@@ -62,7 +62,8 @@ import os
 import random
 import threading
 import time
-from typing import Any, Callable, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
@@ -94,7 +95,7 @@ _RETRY_CAP = _env_float("OPENJARVIS_OPENAI_RETRY_CAP", 60.0)
 # Single process-wide semaphore. ``BoundedSemaphore(0)`` would block
 # forever, so when the env knob is 0 we hand back a no-op context manager.
 class _NullSem:
-    def __enter__(self) -> "_NullSem":
+    def __enter__(self) -> _NullSem:
         return self
 
     def __exit__(self, *a: Any) -> None:
@@ -141,7 +142,7 @@ def _is_local_endpoint(client: Any) -> bool:
         return False
 
 
-def _extract_retry_after(exc: BaseException) -> Optional[float]:
+def _extract_retry_after(exc: BaseException) -> float | None:
     """Pull a Retry-After header off an APIStatusError if the SDK exposed it.
 
     OpenAI's SDK keeps the underlying ``httpx.Response`` on
@@ -228,7 +229,7 @@ def _wrap_create(orig: Callable[..., Any]) -> Callable[..., Any]:
         # transient refused connection. Anything else (BadRequest etc.)
         # still raises immediately.
         if local:
-            local_last_exc: Optional[BaseException] = None
+            local_last_exc: BaseException | None = None
             for attempt in range(3):
                 try:
                     return orig(self, *args, **kwargs)
@@ -250,7 +251,7 @@ def _wrap_create(orig: Callable[..., Any]) -> Callable[..., Any]:
             assert local_last_exc is not None
             raise local_last_exc
 
-        last_exc: Optional[BaseException] = None
+        last_exc: BaseException | None = None
         for attempt in range(_MAX_RETRIES + 1):
             try:
                 with _SEM:
@@ -347,7 +348,7 @@ def patch_openai_globally() -> None:
         _PATCHED = True
 
 
-def current_settings() -> Tuple[int, int, float, float]:
+def current_settings() -> tuple[int, int, float, float]:
     """For tests / smoke runs: return (concurrency, retries, base, cap)."""
     return _MAX_CONCURRENCY, _MAX_RETRIES, _RETRY_BASE, _RETRY_CAP
 

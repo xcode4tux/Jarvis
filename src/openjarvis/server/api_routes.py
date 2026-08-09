@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 class AgentCreateRequest(BaseModel):
     agent_type: str
-    tools: Optional[List[str]] = None
-    agent_id: Optional[str] = None
+    tools: list[str] | None = None
+    agent_id: str | None = None
 
 
 class AgentMessageRequest(BaseModel):
@@ -27,7 +27,7 @@ class AgentMessageRequest(BaseModel):
 
 class MemoryStoreRequest(BaseModel):
     content: str
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 class MemorySearchRequest(BaseModel):
@@ -40,8 +40,8 @@ class MemoryIndexRequest(BaseModel):
 
 
 class BudgetLimitsRequest(BaseModel):
-    max_tokens_per_day: Optional[int] = None
-    max_requests_per_hour: Optional[int] = None
+    max_tokens_per_day: int | None = None
+    max_requests_per_hour: int | None = None
 
 
 class FeedbackScoreRequest(BaseModel):
@@ -407,8 +407,8 @@ async def telemetry_energy(request: Request):
 
 class SkillSyncRequest(BaseModel):
     source: str = "hermes"
-    category: Optional[str] = None
-    search: Optional[str] = None
+    category: str | None = None
+    search: str | None = None
     force: bool = False
 
 
@@ -420,8 +420,9 @@ async def list_skills(request: Request):
     """List installed skills."""
     try:
         from pathlib import Path
-        from openjarvis.skills.manager import SkillManager, load_disabled_skills
+
         from openjarvis.core.events import EventBus
+        from openjarvis.skills.manager import SkillManager, load_disabled_skills
 
         paths = []
         workspace = Path("./skills")
@@ -469,17 +470,19 @@ async def list_skills(request: Request):
 async def sync_skills(req: SkillSyncRequest, request: Request):
     """Sync/install skills from a source."""
     try:
+        from openjarvis.cli.skill_cmd import _get_resolver
         from openjarvis.skills.importer import SkillImporter
         from openjarvis.skills.parser import SkillParser
         from openjarvis.skills.tool_translator import ToolTranslator
-        from openjarvis.cli.skill_cmd import _get_resolver
 
         resolver = _get_resolver(req.source)
         resolver.sync()
 
         skills_to_import = resolver.list_skills()
         if req.category:
-            skills_to_import = [s for s in skills_to_import if s.category == req.category]
+            skills_to_import = [
+                s for s in skills_to_import if s.category == req.category
+            ]
         if req.search:
             sl = req.search.lower()
             skills_to_import = [
@@ -508,8 +511,9 @@ async def remove_skill(skill_name: str, request: Request):
     """Remove a skill."""
     try:
         from pathlib import Path
-        from openjarvis.skills.manager import SkillManager
+
         from openjarvis.core.events import EventBus
+        from openjarvis.skills.manager import SkillManager
 
         paths = []
         workspace = Path("./skills")
@@ -598,11 +602,11 @@ async def get_session(session_id: str, request: Request):
 
 budget_router = APIRouter(prefix="/v1/budget", tags=["budget"])
 
-_budget_limits: Dict[str, Any] = {
+_budget_limits: dict[str, Any] = {
     "max_tokens_per_day": None,
     "max_requests_per_hour": None,
 }
-_budget_usage: Dict[str, int] = {
+_budget_usage: dict[str, int] = {
     "tokens_today": 0,
     "requests_this_hour": 0,
 }
@@ -803,7 +807,7 @@ learning_router = APIRouter(prefix="/v1/learning", tags=["learning"])
 @learning_router.get("/stats")
 async def learning_stats(request: Request):
     """Return learning system statistics across all sub-policies."""
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     # Skill discovery
     try:
@@ -824,7 +828,7 @@ async def learning_stats(request: Request):
 @learning_router.get("/policy")
 async def learning_policy(request: Request):
     """Return current routing policy configuration."""
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     # Load config and extract learning section
     try:

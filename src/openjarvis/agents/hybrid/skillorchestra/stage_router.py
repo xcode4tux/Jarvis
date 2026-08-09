@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # =============================================================================
 # Handbook dataclasses (compatible with stage_router JSON)
@@ -25,11 +25,11 @@ class Skill:
     name: str
     description: str
     stage: str
-    examples: List[str] = field(default_factory=list)
-    discovered_from_problems: List[Dict[str, str]] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
+    discovered_from_problems: list[dict[str, str]] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Skill":
+    def from_dict(cls, data: dict[str, Any]) -> Skill:
         return cls(
             skill_id=data.get("skill_id", ""),
             name=data.get("name", ""),
@@ -47,20 +47,20 @@ class ModelProfile:
     model_alias: str
     actual_model: str
     stage: str
-    skill_scores: Dict[str, float] = field(default_factory=dict)
-    skill_attempts: Dict[str, int] = field(default_factory=dict)
-    skill_successes: Dict[str, int] = field(default_factory=dict)
+    skill_scores: dict[str, float] = field(default_factory=dict)
+    skill_attempts: dict[str, int] = field(default_factory=dict)
+    skill_successes: dict[str, int] = field(default_factory=dict)
     overall_success_rate: float = 0.5
     total_attempts: int = 0
     total_successes: int = 0
     avg_prompt_tokens: float = 0.0
     avg_completion_tokens: float = 0.0
     avg_cost_usd: float = 0.0
-    strengths: List[str] = field(default_factory=list)
-    weaknesses: List[str] = field(default_factory=list)
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ModelProfile":
+    def from_dict(cls, data: dict[str, Any]) -> ModelProfile:
         return cls(
             model_alias=data.get("model_alias", ""),
             actual_model=data.get("actual_model", ""),
@@ -88,23 +88,23 @@ class StageSkillHandbook:
     """Handbook for eval routing. Load from JSON produced by to_stage_router."""
 
     def __init__(self, load_defaults: bool = True):
-        self.skills: Dict[str, Dict[str, Skill]] = {
+        self.skills: dict[str, dict[str, Skill]] = {
             "search": {},
             "code": {},
             "answer": {},
         }
-        self.model_profiles: Dict[str, ModelProfile] = {}
-        self.usage_patterns: Dict[str, Any] = {"stages": {}, "guidelines": {}, "models": {}, "raw": {}}
-        self.routing_insights: List[str] = []
-        self.learning_history: List[Dict[str, Any]] = []
+        self.model_profiles: dict[str, ModelProfile] = {}
+        self.usage_patterns: dict[str, Any] = {"stages": {}, "guidelines": {}, "models": {}, "raw": {}}
+        self.routing_insights: list[str] = []
+        self.learning_history: list[dict[str, Any]] = []
         self.version = "1.0.0"
         self.created_at = ""
         self.updated_at = ""
 
-    def get_model_skill_scores(self) -> Dict[str, Dict[str, float]]:
+    def get_model_skill_scores(self) -> dict[str, dict[str, float]]:
         return {alias: profile.skill_scores for alias, profile in self.model_profiles.items()}
 
-    def get_models_for_stage(self, stage: str) -> List[ModelProfile]:
+    def get_models_for_stage(self, stage: str) -> list[ModelProfile]:
         return [p for p in self.model_profiles.values() if p.stage == stage]
 
     def format_skills(self, stage: str) -> str:
@@ -167,7 +167,7 @@ class StageSkillHandbook:
         return "\n".join(lines) if lines else "No model performance data learned yet."
 
     @classmethod
-    def load(cls, path: str) -> "StageSkillHandbook":
+    def load(cls, path: str) -> StageSkillHandbook:
         with open(path) as f:
             data = json.load(f)
         handbook = cls(load_defaults=False)
@@ -207,12 +207,12 @@ class SkillWeight:
 @dataclass
 class SkillAnalysis:
     stage: str
-    required_skills: List[SkillWeight] = field(default_factory=list)
+    required_skills: list[SkillWeight] = field(default_factory=list)
     reasoning: str = ""
-    raw_json: Dict[str, Any] = field(default_factory=dict)
+    raw_json: dict[str, Any] = field(default_factory=dict)
 
 
-def parse_skill_analysis(output: str) -> Optional[SkillAnalysis]:
+def parse_skill_analysis(output: str) -> SkillAnalysis | None:
     pattern = r"<skill_analysis>\s*(.*?)\s*</skill_analysis>"
     match = re.search(pattern, output, re.DOTALL)
     if not match:
@@ -243,17 +243,17 @@ class ModelRoutingResult:
     model_alias: str
     decision_logic: str
     confidence: float = 0.0
-    all_scores: Dict[str, float] = field(default_factory=dict)
+    all_scores: dict[str, float] = field(default_factory=dict)
 
 
 class RoutingStrategy:
-    def __init__(self, handbook: Optional[StageSkillHandbook] = None):
+    def __init__(self, handbook: StageSkillHandbook | None = None):
         self.handbook = handbook
-        self._model_skill_scores: Dict[str, Dict[str, float]] = {}
+        self._model_skill_scores: dict[str, dict[str, float]] = {}
         if handbook:
             self._model_skill_scores = handbook.get_model_skill_scores()
 
-    def _find_skill_id(self, stage: str, skill_id_or_name: str) -> Optional[str]:
+    def _find_skill_id(self, stage: str, skill_id_or_name: str) -> str | None:
         if not self.handbook:
             return None
         handbook_stage = "code" if stage == "reasoning" else stage
@@ -266,7 +266,7 @@ class RoutingStrategy:
                 return sid
         return None
 
-    def _get_models_for_stage(self, stage: str) -> List[str]:
+    def _get_models_for_stage(self, stage: str) -> list[str]:
         if stage == "search":
             return ["search-1", "search-2", "search-3"]
         if stage == "reasoning":
@@ -278,8 +278,8 @@ class RoutingStrategy:
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         raise NotImplementedError
 
@@ -288,8 +288,8 @@ class RouterDecidesStrategy(RoutingStrategy):
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         if tool_call_model:
             return ModelRoutingResult(tool_call_model, "router_decides_from_tool_call", 1.0)
@@ -301,8 +301,8 @@ class AnalyzeModelDecideStrategy(RoutingStrategy):
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         if tool_call_model:
             return ModelRoutingResult(tool_call_model, "analyze_model_decide_with_skill_analysis", 1.0)
@@ -321,8 +321,8 @@ class WeightedAverageStrategy(RoutingStrategy):
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         if not skill_analysis or not skill_analysis.required_skills:
             if tool_call_model:
@@ -356,8 +356,8 @@ class WeakestSkillStrategy(RoutingStrategy):
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         if not skill_analysis or not skill_analysis.required_skills:
             if tool_call_model:
@@ -379,8 +379,8 @@ class StrongestSkillStrategy(RoutingStrategy):
     def select_model(
         self,
         stage: str,
-        skill_analysis: Optional[SkillAnalysis] = None,
-        tool_call_model: Optional[str] = None,
+        skill_analysis: SkillAnalysis | None = None,
+        tool_call_model: str | None = None,
     ) -> ModelRoutingResult:
         if not skill_analysis or not skill_analysis.required_skills:
             if tool_call_model:
@@ -408,7 +408,7 @@ ROUTING_STRATEGIES = {
 
 
 def get_routing_strategy(
-    strategy_name: str, handbook: Optional[StageSkillHandbook] = None
+    strategy_name: str, handbook: StageSkillHandbook | None = None
 ) -> RoutingStrategy:
     if strategy_name not in ROUTING_STRATEGIES:
         raise ValueError(

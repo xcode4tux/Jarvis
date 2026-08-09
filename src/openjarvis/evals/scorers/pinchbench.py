@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.event_recorder import EventType
 from openjarvis.evals.core.scorer import LLMJudgeScorer
@@ -24,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Tool name mapping: OpenJarvis name → PinchBench-expected name
 # ---------------------------------------------------------------------------
-_TOOL_NAME_MAP: Dict[str, str] = {
+_TOOL_NAME_MAP: dict[str, str] = {
     "file_read": "read_file",
     "file_write": "write_file",
     "image_generate": "generate_image",
@@ -37,13 +37,13 @@ _TOOL_NAME_MAP: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def events_to_transcript(events: List[Any]) -> List[Dict[str, Any]]:
+def events_to_transcript(events: list[Any]) -> list[dict[str, Any]]:
     """Build PinchBench-format transcript from raw EventRecorder events.
 
     Pairs TOOL_CALL_START/END events to extract tool name, arguments, and
     results. Called by run_tests() before QueryTrace exists.
     """
-    transcript: List[Dict[str, Any]] = []
+    transcript: list[dict[str, Any]] = []
 
     for event in events:
         etype = event.event_type
@@ -83,9 +83,9 @@ def events_to_transcript(events: List[Any]) -> List[Dict[str, Any]]:
     return transcript
 
 
-def _trace_to_transcript(trace: Any) -> List[Dict[str, Any]]:
+def _trace_to_transcript(trace: Any) -> list[dict[str, Any]]:
     """Convert QueryTrace to PinchBench transcript (for EvalRunner path)."""
-    transcript: List[Dict[str, Any]] = []
+    transcript: list[dict[str, Any]] = []
     for turn in trace.turns:
         for tc in getattr(turn, "tool_calls", []):
             if tc is None:
@@ -132,10 +132,10 @@ def _trace_to_transcript(trace: Any) -> List[Dict[str, Any]]:
 
 
 def _tool_results_to_transcript(
-    tool_results: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    tool_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Build transcript from JarvisAgentBackend tool_results list."""
-    transcript: List[Dict[str, Any]] = []
+    transcript: list[dict[str, Any]] = []
     for tr in tool_results:
         tool_name = tr.get("tool_name", "unknown")
         mapped = _TOOL_NAME_MAP.get(tool_name, tool_name)
@@ -171,7 +171,7 @@ def _tool_results_to_transcript(
 # ---------------------------------------------------------------------------
 
 
-def _summarize_transcript(transcript: List[Dict[str, Any]]) -> str:
+def _summarize_transcript(transcript: list[dict[str, Any]]) -> str:
     """Summarize transcript for LLM judge prompt.
 
     Produces the same format as PinchBench's lib_grading._summarize_transcript():
@@ -179,7 +179,7 @@ def _summarize_transcript(transcript: List[Dict[str, Any]]) -> str:
         Result: [first 200 chars]
         User: [message text]
     """
-    parts: List[str] = []
+    parts: list[str] = []
     for event in transcript:
         if event.get("type") != "message":
             continue
@@ -247,7 +247,7 @@ Be a strict evaluator. Deduct points for unnecessary steps, verbose output,
 or inefficient tool usage."""
 
 
-def _parse_judge_response(raw: str) -> Dict[str, Any]:
+def _parse_judge_response(raw: str) -> dict[str, Any]:
     """Parse LLM judge response with fallback chain.
 
     Tries: JSON code block → balanced braces → regex score extraction.
@@ -267,9 +267,9 @@ def _parse_judge_response(raw: str) -> Dict[str, Any]:
             pass
 
     # Try balanced braces extraction
-    candidates: List[str] = []
+    candidates: list[str] = []
     depth = 0
-    current: List[str] = []
+    current: list[str] = []
     for char in raw:
         if char == "{":
             if depth == 0:
@@ -323,12 +323,12 @@ def _parse_judge_response(raw: str) -> Dict[str, Any]:
     return {"scores": {}, "total": 0.0, "notes": "Failed to parse judge response"}
 
 
-def _normalize_judge_response(parsed: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_judge_response(parsed: dict[str, Any]) -> dict[str, Any]:
     """Normalize various judge response formats to standard structure.
 
     Matches PinchBench's lib_grading._normalize_judge_response().
     """
-    result: Dict[str, Any] = {"scores": {}, "total": 0.0, "notes": ""}
+    result: dict[str, Any] = {"scores": {}, "total": 0.0, "notes": ""}
 
     # Extract scores
     scores_data = parsed.get("scores", parsed.get("criteria_scores", {}))
@@ -378,15 +378,15 @@ def _normalize_judge_response(parsed: Dict[str, Any]) -> Dict[str, Any]:
 
 def _grade_automated(
     record: EvalRecord,
-    transcript: List[Dict[str, Any]],
+    transcript: list[dict[str, Any]],
     workspace_path: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the embedded Python grade() function from the task definition."""
     code = record.metadata.get("automated_checks")
     if not code:
         return {"score": 0.0, "breakdown": {}, "notes": "No automated checks defined"}
 
-    namespace: Dict[str, Any] = {}
+    namespace: dict[str, Any] = {}
     try:
         exec(code, namespace)  # noqa: S102
     except Exception as exc:
@@ -420,11 +420,11 @@ def _grade_automated(
 
 def _grade_llm_judge(
     record: EvalRecord,
-    transcript: List[Dict[str, Any]],
+    transcript: list[dict[str, Any]],
     workspace_path: str,
     judge_backend: Any,
     judge_model: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Grade using an LLM judge with the task's rubric."""
     rubric = record.metadata.get("llm_judge_rubric")
     if not rubric:
@@ -459,11 +459,11 @@ def _grade_llm_judge(
 
 def _grade_hybrid(
     record: EvalRecord,
-    transcript: List[Dict[str, Any]],
+    transcript: list[dict[str, Any]],
     workspace_path: str,
     judge_backend: Any,
     judge_model: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run both automated and LLM judge grading, combine with weights."""
     weights = record.metadata.get("grading_weights") or {
         "automated": 0.5,
@@ -494,11 +494,11 @@ def _grade_hybrid(
 def grade_pinchbench_task(
     *,
     record: EvalRecord,
-    transcript: List[Dict[str, Any]],
+    transcript: list[dict[str, Any]],
     workspace_path: str,
     judge_backend: Any = None,
     judge_model: str = "anthropic/claude-opus-4-5",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Top-level grading entry point. Routes by grading_type.
 
     Returns {"score": float, "breakdown": dict, "notes": str}.
@@ -537,7 +537,7 @@ class PinchBenchScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         trace = record.metadata.get("query_trace")
         if trace:
             transcript = _trace_to_transcript(trace)

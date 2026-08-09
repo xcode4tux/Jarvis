@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import subprocess
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -48,13 +47,13 @@ class HermesResolver(SourceResolver):
                 check=True,
             )
 
-    def list_skills(self) -> List[ResolvedSkill]:
+    def list_skills(self) -> list[ResolvedSkill]:
         """Walk skills/<category>/<skill>/SKILL.md."""
         skills_root = self._cache_root / "skills"
         if not skills_root.exists():
             return []
 
-        results: List[ResolvedSkill] = []
+        results: list[ResolvedSkill] = []
         commit = self._read_commit()
 
         for category_dir in sorted(skills_root.iterdir()):

@@ -7,7 +7,6 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -16,8 +15,8 @@ class DigestArtifact:
 
     text: str
     audio_path: Path
-    sections: Dict[str, str]
-    sources_used: List[str]
+    sections: dict[str, str]
+    sources_used: list[str]
     generated_at: datetime
     model_used: str
     voice_used: str
@@ -106,7 +105,7 @@ class DigestStore:
             evaluator_feedback=row[8] if len(row) > 8 else "",
         )
 
-    def get_latest(self) -> Optional[DigestArtifact]:
+    def get_latest(self) -> DigestArtifact | None:
         """Return the most recent digest, or None."""
         row = self._conn.execute(
             "SELECT text, audio_path, sections, sources_used,"
@@ -118,7 +117,7 @@ class DigestStore:
             return None
         return self._row_to_artifact(row)
 
-    def get_today(self, timezone_name: str = "UTC") -> Optional[DigestArtifact]:
+    def get_today(self, timezone_name: str = "UTC") -> DigestArtifact | None:
         """Return today's digest if it exists, or None."""
         try:
             from zoneinfo import ZoneInfo
@@ -138,7 +137,7 @@ class DigestStore:
             return None
         return self._row_to_artifact(row)
 
-    def history(self, limit: int = 10) -> List[DigestArtifact]:
+    def history(self, limit: int = 10) -> list[DigestArtifact]:
         """Return the N most recent digests."""
         rows = self._conn.execute(
             "SELECT text, audio_path, sections, sources_used,"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.core.registry import EngineRegistry
 from openjarvis.core.types import Message, Role
@@ -97,7 +97,7 @@ class GemmaCppEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self._ensure_loaded()
         if model != self._model_type:
             logger.warning(
@@ -161,7 +161,7 @@ class GemmaCppEngine(InferenceEngine):
             and os.path.isfile(self._tokenizer_path)
         )
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         if self._model_type and self._paths_valid():
             return [self._model_type]
         return []

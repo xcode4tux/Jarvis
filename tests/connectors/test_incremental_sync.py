@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator, List, Optional
 
 import pytest
 
@@ -25,9 +25,9 @@ class TimestampConnector(BaseConnector):
     display_name = "Timestamp"
     auth_type = "filesystem"
 
-    def __init__(self, docs: List[Document]) -> None:
+    def __init__(self, docs: list[Document]) -> None:
         self._docs = docs
-        self.received_since: List[Optional[datetime]] = []
+        self.received_since: list[datetime | None] = []
 
     # BaseConnector abstract methods
 
@@ -40,8 +40,8 @@ class TimestampConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         self.received_since.append(since)
         yield from self._docs
@@ -139,7 +139,7 @@ def test_incremental_only_adds_new_items(
         """Returns a different doc list on each sync call."""
 
         def __init__(
-            self, first_docs: List[Document], second_docs: List[Document]
+            self, first_docs: list[Document], second_docs: list[Document]
         ) -> None:
             super().__init__(first_docs)
             self._first_docs = first_docs
@@ -149,8 +149,8 @@ def test_incremental_only_adds_new_items(
         def sync(
             self,
             *,
-            since: Optional[datetime] = None,
-            cursor: Optional[str] = None,
+            since: datetime | None = None,
+            cursor: str | None = None,
         ) -> Iterator[Document]:
             self.received_since.append(since)
             self._call_count += 1

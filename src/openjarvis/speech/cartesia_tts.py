@@ -7,7 +7,6 @@ Requires CARTESIA_API_KEY environment variable or config.
 from __future__ import annotations
 
 import os
-from typing import List
 
 import httpx
 
@@ -97,7 +96,7 @@ class CartesiaTTSBackend(TTSBackend):
             metadata={"backend": "cartesia", "model": self._model},
         )
 
-    def available_voices(self) -> List[str]:
+    def available_voices(self) -> list[str]:
         if not self._api_key:
             return []
         resp = httpx.get(

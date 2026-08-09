@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from openjarvis.connectors.store import KnowledgeStore
 from openjarvis.tools.storage._stubs import RetrievalResult
@@ -38,10 +38,10 @@ class Reranker(ABC):
     def rerank(
         self,
         query: str,
-        candidates: List[RetrievalResult],
+        candidates: list[RetrievalResult],
         *,
         top_k: int = 10,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Rerank *candidates* for *query* and return the top *top_k* results.
 
         Parameters
@@ -87,7 +87,7 @@ class ColBERTReranker(Reranker):
     def __init__(
         self,
         checkpoint: str = "colbert-ir/colbertv2.0",
-        embedding_store: Optional["EmbeddingStore"] = None,
+        embedding_store: EmbeddingStore | None = None,
     ) -> None:
         self._checkpoint = checkpoint
         self._model = None
@@ -131,10 +131,10 @@ class ColBERTReranker(Reranker):
     def rerank(
         self,
         query: str,
-        candidates: List[RetrievalResult],
+        candidates: list[RetrievalResult],
         *,
         top_k: int = 10,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Rerank *candidates* using ColBERT MaxSim scores.
 
         Falls back to BM25 order if ``colbert-ai`` is unavailable.
@@ -226,7 +226,7 @@ class TwoStageRetriever:
     def __init__(
         self,
         store: KnowledgeStore,
-        reranker: Optional[Reranker] = None,
+        reranker: Reranker | None = None,
         *,
         recall_k: int = 100,
     ) -> None:
@@ -244,7 +244,7 @@ class TwoStageRetriever:
         author: str = "",
         since: str = "",
         until: str = "",
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Run the two-stage retrieval pipeline.
 
         Parameters

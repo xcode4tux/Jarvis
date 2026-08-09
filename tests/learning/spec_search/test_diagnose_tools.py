@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 # ---------------------------------------------------------------------------
@@ -24,15 +24,15 @@ class _StubTrace:
     query: str = "What is 2+2?"
     agent: str = "simple"
     model: str = "qwen2.5-coder:7b"
-    outcome: Optional[str] = "success"
-    feedback: Optional[float] = 0.8
+    outcome: str | None = "success"
+    feedback: float | None = 0.8
     started_at: float = 1712534400.0
     result: str = "4"
     steps: list = field(default_factory=list)
     messages: list = field(default_factory=list)
     total_tokens: int = 100
     total_latency_seconds: float = 1.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     ended_at: float = 1712534401.0
     engine: str = "ollama"
 

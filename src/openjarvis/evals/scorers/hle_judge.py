@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import LLMJudgeScorer
 from openjarvis.evals.core.types import EvalRecord
@@ -46,7 +46,7 @@ class HLEScorer(LLMJudgeScorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response"}
 
@@ -77,7 +77,7 @@ class HLEScorer(LLMJudgeScorer):
             else:
                 is_correct = "CORRECT" in raw.upper() and "INCORRECT" not in raw.upper()
 
-            meta: Dict[str, Any] = {
+            meta: dict[str, Any] = {
                 "match_type": "llm_fallback",
                 "raw_judge_output": raw,
             }

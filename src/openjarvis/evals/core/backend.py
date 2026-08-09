@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class InferenceBackend(ABC):
@@ -42,7 +42,7 @@ class InferenceBackend(ABC):
         system: str = "",
         temperature: float = 0.0,
         max_tokens: int = 2048,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a response and return full details.
 
         Returns dict with keys: content, usage, model, latency_seconds, cost_usd.

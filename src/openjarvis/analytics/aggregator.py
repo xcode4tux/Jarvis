@@ -61,7 +61,7 @@ class SessionAggregator:
 
     def __init__(
         self,
-        client: "AnalyticsClient",
+        client: AnalyticsClient,
         *,
         idle_timeout_s: float = _IDLE_TIMEOUT_S,
         flusher_tick_s: float = _FLUSHER_TICK_S,

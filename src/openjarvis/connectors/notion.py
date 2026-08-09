@@ -10,8 +10,9 @@ and paste the generated token to authenticate.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -34,7 +35,7 @@ _DEFAULT_CREDENTIALS_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "notion.json
 # ---------------------------------------------------------------------------
 
 
-def _notion_headers(token: str) -> Dict[str, str]:
+def _notion_headers(token: str) -> dict[str, str]:
     """Build the standard Notion API request headers."""
     return {
         "Authorization": f"Bearer {token}",
@@ -46,8 +47,8 @@ def _notion_headers(token: str) -> Dict[str, str]:
 def _notion_api_search(
     token: str,
     *,
-    cursor: Optional[str] = None,
-) -> Dict[str, Any]:
+    cursor: str | None = None,
+) -> dict[str, Any]:
     """Call the Notion ``/v1/search`` endpoint to list accessible pages.
 
     Parameters
@@ -62,7 +63,7 @@ def _notion_api_search(
     dict
         Raw API response containing ``results`` list and ``has_more`` flag.
     """
-    body: Dict[str, Any] = {
+    body: dict[str, Any] = {
         "filter": {"property": "object", "value": "page"},
         "page_size": 100,
     }
@@ -79,7 +80,7 @@ def _notion_api_search(
     return resp.json()
 
 
-def _notion_api_get_blocks(token: str, block_id: str) -> List[Dict[str, Any]]:
+def _notion_api_get_blocks(token: str, block_id: str) -> list[dict[str, Any]]:
     """Fetch child blocks for a page (or block) by ID.
 
     Parameters
@@ -109,13 +110,13 @@ def _notion_api_get_blocks(token: str, block_id: str) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def _extract_rich_text(block_data: Dict[str, Any]) -> str:
+def _extract_rich_text(block_data: dict[str, Any]) -> str:
     """Concatenate plain_text from all rich_text entries in *block_data*."""
-    rich_text: List[Dict[str, Any]] = block_data.get("rich_text", [])
+    rich_text: list[dict[str, Any]] = block_data.get("rich_text", [])
     return "".join(entry.get("plain_text", "") for entry in rich_text)
 
 
-def _render_blocks_to_markdown(blocks: List[Dict[str, Any]]) -> str:
+def _render_blocks_to_markdown(blocks: list[dict[str, Any]]) -> str:
     """Convert a list of Notion block objects to a markdown string.
 
     Supported block types:
@@ -132,11 +133,11 @@ def _render_blocks_to_markdown(blocks: List[Dict[str, Any]]) -> str:
     - ``toggle`` → rendered as plain heading + content
     - Everything else → extract rich_text if available, skip otherwise
     """
-    lines: List[str] = []
+    lines: list[str] = []
 
     for block in blocks:
         block_type: str = block.get("type", "")
-        block_data: Dict[str, Any] = block.get(block_type, {})
+        block_data: dict[str, Any] = block.get(block_type, {})
 
         if block_type == "paragraph":
             text = _extract_rich_text(block_data)
@@ -201,16 +202,16 @@ def _render_blocks_to_markdown(blocks: List[Dict[str, Any]]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _extract_page_title(page: Dict[str, Any]) -> str:
+def _extract_page_title(page: dict[str, Any]) -> str:
     """Extract the plain-text title from a Notion page object."""
-    properties: Dict[str, Any] = page.get("properties", {})
+    properties: dict[str, Any] = page.get("properties", {})
 
     # The title property can be named "title", "Name", or any custom name.
     # Notion always marks the title property with type "title".
     for _prop_name, prop_value in properties.items():
         if not isinstance(prop_value, dict):
             continue
-        title_items: List[Dict[str, Any]] = prop_value.get("title", [])
+        title_items: list[dict[str, Any]] = prop_value.get("title", [])
         if title_items:
             return "".join(item.get("plain_text", "") for item in title_items)
 
@@ -264,8 +265,8 @@ class NotionConnector(BaseConnector):
         self._credentials_path: str = credentials_path or _DEFAULT_CREDENTIALS_PATH
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # Internal token resolution
@@ -307,8 +308,8 @@ class NotionConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Notion pages.
 
@@ -327,12 +328,12 @@ class NotionConnector(BaseConnector):
         if not token:
             return
 
-        page_cursor: Optional[str] = cursor
+        page_cursor: str | None = cursor
         synced = 0
 
         while True:
             search_resp = _notion_api_search(token, cursor=page_cursor)
-            pages: List[Dict[str, Any]] = search_resp.get("results", [])
+            pages: list[dict[str, Any]] = search_resp.get("results", [])
 
             for page in pages:
                 page_id: str = page.get("id", "")
@@ -352,7 +353,7 @@ class NotionConnector(BaseConnector):
                         continue
 
                 title = _extract_page_title(page)
-                url: Optional[str] = page.get("url")
+                url: str | None = page.get("url")
 
                 blocks = _notion_api_get_blocks(token, page_id)
                 content = _render_blocks_to_markdown(blocks)
@@ -393,7 +394,7 @@ class NotionConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time Notion queries."""
         return [
             ToolSpec(

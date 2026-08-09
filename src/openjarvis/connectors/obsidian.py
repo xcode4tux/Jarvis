@@ -8,9 +8,10 @@ can be ingested by the knowledge pipeline.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any
 from urllib.parse import quote
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
@@ -37,7 +38,7 @@ _SKIP_DIRS = {
 # ---------------------------------------------------------------------------
 
 
-def _parse_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:
+def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     """Extract YAML frontmatter and return ``(metadata, body)``.
 
     Frontmatter is the block between two ``---`` lines at the very start of
@@ -63,7 +64,7 @@ def _parse_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:
         body_start += 1
     body = rest[body_start:]
 
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     for line in raw_fm.splitlines():
         line = line.strip()
         if not line or ":" not in line:
@@ -128,8 +129,8 @@ class ObsidianConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002 — unused but part of ABC
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002 — unused but part of ABC
     ) -> Iterator[Document]:
         """Walk the vault and yield one :class:`Document` per text file.
 
@@ -144,7 +145,7 @@ class ObsidianConnector(BaseConnector):
         vault = Path(self._vault_path)
         vault_name = vault.name
 
-        collected_paths: List[Path] = []
+        collected_paths: list[Path] = []
         for root, dirs, files in os.walk(vault):
             # Prune hidden and known-junk directories in-place so os.walk
             # does not descend into them.
@@ -206,7 +207,7 @@ class ObsidianConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose a single ``obsidian_search_notes`` tool for agent queries."""
         return [
             ToolSpec(

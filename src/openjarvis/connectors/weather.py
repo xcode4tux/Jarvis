@@ -7,9 +7,10 @@ All API calls are in module-level functions for easy mocking in tests.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
 
 import httpx
 
@@ -20,7 +21,7 @@ from openjarvis.core.registry import ConnectorRegistry
 _DEFAULT_TOKEN_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "weather.json")
 
 
-def _weather_api_get(url: str, params: Dict[str, str]) -> Dict[str, Any]:
+def _weather_api_get(url: str, params: dict[str, str]) -> dict[str, Any]:
     """Call an OpenWeatherMap API endpoint."""
     resp = httpx.get(url, params=params, timeout=30.0)
     resp.raise_for_status()
@@ -39,7 +40,7 @@ class WeatherConnector(BaseConnector):
         self._token_path = Path(token_path)
         self._status = SyncStatus()
 
-    def _load_config(self) -> Dict[str, str]:
+    def _load_config(self) -> dict[str, str]:
         """Load API key and location from disk."""
         data = json.loads(self._token_path.read_text(encoding="utf-8"))
         return data
@@ -58,7 +59,7 @@ class WeatherConnector(BaseConnector):
             self._token_path.unlink()
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield Documents for current weather and forecast."""
         config = self._load_config()

@@ -7,8 +7,9 @@ to make them trivially mockable in tests.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -43,8 +44,8 @@ _DEFAULT_CREDENTIALS_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "gcontacts.j
 def _gcontacts_api_list(
     token: str,
     *,
-    page_token: Optional[str] = None,
-) -> Dict[str, Any]:
+    page_token: str | None = None,
+) -> dict[str, Any]:
     """Call the People API ``people/me/connections`` endpoint.
 
     Parameters
@@ -60,7 +61,7 @@ def _gcontacts_api_list(
         Raw API response containing a ``connections`` list and optional
         ``nextPageToken``.
     """
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "personFields": "names,emailAddresses,phoneNumbers,organizations",
         "pageSize": 100,
     }
@@ -82,7 +83,7 @@ def _gcontacts_api_list(
 # ---------------------------------------------------------------------------
 
 
-def _format_contact(person: Dict[str, Any]) -> str:
+def _format_contact(person: dict[str, Any]) -> str:
     """Return a human-readable text representation of a contact.
 
     Parameters
@@ -95,30 +96,30 @@ def _format_contact(person: Dict[str, Any]) -> str:
     str
         Multi-line formatted text suitable for indexing.
     """
-    lines: List[str] = []
+    lines: list[str] = []
 
     # Name
-    names: List[Dict[str, Any]] = person.get("names", [])
+    names: list[dict[str, Any]] = person.get("names", [])
     display_name = names[0].get("displayName", "") if names else ""
     if display_name:
         lines.append(f"Name: {display_name}")
 
     # Email addresses
-    email_addresses: List[Dict[str, Any]] = person.get("emailAddresses", [])
+    email_addresses: list[dict[str, Any]] = person.get("emailAddresses", [])
     for email_entry in email_addresses:
         value = email_entry.get("value", "")
         if value:
             lines.append(f"Email: {value}")
 
     # Phone numbers
-    phone_numbers: List[Dict[str, Any]] = person.get("phoneNumbers", [])
+    phone_numbers: list[dict[str, Any]] = person.get("phoneNumbers", [])
     for phone_entry in phone_numbers:
         value = phone_entry.get("value", "")
         if value:
             lines.append(f"Phone: {value}")
 
     # Organizations
-    organizations: List[Dict[str, Any]] = person.get("organizations", [])
+    organizations: list[dict[str, Any]] = person.get("organizations", [])
     for org_entry in organizations:
         org_name = org_entry.get("name", "")
         title = org_entry.get("title", "")
@@ -159,8 +160,8 @@ class GContactsConnector(BaseConnector):
         )
         self._items_synced: int = 0
         self._items_total: int = 0
-        self._last_sync: Optional[datetime] = None
-        self._last_cursor: Optional[str] = None
+        self._last_sync: datetime | None = None
+        self._last_cursor: str | None = None
 
     # ------------------------------------------------------------------
     # BaseConnector interface
@@ -231,8 +232,8 @@ class GContactsConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,  # noqa: ARG002 — reserved for future use
-        cursor: Optional[str] = None,
+        since: datetime | None = None,  # noqa: ARG002 — reserved for future use
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         """Yield :class:`Document` objects for Google Contacts.
 
@@ -253,24 +254,24 @@ class GContactsConnector(BaseConnector):
         if not tokens.get("access_token") and not tokens.get("token"):
             return
 
-        page_token: Optional[str] = cursor
+        page_token: str | None = cursor
         synced = 0
 
         while True:
             list_resp = call_with_refresh(
                 _gcontacts_api_list, self._credentials_path, page_token=page_token
             )
-            connections: List[Dict[str, Any]] = list_resp.get("connections", [])
+            connections: list[dict[str, Any]] = list_resp.get("connections", [])
 
             for person in connections:
                 resource_name: str = person.get("resourceName", "")
                 if not resource_name:
                     continue
 
-                names: List[Dict[str, Any]] = person.get("names", [])
+                names: list[dict[str, Any]] = person.get("names", [])
                 display_name = names[0].get("displayName", "") if names else ""
 
-                email_addresses: List[Dict[str, Any]] = person.get("emailAddresses", [])
+                email_addresses: list[dict[str, Any]] = person.get("emailAddresses", [])
                 primary_email = (
                     email_addresses[0].get("value", "") if email_addresses else ""
                 )
@@ -291,7 +292,7 @@ class GContactsConnector(BaseConnector):
                 synced += 1
                 yield doc
 
-            next_page: Optional[str] = list_resp.get("nextPageToken")
+            next_page: str | None = list_resp.get("nextPageToken")
             if not next_page:
                 self._last_cursor = None
                 break
@@ -314,7 +315,7 @@ class GContactsConnector(BaseConnector):
     # MCP tools
     # ------------------------------------------------------------------
 
-    def mcp_tools(self) -> List[ToolSpec]:
+    def mcp_tools(self) -> list[ToolSpec]:
         """Expose two MCP tool specs for real-time Google Contacts queries."""
         return [
             ToolSpec(

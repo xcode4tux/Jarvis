@@ -18,7 +18,8 @@ from __future__ import annotations
 import json
 import logging
 import random
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -31,7 +32,7 @@ DEFAULT_HF_CONFIG = "question_with_checklist"
 DEFAULT_HF_SPLIT = "test"
 
 
-def _parse_checklist(checklist: Any) -> List[str]:
+def _parse_checklist(checklist: Any) -> list[str]:
     """Parse the checklist field — may be a JSON string, list, or newline text."""
     if isinstance(checklist, list):
         return [str(item).strip() for item in checklist if str(item).strip()]
@@ -62,15 +63,15 @@ class LiveResearchBenchDataset(DatasetProvider):
 
     def __init__(
         self,
-        hf_config: Optional[str] = None,
-        hf_split: Optional[str] = None,
+        hf_config: str | None = None,
+        hf_split: str | None = None,
     ) -> None:
         self._hf_config = hf_config or DEFAULT_HF_CONFIG
         self._hf_split = hf_split or DEFAULT_HF_SPLIT
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
-    def verify_requirements(self) -> List[str]:
-        issues: List[str] = []
+    def verify_requirements(self) -> list[str]:
+        issues: list[str] = []
         try:
             import datasets  # noqa: F401
         except ImportError:
@@ -83,9 +84,9 @@ class LiveResearchBenchDataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
@@ -105,7 +106,7 @@ class LiveResearchBenchDataset(DatasetProvider):
         # `question_with_checklist` has multiple rows per qid (one per
         # checklist_id). Group by qid and fold all checklist items into a
         # single record per question.
-        grouped: Dict[str, Dict[str, Any]] = {}
+        grouped: dict[str, dict[str, Any]] = {}
         for row in ds:
             qid = str(row.get("qid", "") or "").strip()
             if not qid:

@@ -6,7 +6,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -273,23 +272,23 @@ def eval_list() -> None:
     help="Verbose logging.",
 )
 def eval_run(
-    config_path: Optional[str],
-    benchmark: Optional[str],
-    model: Optional[str],
-    max_samples: Optional[int],
+    config_path: str | None,
+    benchmark: str | None,
+    model: str | None,
+    max_samples: int | None,
     backend: str,
-    base_url: Optional[str],
-    api_key: Optional[str],
-    agent_name: Optional[str],
-    engine_key: Optional[str],
+    base_url: str | None,
+    api_key: str | None,
+    agent_name: str | None,
+    engine_key: str | None,
     tools: str,
     telemetry: bool,
     gpu_metrics: bool,
     seed: int,
     temperature: float,
     max_tokens: int,
-    model_filter: Optional[str],
-    output_path: Optional[str],
+    model_filter: str | None,
+    output_path: str | None,
     wandb_project: str,
     wandb_entity: str,
     wandb_tags: str,

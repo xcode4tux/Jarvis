@@ -13,8 +13,9 @@ import random
 import re
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 import yaml
 
@@ -28,7 +29,7 @@ PINCHBENCH_REPO = "https://github.com/pinchbench/skill.git"
 CACHE_DIR = Path.home() / ".cache" / "pinchbench"
 
 
-def _parse_task_markdown(content: str, filename: str = "") -> Dict[str, Any]:
+def _parse_task_markdown(content: str, filename: str = "") -> dict[str, Any]:
     """Parse a PinchBench task markdown file into a dict.
 
     Extracts YAML frontmatter and markdown sections (## Prompt,
@@ -43,9 +44,9 @@ def _parse_task_markdown(content: str, filename: str = "") -> Dict[str, Any]:
     body = parts[2]
 
     # Parse sections by ## headers
-    sections: Dict[str, str] = {}
-    current_header: Optional[str] = None
-    current_lines: List[str] = []
+    sections: dict[str, str] = {}
+    current_header: str | None = None
+    current_lines: list[str] = []
 
     for line in body.split("\n"):
         header_match = re.match(r"^##\s+(.+)$", line)
@@ -95,13 +96,13 @@ class PinchBenchDataset(DatasetProvider):
     dataset_id = "pinchbench"
     dataset_name = "PinchBench"
 
-    def __init__(self, path: Optional[str] = None) -> None:
+    def __init__(self, path: str | None = None) -> None:
         self._local_path = Path(path) if path else None
         self._repo_dir: Path = self._local_path or CACHE_DIR
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
-    def verify_requirements(self) -> List[str]:
-        issues: List[str] = []
+    def verify_requirements(self) -> list[str]:
+        issues: list[str] = []
         if self._local_path is None and shutil.which("git") is None:
             issues.append(
                 "git binary not found. Install git to clone PinchBench tasks."
@@ -137,9 +138,9 @@ class PinchBenchDataset(DatasetProvider):
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         repo_dir = self._ensure_repo()
         tasks_dir = repo_dir / "tasks"

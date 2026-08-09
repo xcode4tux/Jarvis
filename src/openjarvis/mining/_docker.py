@@ -194,12 +194,20 @@ class PearlDockerLauncher:
                 check=True,
                 capture_output=True,
                 text=True,
+                # GPU mining images (vLLM + DeepGEMM toolchain) can take a
+                # long time to build; cap at 2h so a wedged daemon surfaces
+                # a clear error instead of hanging forever.
+                timeout=7200,
             )
         except subprocess.CalledProcessError as exc:
             stderr_tail = (exc.stderr or "").strip().splitlines()[-10:]
             raise ImageAcquisitionError(
                 f"docker build failed (exit {exc.returncode}): "
                 + " | ".join(stderr_tail)
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ImageAcquisitionError(
+                f"docker build timed out after 2h ({' '.join(cmd)})"
             ) from exc
         return tag
 
@@ -248,7 +256,7 @@ class PearlDockerLauncher:
     # Container lifecycle
     # -----------------------------------------------------------------
 
-    def start(self, config: "MiningConfig", image: str) -> Any:
+    def start(self, config: MiningConfig, image: str) -> Any:
         """Launch the Pearl miner container.
 
         ``image`` must already be resolved by ``ensure_image()``.
@@ -434,12 +442,17 @@ class PearlDockerLauncher:
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=120,
             )
         except subprocess.CalledProcessError as exc:
             stderr_tail = (exc.stderr or "").strip().splitlines()[-5:]
             raise ImageAcquisitionError(
                 f"`{' '.join(cmd)}` failed (exit {exc.returncode}): "
                 + " | ".join(stderr_tail)
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ImageAcquisitionError(
+                f"`{' '.join(cmd)}` timed out after 120s"
             ) from exc
 
 

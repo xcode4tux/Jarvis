@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 
@@ -45,8 +45,8 @@ class _OpenAICompatibleEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "temperature": temperature,
@@ -88,7 +88,7 @@ class _OpenAICompatibleEngine(InferenceEngine):
         estimated_prompt = estimate_prompt_tokens(messages)
         prompt_tokens = max(reported_prompt, estimated_prompt)
         completion_tokens = usage.get("completion_tokens", 0)
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": choice["message"].get("content") or "",
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -121,7 +121,7 @@ class _OpenAICompatibleEngine(InferenceEngine):
         max_tokens: int = 1024,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "temperature": temperature,
@@ -163,10 +163,10 @@ class _OpenAICompatibleEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> AsyncIterator["StreamChunk"]:
+    ) -> AsyncIterator[StreamChunk]:
         """Yield StreamChunks with content, tool_calls, and finish_reason."""
         msg_dicts = messages_to_dicts(messages)
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": msg_dicts,
             "temperature": temperature,
@@ -209,7 +209,7 @@ class _OpenAICompatibleEngine(InferenceEngine):
                 f"{self.engine_id} engine not reachable at {self._host}"
             ) from exc
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         try:
             resp = self._client.get(f"{self._api_prefix}/models")
             resp.raise_for_status()

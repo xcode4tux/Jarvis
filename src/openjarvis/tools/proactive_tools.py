@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.core.registry import ToolRegistry
 from openjarvis.core.types import ToolResult
@@ -48,7 +48,7 @@ from openjarvis.tools.approval_store import (
 # Shared store (lazily initialised, one per process)
 # ---------------------------------------------------------------------------
 
-_store: Optional[ApprovalStore] = None
+_store: ApprovalStore | None = None
 
 
 def get_store() -> ApprovalStore:
@@ -69,7 +69,7 @@ class CheckPermissionTool(BaseTool):
 
     tool_id = "check_permission"
 
-    def __init__(self, store: Optional[ApprovalStore] = None) -> None:
+    def __init__(self, store: ApprovalStore | None = None) -> None:
         self._store = store
 
     @property
@@ -120,7 +120,7 @@ class QueueActionTool(BaseTool):
 
     tool_id = "queue_action"
 
-    def __init__(self, store: Optional[ApprovalStore] = None) -> None:
+    def __init__(self, store: ApprovalStore | None = None) -> None:
         self._store = store
 
     @property
@@ -199,7 +199,7 @@ class GetPendingActionsTool(BaseTool):
 
     tool_id = "get_pending_actions"
 
-    def __init__(self, store: Optional[ApprovalStore] = None) -> None:
+    def __init__(self, store: ApprovalStore | None = None) -> None:
         self._store = store
 
     @property
@@ -245,7 +245,7 @@ class RecordDecisionTool(BaseTool):
 
     tool_id = "record_decision"
 
-    def __init__(self, store: Optional[ApprovalStore] = None) -> None:
+    def __init__(self, store: ApprovalStore | None = None) -> None:
         self._store = store
 
     @property
@@ -337,8 +337,8 @@ class ExecutePendingActionsTool(BaseTool):
 
     def __init__(
         self,
-        store: Optional[ApprovalStore] = None,
-        executor_fn: Optional[Any] = None,
+        store: ApprovalStore | None = None,
+        executor_fn: Any | None = None,
     ) -> None:
         self._store = store
         # executor_fn(action: PendingAction) -> (success: bool, message: str)
@@ -368,14 +368,14 @@ class ExecutePendingActionsTool(BaseTool):
 
     def execute(self, **params: Any) -> ToolResult:
         store = self._store or get_store()
-        action_ids: Optional[List[str]] = params.get("action_ids")
+        action_ids: list[str] | None = params.get("action_ids")
 
         if action_ids:
             actions = [a for a in store.list_approved() if a.id in set(action_ids)]
         else:
             actions = store.list_approved()
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for action in actions:
             success, message = self._run_action(action)
             store.update_status(action.id, STATUS_EXECUTED)
@@ -396,7 +396,7 @@ class ExecutePendingActionsTool(BaseTool):
             metadata={"executed": len(results)},
         )
 
-    def _run_action(self, action: PendingAction) -> Tuple[bool, str]:
+    def _run_action(self, action: PendingAction) -> tuple[bool, str]:
         if self._executor_fn is not None:
             try:
                 return self._executor_fn(action)
@@ -431,7 +431,7 @@ class ExecutePendingActionsTool(BaseTool):
 # ---------------------------------------------------------------------------
 
 
-def _exec_email_delete(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def _exec_email_delete(payload: dict[str, Any]) -> tuple[bool, str]:
     msg_id = payload.get("message_id", "")
     if not msg_id:
         return False, "Missing message_id in payload"
@@ -445,7 +445,7 @@ def _exec_email_delete(payload: Dict[str, Any]) -> Tuple[bool, str]:
         return False, str(exc)
 
 
-def _exec_email_archive(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def _exec_email_archive(payload: dict[str, Any]) -> tuple[bool, str]:
     msg_id = payload.get("message_id", "")
     if not msg_id:
         return False, "Missing message_id in payload"
@@ -459,7 +459,7 @@ def _exec_email_archive(payload: Dict[str, Any]) -> Tuple[bool, str]:
         return False, str(exc)
 
 
-def _exec_sms_send(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def _exec_sms_send(payload: dict[str, Any]) -> tuple[bool, str]:
     contact = payload.get("contact", "")
     body = payload.get("body", "")
     if not contact or not body:
@@ -473,7 +473,7 @@ def _exec_sms_send(payload: Dict[str, Any]) -> Tuple[bool, str]:
         return False, str(exc)
 
 
-def _exec_calendar_decline(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def _exec_calendar_decline(payload: dict[str, Any]) -> tuple[bool, str]:
     event_id = payload.get("event_id", "")
     calendar_id = payload.get("calendar_id", "primary")
     if not event_id:
@@ -488,7 +488,7 @@ def _exec_calendar_decline(payload: Dict[str, Any]) -> Tuple[bool, str]:
         return False, str(exc)
 
 
-def _exec_calendar_accept(payload: Dict[str, Any]) -> Tuple[bool, str]:
+def _exec_calendar_accept(payload: dict[str, Any]) -> tuple[bool, str]:
     event_id = payload.get("event_id", "")
     calendar_id = payload.get("calendar_id", "primary")
     if not event_id:
@@ -518,8 +518,8 @@ _APPROVAL_RE = re.compile(
 
 def parse_approval_response(
     text: str,
-    store: Optional[ApprovalStore] = None,
-) -> List[Dict[str, Any]]:
+    store: ApprovalStore | None = None,
+) -> list[dict[str, Any]]:
     """Parse a free-text message for approval tokens and update the store.
 
     Returns a list of dicts describing each decision that was processed,
@@ -529,7 +529,7 @@ def parse_approval_response(
     to the main agent, e.g. inside the iMessage daemon or Telegram bot.
     """
     s = store or get_store()
-    processed: List[Dict[str, Any]] = []
+    processed: list[dict[str, Any]] = []
 
     # Notification template displays ids as `[abc123]`; users naturally reply
     # with `{abc123} yes`, `(abc123) yes`, etc.  Strip those surrounding

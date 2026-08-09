@@ -17,7 +17,7 @@ import logging
 import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 # Optional imports -----------------------------------------------------------
 try:
@@ -74,7 +74,7 @@ class OrchestratorGRPOConfig:
     clip_ratio: float = 0.2
 
     # Environment
-    available_tools: List[str] = field(
+    available_tools: list[str] = field(
         default_factory=lambda: [
             "calculator",
             "think",
@@ -187,7 +187,7 @@ class OrchestratorGRPOTrainer:
             if (epoch + 1) % self.config.save_every_n_epochs == 0:
                 self._save_checkpoint(epoch)
 
-    def _train_epoch(self, epoch: int) -> Dict[str, float]:
+    def _train_epoch(self, epoch: int) -> dict[str, float]:
         if self.policy.model is None:
             return {"epoch": epoch, "loss": 0.0, "reward": 0.0}
 
@@ -208,8 +208,8 @@ class OrchestratorGRPOTrainer:
 
     def _grpo_step(
         self,
-        prompts: List[str],
-        ground_truths: List[str],
+        prompts: list[str],
+        ground_truths: list[str],
     ) -> tuple:
         """Perform one GRPO training step.
 
@@ -327,7 +327,7 @@ class OrchestratorGRPOTrainer:
 
     # -- Generation / log-prob helpers ---------------------------------------
 
-    def _generate_with_log_probs(self, prompt: str) -> "tuple[str, Any]":
+    def _generate_with_log_probs(self, prompt: str) -> tuple[str, Any]:
         """Generate a response and return ``(text, log_probs)``."""
         inputs = self.policy.tokenizer(
             prompt,
@@ -370,7 +370,7 @@ class OrchestratorGRPOTrainer:
         )
         return text, total_lp
 
-    def _compute_log_probs(self, prompt: str, response: str) -> "torch.Tensor":
+    def _compute_log_probs(self, prompt: str, response: str) -> torch.Tensor:
         """Log-probs of *response* given *prompt* under current policy."""
         full = prompt + response
         inputs = self.policy.tokenizer(full, return_tensors="pt", truncation=True).to(
@@ -393,7 +393,7 @@ class OrchestratorGRPOTrainer:
 
         return torch.stack(lps).sum() if lps else torch.tensor(0.0)
 
-    def _compute_log_probs_ref(self, prompt: str, response: str) -> "torch.Tensor":
+    def _compute_log_probs_ref(self, prompt: str, response: str) -> torch.Tensor:
         """Log-probs under the frozen reference policy (no grad)."""
         full = prompt + response
         inputs = self.ref_policy.tokenizer(
@@ -469,7 +469,7 @@ def _ensure_registered() -> None:
     class OrchestratorGRPOPolicy(IntelligenceLearningPolicy):
         """Wrapper that registers the GRPO trainer as a learning policy."""
 
-        def update(self, trace_store: Any, **kwargs: object) -> Dict[str, Any]:
+        def update(self, trace_store: Any, **kwargs: object) -> dict[str, Any]:
             config = OrchestratorGRPOConfig(
                 **{
                     k: v

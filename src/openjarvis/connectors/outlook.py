@@ -9,8 +9,8 @@ at https://account.microsoft.com/security
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, Optional
 
 from openjarvis.connectors._stubs import Document
 from openjarvis.connectors.gmail_imap import GmailIMAPConnector
@@ -49,8 +49,8 @@ class OutlookConnector(GmailIMAPConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,
+        since: datetime | None = None,
+        cursor: str | None = None,
     ) -> Iterator[Document]:
         for doc in super().sync(since=since, cursor=cursor):
             doc.source = "outlook"

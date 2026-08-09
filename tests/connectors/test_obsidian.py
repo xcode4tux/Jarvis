@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -59,7 +58,7 @@ def vault(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def _sync_all(vault_path: Path) -> List[Document]:
+def _sync_all(vault_path: Path) -> list[Document]:
     """Import connector (triggers registry) and collect all docs."""
     from openjarvis.connectors.obsidian import ObsidianConnector  # noqa: PLC0415
 

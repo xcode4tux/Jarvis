@@ -19,7 +19,6 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
 
 from openjarvis.learning.spec_search.models import (
     AutonomyMode,
@@ -118,7 +117,7 @@ class SessionStore:
     if SQLite is ever lost. This store is the index used for fast queries.
     """
 
-    def __init__(self, db_path: Union[str, Path]) -> None:
+    def __init__(self, db_path: str | Path) -> None:
         self._db_path = str(db_path)
         self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL")
@@ -176,7 +175,7 @@ class SessionStore:
         )
         self._conn.commit()
 
-    def get_session(self, session_id: str) -> Optional[LearningSession]:
+    def get_session(self, session_id: str) -> LearningSession | None:
         """Return the LearningSession with the given id, or None if missing."""
         row = self._conn.execute(
             "SELECT id, parent_session_id, trigger, trigger_metadata, status, "

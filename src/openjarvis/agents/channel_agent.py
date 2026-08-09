@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from typing import Any
 
 from openjarvis.channels._stubs import BaseChannel, ChannelMessage
 
@@ -95,7 +95,7 @@ class ChannelAgent:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _handle_message(self, msg: ChannelMessage) -> Optional[str]:
+    def _handle_message(self, msg: ChannelMessage) -> str | None:
         """Submit *msg* to the background pool and return ``None`` immediately."""
         self._pool.submit(self._process_message, msg)
         return None

@@ -6,8 +6,9 @@ for easy mocking in tests.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 import httpx
 
@@ -17,14 +18,14 @@ from openjarvis.core.registry import ConnectorRegistry
 _HN_API_BASE = "https://hacker-news.firebaseio.com/v0"
 
 
-def _hn_top_story_ids() -> List[int]:
+def _hn_top_story_ids() -> list[int]:
     """Fetch the list of top story IDs."""
     resp = httpx.get(f"{_HN_API_BASE}/topstories.json", timeout=30.0)
     resp.raise_for_status()
     return resp.json()
 
 
-def _hn_item(item_id: int) -> Dict[str, Any]:
+def _hn_item(item_id: int) -> dict[str, Any]:
     """Fetch a single HN item by ID."""
     resp = httpx.get(f"{_HN_API_BASE}/item/{item_id}.json", timeout=30.0)
     resp.raise_for_status()
@@ -49,7 +50,7 @@ class HackerNewsConnector(BaseConnector):
         pass  # No credentials to revoke
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         """Yield Documents for the top 5 Hacker News stories."""
         top_ids = _hn_top_story_ids()

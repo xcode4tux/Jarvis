@@ -14,8 +14,8 @@ import json
 import logging
 import subprocess
 import sys
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, Optional
 
 from openjarvis.connectors._stubs import BaseConnector, Document, SyncStatus
 from openjarvis.core.registry import ConnectorRegistry
@@ -64,7 +64,7 @@ end tell
 """
 
 
-def _run_osascript(script: str, *, timeout: int = 120) -> Optional[str]:
+def _run_osascript(script: str, *, timeout: int = 120) -> str | None:
     """Execute an AppleScript via ``osascript`` and return stdout.
 
     Returns None on failure.
@@ -92,7 +92,7 @@ def _track_doc_id(name: str, artist: str) -> str:
     return f"apple_music-{h}"
 
 
-def _parse_played_date(raw: str) -> Optional[datetime]:
+def _parse_played_date(raw: str) -> datetime | None:
     """Try to parse an AppleScript date string; return None if unparseable."""
     if not raw or raw.strip().lower() == "never":
         return None
@@ -151,8 +151,8 @@ class AppleMusicConnector(BaseConnector):
     def sync(
         self,
         *,
-        since: Optional[datetime] = None,
-        cursor: Optional[str] = None,  # noqa: ARG002
+        since: datetime | None = None,
+        cursor: str | None = None,  # noqa: ARG002
     ) -> Iterator[Document]:
         """Query Music.app for all tracks and yield one Document per track.
 

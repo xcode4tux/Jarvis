@@ -24,9 +24,10 @@ import logging
 import re
 import subprocess
 import uuid
+from collections.abc import MutableMapping
 from pathlib import Path
 from types import TracebackType
-from typing import Any, MutableMapping, Optional, Type
+from typing import Any
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,13 +37,13 @@ class TerminalBenchV21TaskEnv:
 
     def __init__(self, metadata: MutableMapping[str, Any]) -> None:
         self._metadata = metadata
-        self._container: Optional[str] = None
+        self._container: str | None = None
         self._started = False
 
     # ------------------------------------------------------------------
     # Context manager
     # ------------------------------------------------------------------
-    def __enter__(self) -> "TerminalBenchV21TaskEnv":
+    def __enter__(self) -> TerminalBenchV21TaskEnv:
         from openjarvis.tools.docker_shell_exec import set_active_container
 
         docker_image = self._metadata.get("docker_image")
@@ -101,9 +102,9 @@ class TerminalBenchV21TaskEnv:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Clean up the container + thread-local binding.
 

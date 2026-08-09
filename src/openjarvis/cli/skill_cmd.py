@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 import click
 from rich.console import Console
@@ -36,8 +35,8 @@ def _get_overlay_dir() -> Path:
     return Path("~/.openjarvis/learning/skills/").expanduser()
 
 
-def _get_skill_paths() -> List[Path]:
-    paths: List[Path] = []
+def _get_skill_paths() -> list[Path]:
+    paths: list[Path] = []
     workspace = Path("./skills")
     if workspace.exists():
         paths.append(workspace)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, List
+from typing import Any
 
 from openjarvis.core.registry import EngineRegistry
 from openjarvis.core.types import Message
@@ -46,10 +46,10 @@ class LiteLLMEngine(InferenceEngine):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         import litellm
 
-        call_kwargs: Dict[str, Any] = {
+        call_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "temperature": temperature,
@@ -69,7 +69,7 @@ class LiteLLMEngine(InferenceEngine):
         prompt_tokens = usage.prompt_tokens if usage else 0
         completion_tokens = usage.completion_tokens if usage else 0
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "content": choice.message.content or "",
             "usage": {
                 "prompt_tokens": prompt_tokens,
@@ -112,7 +112,7 @@ class LiteLLMEngine(InferenceEngine):
     ) -> AsyncIterator[str]:
         import litellm
 
-        call_kwargs: Dict[str, Any] = {
+        call_kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages_to_dicts(messages),
             "temperature": temperature,
@@ -129,7 +129,7 @@ class LiteLLMEngine(InferenceEngine):
             if delta and delta.content:
                 yield delta.content
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         if self._default_model:
             return [self._default_model]
         return []

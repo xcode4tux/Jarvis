@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import ast
 import random
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, MutableMapping, Sequence
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.types import EvalRecord
@@ -29,14 +30,14 @@ class SimpleQADataset(DatasetProvider):
     _default_split = "test"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
@@ -73,7 +74,7 @@ class SimpleQADataset(DatasetProvider):
         self,
         raw: MutableMapping[str, object],
         idx: int,
-    ) -> Optional[EvalRecord]:
+    ) -> EvalRecord | None:
         question = str(raw.get("problem") or raw.get("question") or "").strip()
         answer = str(raw.get("answer") or raw.get("gold_answer") or "").strip()
 
@@ -89,7 +90,7 @@ class SimpleQADataset(DatasetProvider):
 
         problem = _PROMPT_TEMPLATE.format(question=question)
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "answer_type": parsed_meta.get("answer_type", ""),
         }
         # Preserve all parsed metadata keys
@@ -107,7 +108,7 @@ class SimpleQADataset(DatasetProvider):
         )
 
 
-def _parse_metadata(meta_raw: object) -> Dict[str, Any]:
+def _parse_metadata(meta_raw: object) -> dict[str, Any]:
     """Parse metadata which may be a dict, a JSON-like string, or None."""
     if meta_raw is None:
         return {}

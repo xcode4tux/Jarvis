@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -28,8 +28,8 @@ class FakeChannel(BaseChannel):
 
     def __init__(self) -> None:
         self._status = ChannelStatus.DISCONNECTED
-        self._handlers: List[ChannelHandler] = []
-        self.sent: List[Dict[str, Any]] = []
+        self._handlers: list[ChannelHandler] = []
+        self.sent: list[dict[str, Any]] = []
 
     def connect(self) -> None:
         self._status = ChannelStatus.CONNECTED
@@ -43,7 +43,7 @@ class FakeChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         self.sent.append({"channel": channel, "content": content})
         return True
@@ -51,7 +51,7 @@ class FakeChannel(BaseChannel):
     def status(self) -> ChannelStatus:
         return self._status
 
-    def list_channels(self) -> List[str]:
+    def list_channels(self) -> list[str]:
         return ["fake"]
 
     def on_message(self, handler: ChannelHandler) -> None:

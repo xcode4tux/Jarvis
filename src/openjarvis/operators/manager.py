@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from openjarvis.operators.loader import load_operator
 from openjarvis.operators.types import OperatorManifest
@@ -26,7 +26,7 @@ class OperatorManager:
 
     def __init__(self, system: Any) -> None:
         self._system = system
-        self._manifests: Dict[str, OperatorManifest] = {}
+        self._manifests: dict[str, OperatorManifest] = {}
 
     # -- Registration --------------------------------------------------------
 
@@ -35,14 +35,14 @@ class OperatorManager:
         self._manifests[manifest.id] = manifest
         logger.info("Registered operator: %s", manifest.id)
 
-    def discover(self, directory: str | Path) -> List[OperatorManifest]:
+    def discover(self, directory: str | Path) -> list[OperatorManifest]:
         """Discover and register operator manifests from a directory.
 
         Scans for ``*.toml`` files in *directory* and loads each as an
         operator manifest.
         """
         directory = Path(directory).expanduser()
-        found: List[OperatorManifest] = []
+        found: list[OperatorManifest] = []
         if not directory.is_dir():
             return found
         for toml_path in sorted(directory.glob("*.toml")):
@@ -86,7 +86,7 @@ class OperatorManager:
             pass
 
         tools_str = ",".join(manifest.tools) if manifest.tools else ""
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "operator_id": operator_id,
             "system_prompt": manifest.system_prompt,
             "temperature": manifest.temperature,
@@ -139,15 +139,15 @@ class OperatorManager:
         scheduler.resume_task(f"operator:{operator_id}")
         logger.info("Resumed operator %s", operator_id)
 
-    def status(self) -> List[Dict[str, Any]]:
+    def status(self) -> list[dict[str, Any]]:
         """Return status of all registered operators.
 
         Merges manifest info with scheduler task state.
         """
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         scheduler = self._system.scheduler
         for op_id, manifest in self._manifests.items():
-            info: Dict[str, Any] = {
+            info: dict[str, Any] = {
                 "id": op_id,
                 "name": manifest.name,
                 "description": manifest.description,
@@ -202,9 +202,9 @@ class OperatorManager:
         self,
         operator_id: str,
         *,
-        since: Optional[float] = None,
-        until: Optional[float] = None,
-    ) -> Dict[str, Any]:
+        since: float | None = None,
+        until: float | None = None,
+    ) -> dict[str, Any]:
         """Collect telemetry metrics declared in the operator's manifest.
 
         Reads the ``metrics`` list from :class:`OperatorManifest` and queries
@@ -265,7 +265,7 @@ class OperatorManager:
             return {}
 
         # Build a flat lookup of all available summary-level stats
-        available: Dict[str, Any] = {
+        available: dict[str, Any] = {
             "total_calls": summary.total_calls,
             "total_tokens": summary.total_tokens,
             "total_cost": summary.total_cost,
@@ -290,7 +290,7 @@ class OperatorManager:
             "avg_p95_itl_ms": summary.avg_p95_itl_ms,
         }
 
-        collected: Dict[str, Any] = {}
+        collected: dict[str, Any] = {}
         for metric in manifest.metrics:
             if metric in available:
                 collected[metric] = available[metric]
@@ -309,12 +309,12 @@ class OperatorManager:
         )
         return collected
 
-    def get_manifest(self, operator_id: str) -> Optional[OperatorManifest]:
+    def get_manifest(self, operator_id: str) -> OperatorManifest | None:
         """Return the manifest for an operator, or None."""
         return self._manifests.get(operator_id)
 
     @property
-    def manifests(self) -> Dict[str, OperatorManifest]:
+    def manifests(self) -> dict[str, OperatorManifest]:
         """All registered manifests."""
         return dict(self._manifests)
 

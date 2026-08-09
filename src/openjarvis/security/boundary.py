@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from openjarvis.core.types import ToolCall
 
@@ -45,8 +45,8 @@ class BoundaryGuard:
         mode: str = "redact",
         *,
         enabled: bool = True,
-        bus: Optional["EventBus"] = None,
-        scanners: Optional[List["BaseScanner"]] = None,
+        bus: EventBus | None = None,
+        scanners: list[BaseScanner] | None = None,
     ) -> None:
         self._mode = mode
         self._enabled = enabled
@@ -57,7 +57,7 @@ class BoundaryGuard:
             self._scanners = self._default_scanners()
 
     @staticmethod
-    def _default_scanners() -> List["BaseScanner"]:
+    def _default_scanners() -> list[BaseScanner]:
         try:
             from openjarvis.security.scanner import PIIScanner, SecretScanner
 

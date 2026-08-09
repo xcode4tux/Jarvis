@@ -11,7 +11,8 @@ from __future__ import annotations
 import json
 import logging
 import random
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -36,7 +37,7 @@ SYSTEM_PROMPT = (
 # 12-tool universal toolkit (OpenAI function-calling format)
 # ---------------------------------------------------------------------------
 
-TOOLS: List[Dict[str, Any]] = [
+TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
@@ -303,7 +304,7 @@ TOOLS: List[Dict[str, Any]] = [
 #   D = Restraint & Refusal (TC-10..12)
 #   E = Error Recovery (TC-13..15)
 
-SCENARIOS: List[Dict[str, Any]] = [
+SCENARIOS: list[dict[str, Any]] = [
     # --- Category A: Tool Selection ---
     {
         "id": "TC-01",
@@ -639,17 +640,17 @@ class ToolCall15Dataset(DatasetProvider):
     dataset_name = "ToolCall-15"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
-    def verify_requirements(self) -> List[str]:
+    def verify_requirements(self) -> list[str]:
         return []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         scenarios = list(SCENARIOS)
 

@@ -6,9 +6,10 @@ Uses OAuth2 tokens stored locally. Refresh handled automatically.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
 
 import httpx
 
@@ -22,7 +23,7 @@ _DEFAULT_TOKEN_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "strava.json")
 
 
 def _strava_api_get(
-    token: str, endpoint: str, params: Optional[Dict[str, Any]] = None
+    token: str, endpoint: str, params: dict[str, Any] | None = None
 ) -> Any:
     """Call a Strava API v3 endpoint."""
     resp = httpx.get(
@@ -37,7 +38,7 @@ def _strava_api_get(
 
 def _strava_refresh_token(
     client_id: str, client_secret: str, refresh_token: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Refresh an expired Strava OAuth2 token."""
     resp = httpx.post(
         _STRAVA_TOKEN_URL,
@@ -65,10 +66,10 @@ class StravaConnector(BaseConnector):
         self._token_path = Path(token_path)
         self._status = SyncStatus()
 
-    def _load_tokens(self) -> Dict[str, str]:
+    def _load_tokens(self) -> dict[str, str]:
         return json.loads(self._token_path.read_text(encoding="utf-8"))
 
-    def _save_tokens(self, tokens: Dict[str, str]) -> None:
+    def _save_tokens(self, tokens: dict[str, str]) -> None:
         self._token_path.write_text(json.dumps(tokens), encoding="utf-8")
 
     def _get_access_token(self) -> str:
@@ -134,7 +135,7 @@ class StravaConnector(BaseConnector):
             save_tokens(str(_CONNECTORS_DIR / filename), payload)
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         token = self._get_access_token()
         after_epoch = int((since or datetime.now() - timedelta(days=7)).timestamp())

@@ -9,8 +9,9 @@ sub-LM calls.
 from __future__ import annotations
 
 import io
+from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 # Safe stdlib modules pre-injected into the REPL namespace
 _SAFE_MODULES = [
@@ -56,10 +57,10 @@ class RLMRepl:
 
     def __init__(
         self,
-        llm_query_fn: Optional[Callable[[str], str]] = None,
-        llm_batch_fn: Optional[Callable[[List[str]], List[str]]] = None,
-        tool_call_fn: Optional[Callable[[str, Dict[str, Any]], str]] = None,
-        tool_arg_names: Optional[Dict[str, Optional[str]]] = None,
+        llm_query_fn: Callable[[str], str] | None = None,
+        llm_batch_fn: Callable[[list[str]], list[str]] | None = None,
+        tool_call_fn: Callable[[str, dict[str, Any]], str] | None = None,
+        tool_arg_names: dict[str, str | None] | None = None,
         *,
         max_output_chars: int = 10000,
     ) -> None:
@@ -69,7 +70,7 @@ class RLMRepl:
         self._tool_call_fn = tool_call_fn
 
         # Build namespace
-        self._namespace: Dict[str, Any] = {}
+        self._namespace: dict[str, Any] = {}
 
         # Inject safe stdlib modules
         for mod_name in _SAFE_MODULES:
@@ -169,7 +170,7 @@ class RLMRepl:
     def _make_tool_wrapper(
         self,
         tool_name: str,
-        primary_arg: Optional[str],
+        primary_arg: str | None,
     ) -> Callable[..., str]:
         """Return a Python helper that dispatches to ``tool_call``."""
 
@@ -193,7 +194,7 @@ class RLMRepl:
         _wrapper.__name__ = tool_name
         return _wrapper
 
-    def security_check(self, code: str) -> Optional[str]:
+    def security_check(self, code: str) -> str | None:
         """Check code for dangerous patterns. Returns error message or None."""
         for pattern in _BLOCKED_PATTERNS:
             if pattern in code:

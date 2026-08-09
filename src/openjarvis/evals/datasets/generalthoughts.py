@@ -13,7 +13,7 @@ GeneralReasoning/GeneralThought-430K — community/verifier-score filtered).
 from __future__ import annotations
 
 import random
-from typing import Iterable, List, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, MutableMapping, Sequence
 
 from openjarvis.evals.core.dataset import DatasetProvider
 from openjarvis.evals.core.splits import apply_split
@@ -32,7 +32,7 @@ SOLUTION_COLS = ("model_answer", "reference_answer")
 
 def _first_present(
     row: MutableMapping[str, object], keys: Sequence[str]
-) -> Optional[str]:
+) -> str | None:
     for k in keys:
         v = row.get(k)
         if isinstance(v, str) and v.strip():
@@ -47,19 +47,19 @@ class GeneralThoughtsDataset(DatasetProvider):
     dataset_name = "GeneralThought-430K-filtered (natolambert)"
 
     def __init__(self) -> None:
-        self._records: List[EvalRecord] = []
+        self._records: list[EvalRecord] = []
 
     def load(
         self,
         *,
-        max_samples: Optional[int] = None,
-        split: Optional[str] = None,
-        seed: Optional[int] = None,
+        max_samples: int | None = None,
+        split: str | None = None,
+        seed: int | None = None,
     ) -> None:
         from datasets import load_dataset
 
         ds = load_dataset(HF_DATASET_ID, split=HF_SPLIT)
-        rows: List[MutableMapping[str, object]]
+        rows: list[MutableMapping[str, object]]
         if hasattr(ds, "to_list"):
             rows = ds.to_list()
         else:
@@ -80,7 +80,7 @@ class GeneralThoughtsDataset(DatasetProvider):
         if max_samples is not None:
             rows = rows[:max_samples]
 
-        records: List[EvalRecord] = []
+        records: list[EvalRecord] = []
         for i, r in enumerate(rows):
             problem = _first_present(r, PROBLEM_COLS)
             if not problem:

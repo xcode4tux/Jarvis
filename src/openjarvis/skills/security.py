@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Set
 
 from openjarvis.skills.types import SkillManifest
 
@@ -41,7 +40,7 @@ def classify_trust_tier(
     return TrustTier.UNREVIEWED
 
 
-def validate_capabilities(manifest: SkillManifest, allowed: Set[str]) -> List[str]:
+def validate_capabilities(manifest: SkillManifest, allowed: set[str]) -> list[str]:
     """Return a list of capabilities required by *manifest* that are not in *allowed*.
 
     An empty list means the manifest is fully authorized.
@@ -49,7 +48,7 @@ def validate_capabilities(manifest: SkillManifest, allowed: Set[str]) -> List[st
     return [cap for cap in manifest.required_capabilities if cap not in allowed]
 
 
-def has_dangerous_capabilities(manifest: SkillManifest) -> List[str]:
+def has_dangerous_capabilities(manifest: SkillManifest) -> list[str]:
     """Return the subset of *manifest*'s required capabilities that are dangerous."""
     return [
         cap for cap in manifest.required_capabilities if cap in DANGEROUS_CAPABILITIES

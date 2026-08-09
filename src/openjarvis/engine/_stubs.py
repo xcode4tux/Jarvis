@@ -7,9 +7,9 @@ Phase 1 will provide concrete implementations (vLLM, Ollama, etc.).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 from openjarvis.core.types import Message
 
@@ -27,12 +27,12 @@ class StreamChunk:
     non-streaming ``generate()`` return shape.
     """
 
-    content: Optional[str] = None
-    tool_calls: Optional[List[Dict[str, Any]]] = None
-    finish_reason: Optional[str] = None
-    usage: Optional[Dict[str, Any]] = None
-    content_blocks: Optional[List[Dict[str, Any]]] = None
-    tool_results: Optional[List[Dict[str, Any]]] = None
+    content: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
+    finish_reason: str | None = None
+    usage: dict[str, Any] | None = None
+    content_blocks: list[dict[str, Any]] | None = None
+    tool_results: list[dict[str, Any]] | None = None
 
 
 @dataclass(slots=True)
@@ -48,7 +48,7 @@ class ResponseFormat:
     """
 
     type: str = "json_object"
-    schema: Optional[Dict[str, Any]] = field(default=None)
+    schema: dict[str, Any] | None = field(default=None)
 
 
 class InferenceEngine(ABC):
@@ -70,7 +70,7 @@ class InferenceEngine(ABC):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Synchronous completion — returns a dict with ``content`` and ``usage``."""
 
     @abstractmethod
@@ -95,7 +95,7 @@ class InferenceEngine(ABC):
         temperature: float = 0.7,
         max_tokens: int = 1024,
         **kwargs: Any,
-    ) -> AsyncIterator["StreamChunk"]:
+    ) -> AsyncIterator[StreamChunk]:
         """Yield full StreamChunks including tool_calls and finish_reason.
 
         Default implementation wraps ``stream()`` for backward compatibility.
@@ -112,7 +112,7 @@ class InferenceEngine(ABC):
         yield StreamChunk(finish_reason="stop")
 
     @abstractmethod
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         """Return identifiers of models available on this engine."""
 
     @abstractmethod

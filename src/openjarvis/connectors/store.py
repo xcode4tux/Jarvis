@@ -15,7 +15,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from openjarvis.core.events import EventType, get_event_bus
 from openjarvis.core.registry import MemoryRegistry
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 
 # Additive migrations: existing installs get new columns via ALTER TABLE.
 # Order doesn't matter — each entry is independent and idempotent.
-_V1_COLUMNS: List[tuple[str, str]] = [
+_V1_COLUMNS: list[tuple[str, str]] = [
     ("source_id", "TEXT NOT NULL DEFAULT ''"),
     ("participants_raw", "TEXT NOT NULL DEFAULT '[]'"),
     ("channel", "TEXT NOT NULL DEFAULT ''"),
@@ -115,7 +115,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_kc_natural_key
 # ---------------------------------------------------------------------------
 
 
-def _to_iso(ts: Optional[Union[datetime, str]]) -> str:
+def _to_iso(ts: datetime | str | None) -> str:
     """Normalise a timestamp to ISO 8601 string (UTC)."""
     if ts is None:
         return ""
@@ -126,7 +126,7 @@ def _to_iso(ts: Optional[Union[datetime, str]]) -> str:
     return ts.isoformat()
 
 
-def _to_epoch(ts: Union[datetime, str, float, int]) -> float:
+def _to_epoch(ts: datetime | str | float | int) -> float:
     """Normalise a timestamp to Unix epoch seconds (float)."""
     if isinstance(ts, (int, float)):
         return float(ts)
@@ -155,7 +155,7 @@ class KnowledgeStore(MemoryBackend):
 
     backend_id: str = "knowledge"
 
-    def __init__(self, db_path: Union[str, Path] = "") -> None:
+    def __init__(self, db_path: str | Path = "") -> None:
         if not db_path:
             from openjarvis.core.config import DEFAULT_CONFIG_DIR
 
@@ -172,7 +172,7 @@ class KnowledgeStore(MemoryBackend):
         self._conn.row_factory = sqlite3.Row
         self._setup()
 
-    def __enter__(self) -> "KnowledgeStore":
+    def __enter__(self) -> KnowledgeStore:
         return self
 
     def __exit__(self, *exc_info: object) -> None:
@@ -218,23 +218,23 @@ class KnowledgeStore(MemoryBackend):
         *,
         source: str = "",
         doc_type: str = "",
-        doc_id: Optional[str] = None,
+        doc_id: str | None = None,
         title: str = "",
         author: str = "",
-        participants: Optional[List[str]] = None,
-        timestamp: Optional[Union[datetime, str]] = None,
-        thread_id: Optional[str] = None,
-        url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        participants: list[str] | None = None,
+        timestamp: datetime | str | None = None,
+        thread_id: str | None = None,
+        url: str | None = None,
+        metadata: dict[str, Any] | None = None,
         chunk_index: int = 0,
         # v1 schema additions
         source_id: str = "",
-        participants_raw: Optional[List[str]] = None,
-        channel: Optional[str] = None,
+        participants_raw: list[str] | None = None,
+        channel: str | None = None,
         content_hash: str = "",
-        embedding: Optional[bytes] = None,
+        embedding: bytes | None = None,
         embedding_model_version: str = "",
-        last_synced: Optional[Union[datetime, str, float]] = None,
+        last_synced: datetime | str | float | None = None,
     ) -> str:
         """Persist a content chunk and return its unique chunk id.
 
@@ -253,7 +253,7 @@ class KnowledgeStore(MemoryBackend):
         )
 
         # Merge provenance fields into metadata for easy access in results
-        combined_meta: Dict[str, Any] = dict(metadata or {})
+        combined_meta: dict[str, Any] = dict(metadata or {})
         combined_meta["chunk_id"] = chunk_id
         combined_meta["source"] = source
         combined_meta["source_id"] = source_id
@@ -341,13 +341,13 @@ class KnowledgeStore(MemoryBackend):
         query: str,
         *,
         top_k: int = 5,
-        source: Optional[str] = None,
-        doc_type: Optional[str] = None,
-        author: Optional[str] = None,
-        since: Optional[Union[datetime, str]] = None,
-        until: Optional[Union[datetime, str]] = None,
+        source: str | None = None,
+        doc_type: str | None = None,
+        author: str | None = None,
+        since: datetime | str | None = None,
+        until: datetime | str | None = None,
         **kwargs: Any,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """Search using FTS5 BM25 with optional column filters.
 
         Parameters
@@ -367,8 +367,8 @@ class KnowledgeStore(MemoryBackend):
         until_str = _to_iso(until) if until is not None else None
 
         # Build the WHERE clause for filter columns
-        filters: List[str] = []
-        params: List[Any] = []
+        filters: list[str] = []
+        params: list[Any] = []
 
         if source is not None:
             filters.append("kc.source = ?")
@@ -413,7 +413,7 @@ class KnowledgeStore(MemoryBackend):
             # Malformed FTS query — return empty rather than crash
             return []
 
-        results: List[RetrievalResult] = []
+        results: list[RetrievalResult] = []
         for row in rows:
             meta = json.loads(row["metadata"]) if row["metadata"] else {}
             # Ensure chunk_id is always present in metadata (backfill for
@@ -470,7 +470,7 @@ class KnowledgeStore(MemoryBackend):
         row = self._conn.execute("SELECT COUNT(*) FROM knowledge_chunks").fetchone()
         return row[0] if row else 0
 
-    def distinct_sources(self) -> List[str]:
+    def distinct_sources(self) -> list[str]:
         """Return the sorted list of distinct ``source`` values currently indexed.
 
         Used by the research agent to populate the system prompt with the

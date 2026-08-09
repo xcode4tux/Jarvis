@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List
 
 from openjarvis.security.types import ScanFinding, ThreatLevel
 
@@ -105,7 +104,7 @@ class InjectionScanResult:
     """Result of an injection scan."""
 
     is_clean: bool
-    findings: List[ScanFinding]
+    findings: list[ScanFinding]
     threat_level: ThreatLevel  # highest threat found
 
 

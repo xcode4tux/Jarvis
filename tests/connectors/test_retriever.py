@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 from unittest.mock import MagicMock
 
 import pytest
@@ -196,7 +195,7 @@ def test_retrieve_recall_k_larger_than_top_k(
     store: KnowledgeStore,
 ) -> None:
     """Stage-1 recall fetches max(recall_k, top_k*3) candidates."""
-    call_log: List[int] = []
+    call_log: list[int] = []
 
     class SpyStore(KnowledgeStore):
         def retrieve(self, query, *, top_k=5, **kwargs):  # type: ignore[override]

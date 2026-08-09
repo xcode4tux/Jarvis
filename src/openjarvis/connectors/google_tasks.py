@@ -5,9 +5,10 @@ Uses OAuth2 tokens via the shared Google OAuth helper module.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
 
 import httpx
 
@@ -22,8 +23,8 @@ _DEFAULT_CREDENTIALS_PATH = str(DEFAULT_CONFIG_DIR / "connectors" / "google_task
 
 
 def _tasks_api_get(
-    token: str, endpoint: str, params: Optional[Dict[str, str]] = None
-) -> Dict[str, Any]:
+    token: str, endpoint: str, params: dict[str, str] | None = None
+) -> dict[str, Any]:
     """Call a Google Tasks API v1 endpoint."""
     resp = httpx.get(
         f"{_TASKS_API_BASE}/{endpoint}",
@@ -69,7 +70,7 @@ class GoogleTasksConnector(BaseConnector):
             self._credentials_path.unlink()
 
     def sync(
-        self, *, since: Optional[datetime] = None, cursor: Optional[str] = None
+        self, *, since: datetime | None = None, cursor: str | None = None
     ) -> Iterator[Document]:
         # call_with_refresh handles the access-token read + one-shot 401 retry.
         task_lists = call_with_refresh(
@@ -81,7 +82,7 @@ class GoogleTasksConnector(BaseConnector):
             tl_title = tl.get("title", "My Tasks")
 
             # Get tasks from this list, updated since cutoff
-            params: Dict[str, str] = {
+            params: dict[str, str] = {
                 "showCompleted": "true",
                 "showHidden": "false",
             }

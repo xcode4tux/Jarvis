@@ -7,7 +7,8 @@ require a running Ollama daemon.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -33,9 +34,9 @@ class _MockEngine:
     the final entry — handy for "loop forever" mock behaviors.
     """
 
-    def __init__(self, responses: List[Dict[str, Any]]):
+    def __init__(self, responses: list[dict[str, Any]]):
         self._responses = list(responses)
-        self.calls: List[Dict[str, Any]] = []
+        self.calls: list[dict[str, Any]] = []
 
     def generate(
         self,
@@ -45,9 +46,9 @@ class _MockEngine:
         temperature: float = 0.0,
         max_tokens: int = 1024,
         num_ctx: int = 8192,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self.calls.append({"tools": tools, "messages": list(messages)})
         if self._responses:
             return (
@@ -58,7 +59,7 @@ class _MockEngine:
         return {"content": "", "tool_calls": [], "usage": {}}
 
 
-def _search_call(call_id: str, query: str = "anything") -> Dict[str, Any]:
+def _search_call(call_id: str, query: str = "anything") -> dict[str, Any]:
     return {
         "content": "",
         "tool_calls": [
@@ -72,7 +73,7 @@ def _search_call(call_id: str, query: str = "anything") -> Dict[str, Any]:
     }
 
 
-def _text_response(text: str) -> Dict[str, Any]:
+def _text_response(text: str) -> dict[str, Any]:
     return {
         "content": text,
         "tool_calls": [],
@@ -159,7 +160,7 @@ def test_clarify_before_any_search_is_rejected(stub_search: MagicMock) -> None:
     enforces this at runtime so a non-compliant planner can't surprise the
     user with a pre-emptive clarification.
     """
-    clarify_calls: List[str] = []
+    clarify_calls: list[str] = []
 
     def fake_clarify(q: str) -> str:
         clarify_calls.append(q)

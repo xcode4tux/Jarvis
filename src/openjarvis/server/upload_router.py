@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 import logging
 import uuid
-from typing import List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -25,10 +24,10 @@ _ALLOWED_EXTENSIONS = {".txt", ".md", ".csv", ".pdf", ".docx"}
 _MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-def _chunk_text(text: str, max_chars: int = 1000) -> List[str]:
+def _chunk_text(text: str, max_chars: int = 1000) -> list[str]:
     """Split *text* into ~max_chars pieces at paragraph boundaries."""
     paragraphs = text.split("\n\n")
-    chunks: List[str] = []
+    chunks: list[str] = []
     current = ""
     for para in paragraphs:
         para = para.strip()
@@ -42,7 +41,7 @@ def _chunk_text(text: str, max_chars: int = 1000) -> List[str]:
     if current.strip():
         chunks.append(current.strip())
     # Guard against very large paragraphs that exceed max_chars
-    final: List[str] = []
+    final: list[str] = []
     for chunk in chunks:
         while len(chunk) > max_chars:
             # Find last space within limit
@@ -155,8 +154,8 @@ async def ingest_paste(body: PasteRequest) -> IngestResponse:
 
 @router.post("/ingest/files", response_model=IngestResponse)
 async def ingest_files(
-    files: List[UploadFile] = File(...),
-    title: Optional[str] = Form(None),
+    files: list[UploadFile] = File(...),
+    title: str | None = Form(None),
 ) -> IngestResponse:
     """Ingest uploaded files into the knowledge store."""
     store = _get_store()

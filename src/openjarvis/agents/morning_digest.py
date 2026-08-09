@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
 from openjarvis.agents.digest_store import DigestArtifact, DigestStore
@@ -98,7 +98,7 @@ class MorningDigestAgent(ToolUsingAgent):
             "- STRICT LIMIT: 200 words. Be concise."
         )
 
-    def _resolve_sources(self) -> List[str]:
+    def _resolve_sources(self) -> list[str]:
         """Get the list of connector IDs to query."""
         default_source_map = {
             "messages": [
@@ -124,7 +124,7 @@ class MorningDigestAgent(ToolUsingAgent):
     def run(
         self,
         input: str,
-        context: Optional[AgentContext] = None,
+        context: AgentContext | None = None,
         **kwargs: Any,
     ) -> AgentResult:
         self._emit_turn_start(input)

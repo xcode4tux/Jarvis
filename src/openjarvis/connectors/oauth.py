@@ -10,14 +10,18 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
+import signal
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlencode
 
 from openjarvis.core import open_browser
 from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Connector credentials directory
@@ -38,23 +42,23 @@ class OAuthProvider:
     display_name: str
     auth_endpoint: str
     token_endpoint: str
-    scopes: List[str]
+    scopes: list[str]
     setup_url: str  # URL where user creates OAuth credentials
     setup_hint: str  # One-line instruction for setup
     callback_port: int = 8789
     callback_host: str = "127.0.0.1"
     callback_path: str = "/callback"
     token_auth: str = "body"  # "body" or "basic"
-    extra_auth_params: Dict[str, str] = field(default_factory=dict)
+    extra_auth_params: dict[str, str] = field(default_factory=dict)
     # Which connector IDs this provider covers (one flow → all connected)
-    connector_ids: Tuple[str, ...] = ()
+    connector_ids: tuple[str, ...] = ()
     # Filenames in ~/.openjarvis/connectors/ to save tokens to
-    credential_files: Tuple[str, ...] = ()
+    credential_files: tuple[str, ...] = ()
 
 
 # Combined scopes for all Google connectors so a single OAuth consent
 # authorises Drive, Calendar, Contacts, Gmail, and Tasks at once.
-GOOGLE_ALL_SCOPES: List[str] = [
+GOOGLE_ALL_SCOPES: list[str] = [
     "openid",
     "email",
     "profile",
@@ -68,7 +72,7 @@ GOOGLE_ALL_SCOPES: List[str] = [
     "https://www.googleapis.com/auth/tasks.readonly",
 ]
 
-OAUTH_PROVIDERS: Dict[str, OAuthProvider] = {
+OAUTH_PROVIDERS: dict[str, OAuthProvider] = {
     "google": OAuthProvider(
         name="google",
         display_name="Google",
@@ -121,7 +125,7 @@ OAUTH_PROVIDERS: Dict[str, OAuthProvider] = {
 }
 
 
-def get_provider_for_connector(connector_id: str) -> Optional[OAuthProvider]:
+def get_provider_for_connector(connector_id: str) -> OAuthProvider | None:
     """Return the OAuthProvider that covers *connector_id*, or ``None``."""
     for provider in OAUTH_PROVIDERS.values():
         if connector_id in provider.connector_ids:
@@ -136,7 +140,7 @@ def get_provider_for_connector(connector_id: str) -> Optional[OAuthProvider]:
 
 def get_client_credentials(
     provider: OAuthProvider,
-) -> Optional[Tuple[str, str]]:
+) -> tuple[str, str] | None:
     """Load stored client_id and client_secret for *provider*.
 
     Checks credential files in ``~/.openjarvis/connectors/`` and falls
@@ -182,7 +186,7 @@ _SHARED_GOOGLE_CREDENTIALS_PATH: str = str(_CONNECTORS_DIR / "google.json")
 
 _GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 _DEFAULT_REDIRECT_URI = "http://localhost:8789/callback"
-_DEFAULT_SCOPES: List[str] = ["openid", "email", "profile"]
+_DEFAULT_SCOPES: list[str] = ["openid", "email", "profile"]
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +197,7 @@ _DEFAULT_SCOPES: List[str] = ["openid", "email", "profile"]
 def build_google_auth_url(
     client_id: str,
     redirect_uri: str = _DEFAULT_REDIRECT_URI,
-    scopes: Optional[List[str]] = None,
+    scopes: list[str] | None = None,
 ) -> str:
     """Build a Google OAuth2 consent URL.
 
@@ -241,7 +245,7 @@ def resolve_google_credentials(connector_path: str) -> str:
     return connector_path
 
 
-def load_tokens(path: str) -> Optional[Dict[str, Any]]:
+def load_tokens(path: str) -> dict[str, Any] | None:
     """Load OAuth tokens from a JSON file.
 
     Returns ``None`` if the file is missing, unreadable, or contains
@@ -257,7 +261,7 @@ def load_tokens(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def save_tokens(path: str, tokens: Dict[str, Any]) -> None:
+def save_tokens(path: str, tokens: dict[str, Any]) -> None:
     """Persist *tokens* to *path* as JSON with owner-only (0o600) permissions.
 
     Creates parent directories as needed.
@@ -275,7 +279,7 @@ def delete_tokens(path: str) -> None:
         p.unlink()
 
 
-def refresh_google_token(path: str) -> Optional[str]:
+def refresh_google_token(path: str) -> str | None:
     """Refresh a Google access token using the stored refresh token.
 
     Reads the credentials file at *path*, exchanges its ``refresh_token``
@@ -341,7 +345,7 @@ def exchange_google_token(
     client_id: str,
     client_secret: str,
     redirect_uri: str = _DEFAULT_REDIRECT_URI,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Exchange an authorization code for access + refresh tokens.
 
     Parameters
@@ -381,10 +385,10 @@ def exchange_google_token(
 def run_oauth_flow(
     client_id: str,
     client_secret: str,
-    scopes: List[str],
+    scopes: list[str],
     credentials_path: str,
     redirect_uri: str = _DEFAULT_REDIRECT_URI,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the full OAuth flow: browser consent, callback, token exchange.
 
     Steps:
@@ -430,8 +434,8 @@ def run_oauth_flow(
     )
 
     # Mutable containers used by the callback handler closure.
-    auth_code: List[str] = []
-    error: List[str] = []
+    auth_code: list[str] = []
+    error: list[str] = []
 
     class _CallbackHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 — required override name
@@ -475,17 +479,28 @@ def run_oauth_flow(
         test_sock.bind(("127.0.0.1", port))
         test_sock.close()
     except OSError:
-        # Port in use — try to free it
+        # Port in use — find and kill the stale listener (best-effort),
+        # then wait briefly for the socket to be released.
         test_sock.close()
         import subprocess
-
-        subprocess.run(
-            ["lsof", "-t", "-i", f":{port}"],
-            capture_output=True,
-        )
-        # Wait briefly and retry
         import time
 
+        try:
+            result = subprocess.run(
+                ["lsof", "-t", "-i", f":{port}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            pids = [p for p in result.stdout.split() if p.isdigit()]
+            for pid in pids:
+                try:
+                    os.kill(int(pid), signal.SIGTERM)
+                    logger.info("Killed stale listener on port %d (pid %s)", port, pid)
+                except (OSError, ValueError) as exc:
+                    logger.debug("Could not kill pid %s: %s", pid, exc)
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            logger.warning("Could not inspect port %d with lsof: %s", port, exc)
         time.sleep(1)
 
     server = HTTPServer(("127.0.0.1", port), _CallbackHandler)
@@ -550,8 +565,8 @@ def _wait_for_callback_code(
     from http.server import BaseHTTPRequestHandler, HTTPServer
     from urllib.parse import parse_qs, urlparse
 
-    auth_code: List[str] = []
-    error: List[str] = []
+    auth_code: list[str] = []
+    error: list[str] = []
 
     class _Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
@@ -622,16 +637,16 @@ def _exchange_token(
     client_id: str,
     client_secret: str,
     redirect_uri: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Exchange an authorization *code* for tokens using *provider* config."""
     import httpx
 
-    data: Dict[str, str] = {
+    data: dict[str, str] = {
         "code": code,
         "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }
-    headers: Dict[str, str] = {}
+    headers: dict[str, str] = {}
 
     if provider.token_auth == "basic":
         creds = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
@@ -649,7 +664,7 @@ def run_connector_oauth(
     connector_id: str,
     client_id: str = "",
     client_secret: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a complete OAuth flow for *connector_id*.
 
     1. Look up the ``OAuthProvider``
@@ -683,7 +698,7 @@ def run_connector_oauth(
     )
 
     # Build auth URL
-    params: Dict[str, str] = {
+    params: dict[str, str] = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",

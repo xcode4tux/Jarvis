@@ -7,7 +7,6 @@ import os
 import signal
 import subprocess
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +39,15 @@ class SandboxResult:
 
 
 def build_safe_env(
-    passthrough: Optional[List[str]] = None,
-    extra: Optional[Dict[str, str]] = None,
-) -> Dict[str, str]:
+    passthrough: list[str] | None = None,
+    extra: dict[str, str] | None = None,
+) -> dict[str, str]:
     """Build a sanitized environment dict.
 
     Only copies safe vars from current env, plus any in passthrough list.
     Extra vars are added directly.
     """
-    env: Dict[str, str] = {}
+    env: dict[str, str] = {}
     allowed = _SAFE_ENV_VARS | frozenset(passthrough or [])
     for key in allowed:
         val = os.environ.get(key)
@@ -75,9 +74,9 @@ def run_sandboxed(
     command: str,
     *,
     timeout: float = 30.0,
-    working_dir: Optional[str] = None,
-    env_passthrough: Optional[List[str]] = None,
-    env_extra: Optional[Dict[str, str]] = None,
+    working_dir: str | None = None,
+    env_passthrough: list[str] | None = None,
+    env_extra: dict[str, str] | None = None,
     max_output_bytes: int = 102_400,
 ) -> SandboxResult:
     """Execute a command in a sandboxed subprocess.

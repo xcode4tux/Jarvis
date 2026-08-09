@@ -9,7 +9,6 @@ both training and evaluation.
 from __future__ import annotations
 
 import time
-from typing import List, Tuple
 
 from openjarvis.core.types import ToolCall
 from openjarvis.learning.intelligence.orchestrator.types import (
@@ -33,7 +32,7 @@ class OrchestratorEnvironment:
 
     def __init__(
         self,
-        tools: List[BaseTool],
+        tools: list[BaseTool],
         max_turns: int = 10,
     ) -> None:
         self._tools = tools
@@ -55,7 +54,7 @@ class OrchestratorEnvironment:
         self,
         state: EpisodeState,
         action: OrchestratorAction,
-    ) -> Tuple[EpisodeState, OrchestratorObservation]:
+    ) -> tuple[EpisodeState, OrchestratorObservation]:
         """Execute one step: dispatch the tool and observe the result.
 
         Raises:
@@ -104,7 +103,7 @@ class OrchestratorEnvironment:
             return True
         return False
 
-    def get_available_tools(self) -> List[str]:
+    def get_available_tools(self) -> list[str]:
         """Return names of all available tools."""
         return [t.spec.name for t in self._tools]
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from openjarvis.a2a.protocol import A2ARequest, A2ATask, AgentCard
 
@@ -17,7 +17,7 @@ class A2AClient:
     def __init__(self, base_url: str, *, timeout: float = 30.0) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
-        self._card: Optional[AgentCard] = None
+        self._card: AgentCard | None = None
 
     def discover(self) -> AgentCard:
         """Fetch the agent card from /.well-known/agent.json."""

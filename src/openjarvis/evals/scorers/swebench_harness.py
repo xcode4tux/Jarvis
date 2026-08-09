@@ -47,7 +47,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from openjarvis.evals.core.scorer import Scorer
 from openjarvis.evals.core.types import EvalRecord
@@ -60,7 +60,7 @@ def _run_subprocess_hard_timeout(
     *,
     timeout_s: int,
     cwd: str,
-) -> "subprocess.CompletedProcess":
+) -> subprocess.CompletedProcess:
     """Run ``cmd`` with a timeout that is actually enforced.
 
     ``subprocess.run(..., capture_output=True, timeout=...)`` has a
@@ -308,7 +308,7 @@ _FENCE_PATTERNS = [
 ]
 
 
-def extract_patch(text: str) -> Optional[str]:
+def extract_patch(text: str) -> str | None:
     """Pull a unified diff out of agent output. ``None`` if not found."""
     if not text:
         return None
@@ -339,7 +339,7 @@ def _harness_cache_dir() -> Path:
     return cache
 
 
-def _find_report(cache: Path, instance_id: str, run_id: str) -> Optional[Dict[str, Any]]:
+def _find_report(cache: Path, instance_id: str, run_id: str) -> dict[str, Any] | None:
     """Find the harness's report JSON for one instance.
 
     swebench writes ``<model_name_or_path>.<run_id>.json`` inside the
@@ -371,7 +371,7 @@ def _sanitize_run_id_part(s: str) -> str:
     return _RUN_ID_SAFE_RE.sub("-", s).strip("-")
 
 
-def _build_run_id(instance_id: str, cell_name: Optional[str]) -> str:
+def _build_run_id(instance_id: str, cell_name: str | None) -> str:
     """Construct a swebench ``run_id`` unique per (cell, instance).
 
     The harness keys both its "already run, skipping" cache and its report
@@ -401,8 +401,8 @@ def _run_harness(
     instance_id: str,
     patch: str,
     timeout_s: int,
-    cell_name: Optional[str] = None,
-) -> Dict[str, Any]:
+    cell_name: str | None = None,
+) -> dict[str, Any]:
     """Hand one prediction to ``python -m swebench.harness.run_evaluation``.
 
     Returns ``{"success": bool, "score": float, "details": dict}``.
@@ -514,7 +514,7 @@ class SWEBenchHarnessScorer(Scorer):
         self,
         *,
         timeout_s: int = 1800,
-        cell_name: Optional[str] = None,
+        cell_name: str | None = None,
         judge_backend: object = None,  # noqa: ARG002 — CLI factory compat
         judge_model: str = "",         # noqa: ARG002 — CLI factory compat
     ) -> None:
@@ -530,7 +530,7 @@ class SWEBenchHarnessScorer(Scorer):
         self,
         record: EvalRecord,
         model_answer: str,
-    ) -> Tuple[Optional[bool], Dict[str, Any]]:
+    ) -> tuple[bool | None, dict[str, Any]]:
         if not model_answer or not model_answer.strip():
             return False, {"reason": "empty_response"}
 

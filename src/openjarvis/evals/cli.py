@@ -6,7 +6,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -174,15 +173,15 @@ def _setup_logging(verbose: bool) -> None:
 
 def _build_backend(
     backend_name: str,
-    engine_key: Optional[str],
+    engine_key: str | None,
     agent_name: str,
     tools: list[str],
     telemetry: bool = False,
     gpu_metrics: bool = False,
-    model: Optional[str] = None,
-    max_turns: Optional[int] = None,
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model: str | None = None,
+    max_turns: int | None = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
 ):
     """Construct the appropriate backend.
 
@@ -601,9 +600,9 @@ def _build_judge_backend(judge_model: str, engine_key: str = "cloud"):
 
 def _print_summary(
     summary,
-    console: Optional[Console] = None,
-    output_path: Optional[Path] = None,
-    traces_dir: Optional[Path] = None,
+    console: Console | None = None,
+    output_path: Path | None = None,
+    traces_dir: Path | None = None,
     *,
     compact: bool = False,
     trace_detail: bool = False,
@@ -711,7 +710,7 @@ def _run_terminalbench_native(config, console: Console) -> object:
     )
 
 
-def _run_single(config, console: Optional[Console] = None) -> object:
+def _run_single(config, console: Console | None = None) -> object:
     """Run a single eval from a RunConfig and return the summary."""
     from openjarvis.evals.core.runner import EvalRunner
 
@@ -791,10 +790,10 @@ def _run_single(config, console: Optional[Console] = None) -> object:
 
 def _run_agentic(
     config,
-    console: Optional[Console] = None,
+    console: Console | None = None,
     *,
     concurrency: int = 1,
-    query_timeout: Optional[float] = None,
+    query_timeout: float | None = None,
 ) -> None:
     """Run an agentic evaluation using AgenticRunner with trace + energy capture."""
     import asyncio
@@ -1454,9 +1453,13 @@ def run_all(
                         total=max_samples,
                     )
                     summary = runner.run(
-                        progress_callback=lambda done, total: progress.update(
-                            task,
-                            completed=done,
+                        # Bind the current task id so the callback is safe
+                        # even if invoked after the loop advances (B023).
+                        progress_callback=(
+                            lambda done, total, task=task: progress.update(
+                                task,
+                                completed=done,
+                            )
                         ),
                     )
             else:

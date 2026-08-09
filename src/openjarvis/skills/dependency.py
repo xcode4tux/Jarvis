@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import TYPE_CHECKING, Dict, List, Set
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from openjarvis.skills.types import SkillManifest
@@ -17,7 +17,7 @@ class DepthExceededError(Exception):
     """Raised when the dependency depth exceeds the configured maximum."""
 
 
-def build_dependency_graph(skills: Dict[str, "SkillManifest"]) -> Dict[str, Set[str]]:
+def build_dependency_graph(skills: dict[str, SkillManifest]) -> dict[str, set[str]]:
     """Build a directed graph of skill dependencies.
 
     Each key maps to the set of skill names it directly depends on, drawn from
@@ -32,7 +32,7 @@ def build_dependency_graph(skills: Dict[str, "SkillManifest"]) -> Dict[str, Set[
     Returns:
         Dict mapping each skill name to the set of its direct dependencies.
     """
-    graph: Dict[str, Set[str]] = {name: set() for name in skills}
+    graph: dict[str, set[str]] = {name: set() for name in skills}
 
     for name, manifest in skills.items():
         # Explicit depends list
@@ -49,10 +49,10 @@ def build_dependency_graph(skills: Dict[str, "SkillManifest"]) -> Dict[str, Set[
 
 
 def validate_dependencies(
-    skills: Dict[str, "SkillManifest"],
+    skills: dict[str, SkillManifest],
     *,
     max_depth: int = 5,
-) -> List[str]:
+) -> list[str]:
     """Validate the skill dependency graph and return a topological ordering.
 
     Uses Kahn's algorithm for topological sort and cycle detection.  After a
@@ -74,13 +74,13 @@ def validate_dependencies(
     graph = build_dependency_graph(skills)
 
     # --- Kahn's algorithm ---
-    in_degree: Dict[str, int] = {name: 0 for name in graph}
+    in_degree: dict[str, int] = {name: 0 for name in graph}
     for name in graph:
         for dep in graph[name]:
             in_degree[dep]  # ensure present (already is, but be explicit)
 
     # Count how many skills depend on each node
-    reverse: Dict[str, Set[str]] = {name: set() for name in graph}
+    reverse: dict[str, set[str]] = {name: set() for name in graph}
     for name, deps in graph.items():
         for dep in deps:
             reverse[dep].add(name)
@@ -90,7 +90,7 @@ def validate_dependencies(
     in_degree = {name: len(deps) for name, deps in graph.items()}
 
     queue: deque[str] = deque(name for name, deg in in_degree.items() if deg == 0)
-    order: List[str] = []
+    order: list[str] = []
 
     while queue:
         node = queue.popleft()
@@ -107,9 +107,9 @@ def validate_dependencies(
         )
 
     # --- Depth enforcement via DFS ---
-    depth_cache: Dict[str, int] = {}
+    depth_cache: dict[str, int] = {}
 
-    def _depth(name: str, visiting: Set[str]) -> int:
+    def _depth(name: str, visiting: set[str]) -> int:
         if name in depth_cache:
             return depth_cache[name]
         deps = graph.get(name, set())
@@ -135,8 +135,8 @@ def validate_dependencies(
 
 def compute_capability_union(
     skill_name: str,
-    skills: Dict[str, "SkillManifest"],
-) -> List[str]:
+    skills: dict[str, SkillManifest],
+) -> list[str]:
     """Compute the union of all required_capabilities transitively needed by a skill.
 
     Performs a DFS over the dependency graph, collecting ``required_capabilities``
@@ -155,9 +155,9 @@ def compute_capability_union(
         return []
 
     graph = build_dependency_graph(skills)
-    seen_skills: Set[str] = set()
-    seen_caps: Set[str] = set()
-    caps_ordered: List[str] = []
+    seen_skills: set[str] = set()
+    seen_caps: set[str] = set()
+    caps_ordered: list[str] = []
 
     def _dfs(name: str) -> None:
         if name in seen_skills:

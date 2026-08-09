@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 from openjarvis.agents._stubs import AgentResult
@@ -26,8 +26,8 @@ class FakeChannel(BaseChannel):
     channel_id = "fake"
 
     def __init__(self) -> None:
-        self._handlers: List[ChannelHandler] = []
-        self._sent: List[Dict[str, Any]] = []
+        self._handlers: list[ChannelHandler] = []
+        self._sent: list[dict[str, Any]] = []
 
     # BaseChannel abstract methods
     def connect(self) -> None:  # noqa: D102
@@ -42,7 +42,7 @@ class FakeChannel(BaseChannel):
         content: str,
         *,
         conversation_id: str = "",
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         self._sent.append(
             {
@@ -56,7 +56,7 @@ class FakeChannel(BaseChannel):
     def status(self) -> ChannelStatus:  # noqa: D102
         return ChannelStatus.CONNECTED
 
-    def list_channels(self) -> List[str]:  # noqa: D102
+    def list_channels(self) -> list[str]:  # noqa: D102
         return ["fake"]
 
     def on_message(self, handler: ChannelHandler) -> None:  # noqa: D102

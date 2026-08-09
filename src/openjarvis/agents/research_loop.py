@@ -19,9 +19,10 @@ import json
 import logging
 import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 from openjarvis.connectors.hybrid_search import HybridSearch, SearchHit
 from openjarvis.core.types import Message, Role, ToolCall
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_PLANNER_MODEL = "gemma4:31b"
 
 
-CLARIFY_TOOL_SPEC: Dict[str, Any] = {
+CLARIFY_TOOL_SPEC: dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "clarify",
@@ -62,7 +63,7 @@ CLARIFY_TOOL_SPEC: Dict[str, Any] = {
 }
 
 
-SEARCH_TOOL_SPEC: Dict[str, Any] = {
+SEARCH_TOOL_SPEC: dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "search",
@@ -162,7 +163,7 @@ Today's date is {today}.
 # ---------------------------------------------------------------------------
 
 
-def _trim_thread_context(ctx: List[Dict[str, Any]], cap: int) -> List[Dict[str, Any]]:
+def _trim_thread_context(ctx: list[dict[str, Any]], cap: int) -> list[dict[str, Any]]:
     """Keep the first ``cap`` entries; mark elision when trimming."""
     if len(ctx) <= cap:
         return ctx
@@ -172,13 +173,13 @@ def _trim_thread_context(ctx: List[Dict[str, Any]], cap: int) -> List[Dict[str, 
 
 
 def shape_results_for_model(
-    hits: List[SearchHit],
+    hits: list[SearchHit],
     *,
     detailed_top: int = 5,
     thread_ctx_per_hit: int = 3,
     total_cap: int = 20,
     ref_offset: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compact a hit list into a JSON payload the planner can chew through.
 
     The first ``detailed_top`` rows keep their content snippet and trimmed
@@ -189,7 +190,7 @@ def shape_results_for_model(
     multi-search runs hand the planner globally unique refs across calls so
     a later renumbering pass can dedupe by first appearance.
     """
-    out_hits: List[Dict[str, Any]] = []
+    out_hits: list[dict[str, Any]] = []
     visible = hits[:total_cap]
     for i, h in enumerate(visible):
         sender = h.participants[0] if h.participants else ""
@@ -303,8 +304,8 @@ _CITE_RE = re.compile(r"\[(\d+)\]")
 
 def renumber_citations(
     text: str,
-    ref_to_source: Dict[int, Dict[str, Any]],
-) -> Tuple[str, List[Dict[str, Any]]]:
+    ref_to_source: dict[int, dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
     """Renumber ``[N]`` citations in ``text`` by first-appearance order.
 
     The planner sees globally-offset refs across multiple search calls
@@ -331,8 +332,8 @@ def renumber_citations(
         source dicts in the order they appear in the synthesis, each
         with its ``ref`` field set to the new sequence number.
     """
-    old_to_new: Dict[int, int] = {}
-    ordered: List[Dict[str, Any]] = []
+    old_to_new: dict[int, int] = {}
+    ordered: list[dict[str, Any]] = []
     for m in _CITE_RE.finditer(text):
         try:
             old = int(m.group(1))
@@ -351,7 +352,7 @@ def renumber_citations(
         renumbered_src["ref"] = new_ref
         ordered.append(renumbered_src)
 
-    def _replace(match: "re.Match[str]") -> str:
+    def _replace(match: re.Match[str]) -> str:
         try:
             old = int(match.group(1))
         except ValueError:
@@ -364,11 +365,11 @@ def renumber_citations(
 
 
 def build_sources_for_client(
-    hits: List[SearchHit],
+    hits: list[SearchHit],
     *,
     total_cap: int = 20,
     ref_offset: int = 0,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Produce the citation-friendly sources list streamed to the frontend.
 
     One entry per hit, in the same order the planner sees them — so a
@@ -377,7 +378,7 @@ def build_sources_for_client(
     same email each get their own citation slot since the planner may quote
     different parts.
     """
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for i, h in enumerate(hits[:total_cap]):
         sender = h.participants[0] if h.participants else ""
         # Prefer the URL the connector stored at ingest time (Granola's
@@ -414,10 +415,10 @@ class ToolInvocation:
     clarify calls, ``response`` holds the user's answer.
     """
 
-    arguments: Dict[str, Any]
+    arguments: dict[str, Any]
     num_results: int = 0
-    top_titles: List[str] = field(default_factory=list)
-    raw_hits: List[SearchHit] = field(default_factory=list)
+    top_titles: list[str] = field(default_factory=list)
+    raw_hits: list[SearchHit] = field(default_factory=list)
     tool_name: str = "search"
     response: str = ""
 
@@ -441,8 +442,8 @@ def _default_clarify_handler(question: str) -> str:
 class ResearchResult:
     answer: str
     iterations: int
-    tool_calls: List[ToolInvocation]
-    usage: Dict[str, int] = field(default_factory=dict)
+    tool_calls: list[ToolInvocation]
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 class ResearchAgent:
@@ -483,9 +484,9 @@ class ResearchAgent:
         temperature: float = 0.3,
         max_tokens: int = 1500,
         num_ctx: int = 16384,
-        clarify_handler: Optional[Callable[[str], str]] = None,
-        on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
-        available_sources: Optional[List[str]] = None,
+        clarify_handler: Callable[[str], str] | None = None,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
+        available_sources: list[str] | None = None,
     ) -> None:
         self._engine = engine
         self._search = search
@@ -501,7 +502,7 @@ class ResearchAgent:
         # even as the user connects new connectors mid-session.
         self._available_sources_override = available_sources
 
-    def _emit(self, event: Dict[str, Any]) -> None:
+    def _emit(self, event: dict[str, Any]) -> None:
         """Fire ``self._on_event`` if set; swallow callback errors."""
         if self._on_event is None:
             return
@@ -531,7 +532,7 @@ class ResearchAgent:
             return None
         return (start, end)
 
-    def _execute_search(self, args: Dict[str, Any]) -> ToolInvocation:
+    def _execute_search(self, args: dict[str, Any]) -> ToolInvocation:
         query = str(args.get("query", "") or "")
         person = args.get("person") or None
         time_range = self._parse_time_range(args.get("time_range"))
@@ -567,7 +568,7 @@ class ResearchAgent:
             raw_hits=hits,
         )
 
-    def _execute_clarify(self, args: Dict[str, Any]) -> ToolInvocation:
+    def _execute_clarify(self, args: dict[str, Any]) -> ToolInvocation:
         question = str(args.get("question", "") or "").strip()
         if not question:
             return ToolInvocation(
@@ -586,7 +587,7 @@ class ResearchAgent:
     # Loop
     # ------------------------------------------------------------------
 
-    def _resolve_available_sources(self) -> List[str]:
+    def _resolve_available_sources(self) -> list[str]:
         """Return the source IDs the user actually has data for.
 
         Override > live query of the KnowledgeStore. Failure to read the
@@ -621,9 +622,9 @@ class ResearchAgent:
                 available_sources=sources_blurb,
             ),
         )
-        messages: List[Message] = [sys_msg, Message(role=Role.USER, content=query)]
+        messages: list[Message] = [sys_msg, Message(role=Role.USER, content=query)]
 
-        invocations: List[ToolInvocation] = []
+        invocations: list[ToolInvocation] = []
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         # Global ref counter: each search increments by the number of hits
@@ -631,9 +632,9 @@ class ResearchAgent:
         # accumulator lets us renumber whatever the synthesis cites at the
         # end into a single deduped client-facing sources list.
         next_ref: int = 1
-        ref_to_source: Dict[int, Dict[str, Any]] = {}
+        ref_to_source: dict[int, dict[str, Any]] = {}
 
-        def _finalize(text: str) -> Tuple[str, List[Dict[str, Any]]]:
+        def _finalize(text: str) -> tuple[str, list[dict[str, Any]]]:
             return renumber_citations(text, ref_to_source)
 
         iterations = 0

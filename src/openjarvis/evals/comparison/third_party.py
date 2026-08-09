@@ -13,7 +13,6 @@ import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
 
 import tomllib
 
@@ -65,7 +64,7 @@ class ThirdPartyEntry:
 class ThirdPartyConfig:
     """Top-level config: a map from framework name -> entry."""
 
-    entries: Dict[str, ThirdPartyEntry] = field(default_factory=dict)
+    entries: dict[str, ThirdPartyEntry] = field(default_factory=dict)
 
 
 def _default_toml_path() -> Path:
@@ -78,7 +77,7 @@ def _default_toml_path() -> Path:
     )
 
 
-def load_third_party_config(toml_path: Optional[Path] = None) -> ThirdPartyConfig:
+def load_third_party_config(toml_path: Path | None = None) -> ThirdPartyConfig:
     """Load the third-party config, applying env-var path overrides.
 
     Raises:
@@ -95,7 +94,7 @@ def load_third_party_config(toml_path: Optional[Path] = None) -> ThirdPartyConfi
     with open(toml_path, "rb") as fh:
         raw = tomllib.load(fh)
 
-    entries: Dict[str, ThirdPartyEntry] = {}
+    entries: dict[str, ThirdPartyEntry] = {}
     for name, body in raw.items():
         path_env = _PATH_ENV_VAR.get(name)
         path_str = os.environ.get(path_env, body["path"]) if path_env else body["path"]

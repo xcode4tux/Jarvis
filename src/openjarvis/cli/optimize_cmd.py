@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -70,8 +69,8 @@ def optimize_group() -> None:
     help="Directory for trial output files.",
 )
 def optimize_run(
-    config_path: Optional[str],
-    benchmark: Optional[str],
+    config_path: str | None,
+    benchmark: str | None,
     trials: int,
     optimizer_model: str,
     max_samples: int,
@@ -352,7 +351,7 @@ def optimize_results(run_id: str) -> None:
     default=None,
     help="Output recipe path (TOML).",
 )
-def optimize_best(run_id: str, output: Optional[str]) -> None:
+def optimize_best(run_id: str, output: str | None) -> None:
     """Export best recipe from an optimization run."""
     console = Console()
 

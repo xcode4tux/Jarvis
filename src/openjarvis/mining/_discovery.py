@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Tuple
 
 import httpx
 
@@ -112,7 +111,7 @@ def _docker_client():  # pragma: no cover - trivial wrapper, mocked in tests
     return docker.from_env()
 
 
-def check_docker_available() -> Tuple[bool, str]:
+def check_docker_available() -> tuple[bool, str]:
     try:
         c = _docker_client()
         c.ping()
@@ -122,7 +121,7 @@ def check_docker_available() -> Tuple[bool, str]:
         return False, str(e).splitlines()[0]
 
 
-def check_disk_free(path: Path) -> Tuple[bool, str]:
+def check_disk_free(path: Path) -> tuple[bool, str]:
     from openjarvis.mining._constants import MIN_FREE_DISK_GB
 
     usage = shutil.disk_usage(path)
@@ -132,7 +131,7 @@ def check_disk_free(path: Path) -> Tuple[bool, str]:
     return True, f"{free_gb:.0f} GB free"
 
 
-def check_pearld_reachable(url: str, user: str, password: str) -> Tuple[bool, str]:
+def check_pearld_reachable(url: str, user: str, password: str) -> tuple[bool, str]:
     """Probe pearld via JSON-RPC ``getblockchaininfo``."""
     try:
         resp = httpx.post(
@@ -161,7 +160,7 @@ def check_pearld_reachable(url: str, user: str, password: str) -> Tuple[bool, st
         return False, str(e).splitlines()[0]
 
 
-def check_wallet_address_format(address: str) -> Tuple[bool, str]:
+def check_wallet_address_format(address: str) -> tuple[bool, str]:
     """Pearl bech32/bech32m addresses begin with ``prl1q...`` or ``prl1p...``.
 
     We do *not* attempt to validate the bech32 checksum — that's a stronger

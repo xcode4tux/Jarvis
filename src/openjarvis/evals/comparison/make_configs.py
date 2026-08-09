@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
 
 import click
 
@@ -18,14 +17,14 @@ import click
 # Extend these dicts to add new frameworks / models / benchmarks.
 # ---------------------------------------------------------------------------
 
-FRAMEWORKS: Dict[str, Dict[str, str]] = {
+FRAMEWORKS: dict[str, dict[str, str]] = {
     "openjarvis": {"backend_id": "jarvis-agent"},
     "openjarvis-distilled": {"backend_id": "jarvis-agent"},
     "hermes": {"backend_id": "hermes"},
     "openclaw": {"backend_id": "openclaw"},
 }
 
-MODELS: Dict[str, Dict[str, object]] = {
+MODELS: dict[str, dict[str, object]] = {
     "claude-opus-46": {
         "model_id": "claude-opus-4-6",
         "model_pretty": "Claude Opus 4.6",
@@ -49,7 +48,7 @@ MODELS: Dict[str, Dict[str, object]] = {
     },
 }
 
-BENCHMARKS: Dict[str, Dict[str, object]] = {
+BENCHMARKS: dict[str, dict[str, object]] = {
     "toolcall15": {
         "max_samples": 15,
         "tools": ["think", "calculator"],
@@ -118,7 +117,7 @@ def materialize_config(
     framework: str,
     model: str,
     benchmark: str,
-    output_dir: Optional[Path] = None,
+    output_dir: Path | None = None,
     judge_model: str = DEFAULT_JUDGE_MODEL,
 ) -> Path:
     """Materialize one TOML config from the template."""
@@ -176,10 +175,10 @@ def materialize_config(
     help="Materialize the full configs grid (4 frameworks x 8 benchmarks x 3 models)",
 )
 def main(
-    framework: Optional[str],
-    model: Optional[str],
-    benchmark: Optional[str],
-    output_dir: Optional[Path],
+    framework: str | None,
+    model: str | None,
+    benchmark: str | None,
+    output_dir: Path | None,
     all_tier1: bool,
 ) -> None:
     """Generate eval config TOMLs for the framework-comparison experiment."""

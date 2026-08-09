@@ -13,8 +13,9 @@ module as the source of truth.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 PropertyValidator = Callable[[Any], bool]
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from openjarvis.agents._stubs import BaseAgent
@@ -25,35 +25,35 @@ if TYPE_CHECKING:
 class SecurityContext:
     """Security policy, audit, and boundary enforcement."""
 
-    capability_policy: Optional[CapabilityPolicy] = None
-    audit_logger: Optional[AuditLogger] = None
-    boundary_guard: Optional[BoundaryGuard] = None
+    capability_policy: CapabilityPolicy | None = None
+    audit_logger: AuditLogger | None = None
+    boundary_guard: BoundaryGuard | None = None
 
 
 @dataclass
 class Observability:
     """Telemetry, traces, and hardware monitoring."""
 
-    telemetry_store: Optional[TelemetryStore] = None
-    trace_store: Optional[TraceStore] = None
-    trace_collector: Optional[TraceCollector] = None
-    gpu_monitor: Optional[GpuMonitor] = None
+    telemetry_store: TelemetryStore | None = None
+    trace_store: TraceStore | None = None
+    trace_collector: TraceCollector | None = None
+    gpu_monitor: GpuMonitor | None = None
 
 
 @dataclass
 class AgentRuntime:
     """Active agent and agent lifecycle managers."""
 
-    agent: Optional[BaseAgent] = None
+    agent: BaseAgent | None = None
     agent_name: str = ""
-    manager: Optional[AgentManager] = None
-    scheduler: Optional[AgentScheduler] = None
-    executor: Optional[AgentExecutor] = None
+    manager: AgentManager | None = None
+    scheduler: AgentScheduler | None = None
+    executor: AgentExecutor | None = None
 
 
 @dataclass
 class Scheduling:
     """Task scheduler and its persistent store."""
 
-    store: Optional[SchedulerStore] = None
-    runner: Optional[TaskScheduler] = None
+    store: SchedulerStore | None = None
+    runner: TaskScheduler | None = None

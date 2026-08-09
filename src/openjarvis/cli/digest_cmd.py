@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import subprocess
 import threading
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -81,7 +80,7 @@ def _save_digest_schedule(enabled: bool, cron: str) -> None:
     config_path.write_text("\n".join(new_lines))
 
 
-def _create_scheduler_task(cron: str) -> Optional[str]:
+def _create_scheduler_task(cron: str) -> str | None:
     """Create a digest task in the TaskScheduler. Returns task ID or None."""
     try:
         from openjarvis.scheduler.scheduler import TaskScheduler
@@ -150,7 +149,7 @@ def digest(
     history: bool,
     section: str,
     db_path: str,
-    schedule: Optional[str],
+    schedule: str | None,
 ) -> None:
     """Display and optionally play the morning digest."""
     console = Console()
