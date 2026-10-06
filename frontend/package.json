@@ -28,7 +28,7 @@
     "@tauri-apps/plugin-updater": "^2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "katex": "^0.16.38",
+    "katex": "^0.16.47",
     "lucide-react": "^0.576.0",
     "motion": "^12.38.0",
     "posthog-js": "^1.373.2",
